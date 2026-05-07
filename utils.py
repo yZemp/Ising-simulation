@@ -78,6 +78,28 @@ def metropolis_ising(target: callable, model: IsingModel, steps: int, min = 0, m
     return energies_samples[burn_in:], models_samples[burn_in:]
 
 
+#####################################################################
+# Operators that act on models configurations
+#####################################################################
+
+# Hope is to, one day, abandon the class implementation of the Ising model.
+# ==> Just use array of integers for the spins
+#     with operators acting on them 
+
+def energy(model: IsingModel):
+    interaction_energy = - model.J * sum(
+            np.sum(model.spins * np.roll(model.spins, 1, axis = axis))
+            for axis in range(model.spins.ndim)
+        )
+    
+    return interaction_energy
+
+
+def magnetization(model: IsingModel):
+    return abs(np.sum(model.spins))
+
+
+
 if __name__ == "__main__":
     arrx = np.linspace(0, 1000)
     for temp in range(1, 1000, 100):
