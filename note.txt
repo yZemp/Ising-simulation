@@ -1,0 +1,4 @@
+Cose interessanti:
+1) Istogramma in funzione di T (a T basse la distribuzione si aggira attorno a -N,
+per T alte si sposta vicino a 0. Questo siccome la grandezza minimizzata e` energia libera di Helmholtz, non energia interna)
+2) Istogramma in funzione di N (con N basso si creano dei gap nell'istogramma. Alcune energie non sono raggiungibili)
