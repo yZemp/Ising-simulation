@@ -11,10 +11,9 @@ class IsingModel:
         self.spins = np.random.randint(0, 2, size = N).astype(np.int8) * 2 - 1
 
     def energy(self):
-        interaction_energy = sum(
-            np.sum(self.spins * np.roll(self.spins, 1, axis = axis))
-            for axis in range(self.spins.ndim)
-        )
+        interaction_energy = 0
+        for axis in range(self.spins.ndim):
+            interaction_energy += np.sum(self.spins * np.roll(self.spins, shift = 1, axis = axis))
 
         # temporary: ignore external field contribution to energy
         # field_energy = np.sum(self.spins)
@@ -33,11 +32,12 @@ class IsingModel:
         return new_model
 
     def __repr__(self):
-        return f"IsingModel_1D:\n{self.spins}"
+        return f"IsingModel_{self.N}D:\n{self.spins}"
 
 
 if __name__ == "__main__":
     np.random.seed(0)
-    m = IsingModel(100)
+    m = IsingModel((2, 2))
+    m.spins = np.array([[1, -1], [-1, 1]])
     print(m)
     print(m.energy())

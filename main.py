@@ -66,16 +66,16 @@ def mcmc_sampling(N = 20, dim = 2, beta = .3, sample_length = 10):
 def magnetization_per_beta():
     # This doesn't work at all! :D
 
-    betas = np.arange(0, 3.0, .1)
-    magns = np.zeros_like(betas)
-    for i, beta in enumerate(betas):
-        _, models = mcmc_sampling(N = 100, dim = 1, beta = beta, sample_length = 20)
+    temps = np.arange(0, 3.0, .1)
+    magns = np.zeros_like(temps)
+    for i, t in enumerate(temps):
+        _, models = mcmc_sampling(N = 15, dim = 2, beta = 1 / t, sample_length = 20)
         magns[i] = np.mean([magnetization(model) for model in models])
     
-    plt.plot(betas, magns, marker = 'o')
-    plt.xlabel('Beta (Inverse Temperature)')
+    plt.plot(temps, magns, marker = 'o')
+    plt.xlabel('T (Temperature)')
     plt.ylabel('Magnetization')
-    plt.title("N = 100, dim = 1, sample_length = 20")
+    plt.title("N = 15, dim = 2, sample_length = 20")
     plt.grid()
     plt.show()
 
