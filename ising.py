@@ -8,7 +8,7 @@ class IsingModel:
         self.N = N
         self.J = J
         self.h = h
-        self.spins = np.random.default_rng().integers(0, 2, size = N, dtype = np.int8) * 2 - 1
+        self.spins = np.random.randint(0, 2, size = N).astype(np.int8) * 2 - 1
 
     def energy(self):
         interaction_energy = sum(

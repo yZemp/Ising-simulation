@@ -87,6 +87,10 @@ def metropolis_ising(target: callable, model: IsingModel, steps: int, min = 0, m
 #     with operators acting on them 
 
 def energy(model: IsingModel):
+    '''
+    Given an Ising model, compute its energy.
+    '''
+
     interaction_energy = - model.J * sum(
             np.sum(model.spins * np.roll(model.spins, 1, axis = axis))
             for axis in range(model.spins.ndim)
@@ -96,7 +100,11 @@ def energy(model: IsingModel):
 
 
 def magnetization(model: IsingModel):
-    return abs(np.sum(model.spins))
+    '''
+    Given an Ising model, compute its magnetization.
+    '''
+
+    return abs(np.sum(model.spins)) / model.spins.size
 
 
 

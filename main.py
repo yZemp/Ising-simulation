@@ -4,7 +4,7 @@ from iminuit import Minuit
 from scipy.stats import norm
 from ising import IsingModel
 from mcmc import metropolis, maxwell_boltzmann_statistics
-from utils import metropolis_ising, magnetization
+from utils import energy, metropolis_ising, magnetization
 from graphics import animate, array_to_png
 
 def anim_mcmc_1D():
@@ -34,13 +34,22 @@ def anim_mcmc_2D():
     animate(frames, fps = fps, filename = 'tmp.gif')
 
 
-def mcmc_sampling(N = 20, beta = .3, sample_length = 10):
+def mcmc_sampling(N = 20, dim = 2, beta = .3, sample_length = 10):
+    '''
+    Samples N-dimensional Ising states using MCMC with the Metropolis algorithm.
+    Parameters:
+    - N: The size of the Ising model (N x N for 2D)
+    - dim: The dimensionality of the Ising model
+    - beta: The inverse temperature (K is set to 1 for simplicity)
+    - sample_length: The number of samples to collect after burn-in
+    - burn_in and thin are functions of the size of the model.
+    '''
     # Good results with N = 20, beta = .3
     np.random.seed(0)
-    m = IsingModel((N, N))
-    steps = np.power(N, 3) + sample_length * np.power(N, 2)
-    burn_in = int(np.power(N, 3))
-    thin = int(np.power(N, 2))
+    m = IsingModel(tuple([N] * dim))
+    steps = np.power(N, dim + 1) + sample_length * np.power(N, dim)
+    burn_in = int(np.power(N, dim + 1))
+    thin = int(np.power(N, dim))
 
     mbs = lambda epsilon: maxwell_boltzmann_statistics(epsilon, beta = beta)
 
@@ -52,32 +61,27 @@ def mcmc_sampling(N = 20, beta = .3, sample_length = 10):
     # img = array_to_png(models[-1].spins, filename = '') # visualize the last sampled configuration
     # img.save('tmp.png')
 
-    # plt.hist(np.sort(energies), density = True, label = "MCMC samples' energies")    
-    # plt.legend()
-    # plt.show()
-
     return energies, models
 
 def magnetization_per_beta():
     # This doesn't work at all! :D
 
-    betas = np.arange(0.1, 3.0, 0.3)
-    arrx = np.zeros_like(betas)
+    betas = np.arange(0, 3.0, .1)
     magns = np.zeros_like(betas)
-    for bi, beta in enumerate(betas):
-        energies, models = mcmc_sampling(N = 20, beta = beta, sample_length = 10)
-        arrx[bi] = np.mean(energies) / beta
-        magns[bi] = np.mean([magnetization(model) for model in models])
-
-    plt.plot(arrx, magns, 'o-')
-    plt.xlabel('Energy / beta') # This is effectively the temperature T, since arrx = <E> / beta = kT for k=1
+    for i, beta in enumerate(betas):
+        _, models = mcmc_sampling(N = 100, dim = 1, beta = beta, sample_length = 20)
+        magns[i] = np.mean([magnetization(model) for model in models])
+    
+    plt.plot(betas, magns, marker = 'o')
+    plt.xlabel('Beta (Inverse Temperature)')
     plt.ylabel('Magnetization')
+    plt.title("N = 100, dim = 1, sample_length = 20")
+    plt.grid()
     plt.show()
 
 def main():
     # anim_mcmc_1D()
     # anim_mcmc_2D()
-    # energies, models = mcmc_sampling(beta = .3)
     magnetization_per_beta()
 
 
