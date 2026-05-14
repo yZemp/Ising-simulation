@@ -1,13 +1,17 @@
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
-from ising import IsingModel
+
+from ising import new_random_ising
 
 def maxwell_boltzmann_statistics(epsilon, beta = 1.):
     return np.exp(- (beta * epsilon))
 
 def random_index(array):
-    """Return a random index of a multi-dimensional NumPy array."""
+    '''
+    Return a random index of a multi-dimensional NumPy array as a tuple.
+    '''
+    
     array = np.asarray(array)
 
     # Check if the array is empty or has zero dimensions
@@ -17,15 +21,10 @@ def random_index(array):
         raise ValueError("array must not be empty")
 
     # Generate a random index for each dimension of the array
-    if array.ndim == 1:
-        index = np.random.randint(0, array.shape[0])
-        return index
-    else:
-        index = tuple(np.random.randint(0, dimension) for dimension in array.shape)
-        return index
+    return tuple(np.random.randint(0, dimension) for dimension in array.shape)
 
 
-def metropolis_ising(target: callable, model: IsingModel, steps: int, min = 0, max = 100_000, burn_in = 0, seed = 0):
+def metropolis_ising(target: callable, model: np.ndarray, steps: int, min = 0, max = 100_000, burn_in = 0, seed = 0):
     '''
     Given:
         Target probability distribution function
@@ -36,13 +35,10 @@ def metropolis_ising(target: callable, model: IsingModel, steps: int, min = 0, m
         Array of ising model configurations which energies are distributed as the target pdf
     '''
     
-    energies_samples = np.zeros(steps)
-    models_samples = np.zeros(steps, dtype = object)
-    current_model = model.copy()
-    current_energy = model.energy()
-
+    curr_model = np.array(model, copy = True)
+    models_samples = np.empty((steps,) + curr_model.shape, dtype = curr_model.dtype)
     rng = np.random.default_rng(seed)
-    
+
     # Generating candidate using a random spin flip (no-hasting condition satisfied)
     for i in range(0, steps):
 
@@ -50,67 +46,75 @@ def metropolis_ising(target: callable, model: IsingModel, steps: int, min = 0, m
         if steps >= 1_000 and i % (steps // 10) == 0:
             print(f"Progress: {i}/{steps} steps ({(i/steps)*100:.1f}%)")
 
-        candidate_model = current_model.copy()
-        index = random_index(candidate_model.spins)
-        candidate_model.spins[index] = - candidate_model.spins[index]
-        candidate_energy = candidate_model.energy()
-        delta_energy = candidate_energy - current_energy
-
-        # Reject candidate if out of bounds
-        # if delta_energy < min or delta_energy > max:
-        #     energies_samples[i] = current_energy
-        #     models_samples[i] = current_model
-        #     continue
+        index = random_index(curr_model)
+        deltaE = delta_energy(curr_model, index)
 
         # Rejection process
-        r = rng.random()
-        threshold = target(delta_energy)
-        if r > np.minimum(1, threshold):
-            energies_samples[i] = current_energy
-            models_samples[i] = current_model
-        else:
-            current_model = candidate_model
-            current_energy = candidate_energy
-            energies_samples[i] = candidate_energy
-            models_samples[i] = candidate_model
+        accept_probability = np.minimum(1.0, target(deltaE))
+        if rng.random() <= accept_probability:
+            curr_model[index] = -curr_model[index]
+
+        models_samples[i] = curr_model
 
 
-    return energies_samples[burn_in:], models_samples[burn_in:]
+    return models_samples[burn_in:]
 
 
 #####################################################################
 # Operators that act on models configurations
 #####################################################################
 
-# Hope is to, one day, abandon the class implementation of the Ising model.
-# ==> Just use array of integers for the spins
-#     with operators acting on them 
+# model = ndarray of spins, J = 1 for simplicity everywhere
 
-def energy(model: IsingModel):
+def energy(model: np.ndarray) -> float:
     '''
     Given an Ising model, compute its energy.
     '''
 
-    interaction_energy = - model.J * sum(
-            np.sum(model.spins * np.roll(model.spins, 1, axis = axis))
-            for axis in range(model.spins.ndim)
-        )
+    interaction_energy = 0.0
+    for axis in range(model.ndim):
+        interaction_energy -= np.sum(model * np.roll(model, 1, axis = axis))
     
     return interaction_energy
 
+def delta_energy(model: np.ndarray, index: tuple) -> float:
+    '''
+    Given an Ising model and a spin flip index, compute the change in energy.
+    '''
 
-def magnetization(model: IsingModel):
+    if not isinstance(index, tuple):
+        index = (index,)
+
+    spin = model[index]
+
+    # Sum the interactions with the forward and backward neighbor along each axis.
+    E_local = 0.0
+    for axis in range(model.ndim):
+        # Use tuple unpacking to avoid list creation overhead
+        forward_idx = (*index[:axis], (index[axis] + 1) % model.shape[axis], *index[axis+1:])
+        backward_idx = (*index[:axis], (index[axis] - 1) % model.shape[axis], *index[axis+1:])
+        E_local += spin * (model[forward_idx] + model[backward_idx])
+
+    return 2.0 * E_local
+
+def magnetization(model: np.ndarray) -> float:
     '''
     Given an Ising model, compute its magnetization.
     '''
 
-    return abs(np.sum(model.spins)) / model.spins.size
+    return abs(np.sum(model)) / model.size
 
 
 
 if __name__ == "__main__":
-    arrx = np.linspace(0, 1000)
-    for temp in range(1, 1000, 100):
-        plt.plot(arrx, maxwell_boltzmann_statistics(arrx, beta = 1 / temp), label = f"T = {temp} K")
-    plt.legend()
-    plt.show()
+
+    np.random.seed(0)
+    m1 = new_random_ising((1000, 1001))
+    m2 = np.copy(m1)
+    idx = random_index(m1)
+    m2[idx] = - m2[idx]
+    
+    print("Energy of m1:", energy(m1))
+    print("Energy of m2:", energy(m2))
+    print("Delta energy (m2 - m1):", energy(m2) - energy(m1))
+    print("Delta energy:", delta_energy(m1, idx))

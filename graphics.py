@@ -57,6 +57,9 @@ def animate(arrays, pixel_size=50, filename='animation.gif', fps=5, loop=0, clea
 	Adds frame counter "n/N" to each frame.
 	Returns the animation filename.
 	"""
+
+	print(f"Creating animation with {len(arrays)} frames at {fps} fps...")
+	
 	if fps <= 0:
 		raise ValueError('`fps` must be a positive number')
 	duration_ms = int(1000 / fps)

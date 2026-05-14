@@ -1,40 +1,38 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from iminuit import Minuit
-from scipy.stats import norm
-from ising import IsingModel
-from mcmc import metropolis, maxwell_boltzmann_statistics
-from utils import energy, metropolis_ising, magnetization
+from ising import new_random_ising
+from utils import maxwell_boltzmann_statistics, energy, metropolis_ising, magnetization
 from graphics import animate, array_to_png
 
 def anim_mcmc_1D():
     np.random.seed(0)
     N = 50
-    m = IsingModel(N)
+    m = new_random_ising((N,))
     steps = int(np.power(N, 1.5))
     fps = steps / 10
 
-    energies, models = metropolis_ising(maxwell_boltzmann_statistics, m, steps = steps, burn_in = 0)
+    models = metropolis_ising(maxwell_boltzmann_statistics, m, steps = steps, burn_in = 0)
+    print("MCMC completed.")
 
-    frames = [model.spins for model in models]
-    animate(frames, fps = fps, filename = 'tmp.gif')
+    animate(models, fps = fps, filename = 'tmp.gif')
 
 
 def anim_mcmc_2D():
     np.random.seed(0)
-    N = 20
-    m = IsingModel((N, N))
+    N = 30
+    m = new_random_ising((N, N))
     steps = 2 * N * N
     fps = steps / 10
 
-    energies, models = metropolis_ising(maxwell_boltzmann_statistics, m, steps = steps, burn_in = 0)
+    models = metropolis_ising(maxwell_boltzmann_statistics, m, steps = steps, burn_in = 0)
+    
+    print("MCMC completed.")
+    if steps >= 500:
+        models = models[::(steps // 500 + 1)]  # Limit to 500 frames for animation
+    animate(models, fps = len(models), filename = 'tmp.gif')
 
-    frames = [model.spins for model in models]
-    # frames = frames[::100] # thin the chain to reduce animation length
-    animate(frames, fps = fps, filename = 'tmp.gif')
 
-
-def mcmc_sampling(N = 20, dim = 2, beta = .3, sample_length = 10):
+def mcmc_sampling(N = 20, dim = 2, beta = .3, sample_length = 10, initial_model = None, seed = 0):
     '''
     Samples N-dimensional Ising states using MCMC with the Metropolis algorithm.
     Parameters:
@@ -45,44 +43,61 @@ def mcmc_sampling(N = 20, dim = 2, beta = .3, sample_length = 10):
     - burn_in and thin are functions of the size of the model.
     '''
     # Good results with N = 20, beta = .3
-    np.random.seed(0)
-    m = IsingModel(tuple([N] * dim))
+    if initial_model is None:
+        np.random.seed(seed)
+        m = new_random_ising(tuple([N] * dim))
+    else:
+        m = np.array(initial_model, copy = True)
     steps = np.power(N, dim + 1) + sample_length * np.power(N, dim)
     burn_in = int(np.power(N, dim + 1))
     thin = int(np.power(N, dim))
 
     mbs = lambda epsilon: maxwell_boltzmann_statistics(epsilon, beta = beta)
 
-    energies, models = metropolis_ising(mbs, m, steps = steps, burn_in = burn_in)
+    models = metropolis_ising(mbs, m, steps = steps, burn_in = burn_in, seed = seed)
+
     # Thinning
-    energies = energies[::thin]
     models = models[::thin]
 
     # img = array_to_png(models[-1].spins, filename = '') # visualize the last sampled configuration
     # img.save('tmp.png')
 
-    return energies, models
+    return models
 
-def magnetization_per_beta():
-    # This doesn't work at all! :D
+def magnetization_graph():
+    '''
+    Plots the magnetization of the Ising model as a function of temperature.
+    '''
 
-    temps = np.arange(0, 3.0, .1)
+    N = 30
+    dim = 2
+    sample_length = 30
+
+    temps = np.arange(.1, 4.0, .1)
     magns = np.zeros_like(temps)
+    current_model = None
     for i, t in enumerate(temps):
-        _, models = mcmc_sampling(N = 15, dim = 2, beta = 1 / t, sample_length = 20)
+        models = mcmc_sampling(
+            N = N,
+            dim = dim,
+            beta = 1 / t,
+            sample_length = sample_length,
+            initial_model = current_model,
+        )
+        current_model = models[-1]
         magns[i] = np.mean([magnetization(model) for model in models])
     
     plt.plot(temps, magns, marker = 'o')
     plt.xlabel('T (Temperature)')
     plt.ylabel('Magnetization')
-    plt.title("N = 15, dim = 2, sample_length = 20")
+    plt.title(f"N = {N}, dim = {dim}, sample_length = {sample_length}")
     plt.grid()
     plt.show()
 
 def main():
     # anim_mcmc_1D()
     # anim_mcmc_2D()
-    magnetization_per_beta()
+    magnetization_graph()
 
 
 if __name__ == "__main__":
