@@ -26,15 +26,15 @@ def array_to_png(arr, pixel_size=50, filename='output.png'):
 	else:
 		raise ValueError('Array must be 1D or 2D')
 
-	unique = np.unique(grid)
-	if not set(unique.tolist()).issubset({1, -1}):
+	if not np.all((grid == 1) | (grid == -1)):
 		raise ValueError('Array values must be only 1 or -1')
 
 	# map 1 -> 255 (white), -1 -> 0 (black)
 	mapped = np.where(grid == 1, 255, 0).astype(np.uint8)
+	if pixel_size > 1:
+		mapped = np.repeat(np.repeat(mapped, pixel_size, axis=0), pixel_size, axis=1)
 
 	img = Image.fromarray(mapped, mode='L')
-	img = img.resize((cols * pixel_size, rows * pixel_size), Image.NEAREST)
 	# If a filename is provided, save to disk and return the path.
 	# Otherwise, return the PIL Image object for in-memory use.
 	if filename:
@@ -58,8 +58,6 @@ def animate(arrays, pixel_size=50, filename='animation.gif', fps=5, loop=0, clea
 	Returns the animation filename.
 	"""
 
-	print(f"Creating animation with {len(arrays)} frames at {fps} fps...")
-	
 	if fps <= 0:
 		raise ValueError('`fps` must be a positive number')
 	duration_ms = int(1000 / fps)
@@ -67,6 +65,8 @@ def animate(arrays, pixel_size=50, filename='animation.gif', fps=5, loop=0, clea
 	# Convert to list to get total frame count
 	arrays_list = list(arrays)
 	total_frames = len(arrays_list)
+
+	print(f"Creating animation with {total_frames} frames at {fps} fps...")
 
 	if not arrays_list:
 		raise ValueError('No frames provided')

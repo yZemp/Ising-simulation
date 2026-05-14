@@ -96,8 +96,8 @@ def magnetization_graph():
 
 def main():
     # anim_mcmc_1D()
-    # anim_mcmc_2D()
-    magnetization_graph()
+    anim_mcmc_2D()
+    # magnetization_graph()
 
 
 if __name__ == "__main__":
