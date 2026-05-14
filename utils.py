@@ -78,26 +78,76 @@ def energy(model: np.ndarray) -> float:
     
     return interaction_energy
 
+@njit(cache=True)
+def _delta_energy_1d(model: np.ndarray, index: int) -> float:
+    '''Delta energy for 1D lattice (Numba-compiled).'''
+    N = model.shape[0]
+    spin = model[index]
+    forward = (index + 1) % N
+    backward = (index - 1) % N
+    return 2.0 * spin * (model[forward] + model[backward])
+
+
+@njit(cache=True)
+def _delta_energy_2d(model: np.ndarray, i: int, j: int) -> float:
+    '''Delta energy for 2D lattice (Numba-compiled).'''
+    N1, N2 = model.shape
+    spin = model[i, j]
+    
+    i_fwd = (i + 1) % N1
+    i_bwd = (i - 1) % N1
+    j_fwd = (j + 1) % N2
+    j_bwd = (j - 1) % N2
+    
+    neighbors_sum = model[i_fwd, j] + model[i_bwd, j] + model[i, j_fwd] + model[i, j_bwd]
+    return 2.0 * spin * neighbors_sum
+
+
+@njit(cache=True)
+def _delta_energy_3d(model: np.ndarray, i: int, j: int, k: int) -> float:
+    '''Delta energy for 3D lattice (Numba-compiled).'''
+    N1, N2, N3 = model.shape
+    spin = model[i, j, k]
+    
+    i_fwd = (i + 1) % N1
+    i_bwd = (i - 1) % N1
+    j_fwd = (j + 1) % N2
+    j_bwd = (j - 1) % N2
+    k_fwd = (k + 1) % N3
+    k_bwd = (k - 1) % N3
+    
+    neighbors_sum = (model[i_fwd, j, k] + model[i_bwd, j, k] + 
+                     model[i, j_fwd, k] + model[i, j_bwd, k] + 
+                     model[i, j, k_fwd] + model[i, j, k_bwd])
+    return 2.0 * spin * neighbors_sum
+
+
 def delta_energy(model: np.ndarray, index: tuple) -> float:
     '''
     Given an Ising model and a spin flip index, compute the change in energy.
+    Routes to specialized Numba-compiled versions based on dimensionality.
     '''
-
     if not isinstance(index, tuple):
         index = (index,)
+    
+    if model.ndim == 1:
+        return _delta_energy_1d(model, index[0])
+    elif model.ndim == 2:
+        return _delta_energy_2d(model, index[0], index[1])
+    elif model.ndim == 3:
+        return _delta_energy_3d(model, index[0], index[1], index[2])
+    else:
+        # Fallback for higher dimensions (Python)
+        spin = model[index]
+        E_local = 0.0
+        for axis in range(model.ndim):
+            forward_idx = (*index[:axis], (index[axis] + 1) % model.shape[axis], *index[axis+1:])
+            backward_idx = (*index[:axis], (index[axis] - 1) % model.shape[axis], *index[axis+1:])
+            E_local += spin * (model[forward_idx] + model[backward_idx])
+        return 2.0 * E_local
 
-    spin = model[index]
 
-    # Sum the interactions with the forward and backward neighbor along each axis.
-    E_local = 0.0
-    for axis in range(model.ndim):
-        # Use tuple unpacking to avoid list creation overhead
-        forward_idx = (*index[:axis], (index[axis] + 1) % model.shape[axis], *index[axis+1:])
-        backward_idx = (*index[:axis], (index[axis] - 1) % model.shape[axis], *index[axis+1:])
-        E_local += spin * (model[forward_idx] + model[backward_idx])
-
-    return 2.0 * E_local
-
+@njit(cache = True)
 def magnetization(model: np.ndarray) -> float:
     '''
     Given an Ising model, compute its magnetization.

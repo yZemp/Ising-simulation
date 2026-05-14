@@ -1,8 +1,11 @@
+from tracemalloc import start
+
 import numpy as np
 import matplotlib.pyplot as plt
 from ising import new_random_ising
 from utils import maxwell_boltzmann_statistics, energy, metropolis_ising, magnetization
 from graphics import animate, array_to_png
+import time
 
 def anim_mcmc_1D():
     np.random.seed(0)
@@ -71,9 +74,9 @@ def magnetization_graph():
 
     N = 20
     dim = 2
-    sample_length = 30
+    sample_length = 50
 
-    temps = np.arange(.1, 4.0, .1)
+    temps = np.arange(.01, 5.0, .07)
     magns = np.zeros_like(temps)
     current_model = None
     for i, t in enumerate(temps):
@@ -92,12 +95,18 @@ def magnetization_graph():
     plt.ylabel('Magnetization')
     plt.title(f"N = {N}, dim = {dim}, sample_length = {sample_length}")
     plt.grid()
-    plt.show()
+    plt.savefig('magnetization_graph.png')
 
 def main():
+    start = time.perf_counter()
+    
     # anim_mcmc_1D()
     # anim_mcmc_2D()
+
     magnetization_graph()
+
+    end = time.perf_counter()
+    print(f"Elapsed = {end - start}s")
 
 
 if __name__ == "__main__":
