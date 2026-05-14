@@ -3,6 +3,7 @@ import scipy as sp
 import matplotlib.pyplot as plt
 
 from ising import new_random_ising
+from numba import njit
 
 def maxwell_boltzmann_statistics(epsilon, beta = 1.):
     return np.exp(- (beta * epsilon))

@@ -19,7 +19,7 @@ def anim_mcmc_1D():
 
 def anim_mcmc_2D():
     np.random.seed(0)
-    N = 30
+    N = 20
     m = new_random_ising((N, N))
     steps = 2 * N * N
     fps = steps / 10
@@ -69,7 +69,7 @@ def magnetization_graph():
     Plots the magnetization of the Ising model as a function of temperature.
     '''
 
-    N = 30
+    N = 20
     dim = 2
     sample_length = 30
 
@@ -96,8 +96,8 @@ def magnetization_graph():
 
 def main():
     # anim_mcmc_1D()
-    anim_mcmc_2D()
-    # magnetization_graph()
+    # anim_mcmc_2D()
+    magnetization_graph()
 
 
 if __name__ == "__main__":
