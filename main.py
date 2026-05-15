@@ -1,5 +1,6 @@
 from tracemalloc import start
 
+from matplotlib import container
 import numpy as np
 import matplotlib.pyplot as plt
 from ising import new_random_ising
@@ -71,11 +72,12 @@ def magnetization_graph():
     '''
 
     N = 20
-    dim = 3
-    sample_length = 20
+    dim = 2
+    sample_length = 30
 
     temps = np.arange(.01, 7.0, .12)
     magns = np.zeros_like(temps)
+    errors = np.zeros_like(temps)
     current_model = None
     for i, t in enumerate(temps):
         models = mcmc_sampling(
@@ -86,10 +88,25 @@ def magnetization_graph():
             initial_model = current_model,
         )
         current_model = models[-1]
-        magns[i] = np.mean([magnetization(model) for model in models])
+        magn_i = [magnetization(model) for model in models]
+        magns[i] = np.mean(magn_i)
+        errors[i] = np.std(magn_i) / np.sqrt(len(magn_i))
+
         print(f"Computed {(i + 1) / len(temps) * 100:.1f}%")
+
+    plt.plot(temps, magns, '-', alpha = 0.6)
+
+    plt.errorbar(
+        temps,
+        magns,
+        yerr = errors,
+        color = 'blue',
+        fmt = '.',
+        ecolor = 'red',
+        barsabove = False,
+        elinewidth = 1
+    )
     
-    plt.plot(temps, magns, marker = 'o')
     plt.xlabel('T (Temperature)')
     plt.ylabel('Magnetization')
     plt.title(f"N = {N}, dim = {dim}, sample_length = {sample_length}")
