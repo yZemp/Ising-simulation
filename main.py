@@ -71,11 +71,11 @@ def magnetization_graph():
     Plots the magnetization of the Ising model as a function of temperature.
     '''
 
-    N = 20
+    N = 30
     dim = 2
-    sample_length = 30
+    sample_length = 50
 
-    temps = np.arange(.01, 7.0, .12)
+    temps = np.arange(0.01, 7.0, .2)
     magns = np.zeros_like(temps)
     errors = np.zeros_like(temps)
     current_model = None
@@ -90,7 +90,7 @@ def magnetization_graph():
         current_model = models[-1]
         magn_i = [magnetization(model) for model in models]
         magns[i] = np.mean(magn_i)
-        errors[i] = np.std(magn_i) / np.sqrt(len(magn_i))
+        errors[i] = np.std(magn_i)
 
         print(f"Computed {(i + 1) / len(temps) * 100:.1f}%")
 
