@@ -90,7 +90,7 @@ def magnetization_graph():
         current_model = models[-1]
         magn_i = [magnetization(model) for model in models]
         magns[i] = np.mean(magn_i)
-        errors[i] = np.std(magn_i) / np.sqrt(len(magn_i))
+        errors[i] = np.std(magn_i)
 
         print(f"Computed {(i + 1) / len(temps) * 100:.1f}%")
 
