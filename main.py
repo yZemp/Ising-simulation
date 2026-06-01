@@ -52,14 +52,15 @@ def mcmc_sampling(N = 20, dim = 2, T = 1.0, sample_length = 10, initial_model = 
         m = new_random_ising(tuple([N] * dim))
     else:
         m = np.array(initial_model, copy = True)
-    steps = np.power(N, dim + 1) + sample_length * np.power(N, dim)
-    burn_in = int(np.power(N, dim + 1))
+    steps = np.power(N, dim + 2) + sample_length * np.power(N, dim)
+    burn_in = int(np.power(N, dim + 2))
     thin = int(np.power(N, dim))
 
     models = metropolis_ising(m, T = T, steps = steps, burn_in = burn_in, seed = seed)
 
     # Thinning
     models = models[::thin]
+    # print(models[0])
 
     # img = array_to_png(models[-1].spins, filename = '') # visualize the last sampled configuration
     # img.save('tmp.png')
@@ -71,11 +72,11 @@ def magnetization_graph():
     Plots the magnetization of the Ising model as a function of temperature.
     '''
 
-    N = 30
+    N = 40
     dim = 2
-    sample_length = 50
+    sample_length = 20
 
-    temps = np.arange(0.01, 7.0, .2)
+    temps = np.arange(0.05, 5.0, .2)
     magns = np.zeros_like(temps)
     errors = np.zeros_like(temps)
     current_model = None
@@ -91,7 +92,7 @@ def magnetization_graph():
         magn_i = [magnetization(model) for model in models]
         magns[i] = np.mean(magn_i)
         errors[i] = np.std(magn_i)
-
+        
         print(f"Computed {(i + 1) / len(temps) * 100:.1f}%")
 
     plt.plot(temps, magns, '-', alpha = 0.6)
