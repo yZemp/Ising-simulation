@@ -1,12 +1,11 @@
-from tracemalloc import start
-
-from matplotlib import container
 import numpy as np
 import matplotlib.pyplot as plt
 from ising import new_random_ising
-from utils import maxwell_boltzmann_statistics, energy, metropolis_ising, magnetization
-from graphics import animate, array_to_png
+from utils import metropolis_ising, magnetization
+from graphics import animate, graph
+
 import time
+import h5py
 
 def anim_mcmc_1D():
     np.random.seed(0)
@@ -36,94 +35,127 @@ def anim_mcmc_2D():
     animate(models, fps = len(models), filename = 'tmp.gif')
 
 
-def mcmc_sampling(N = 20, dim = 2, T = 1.0, sample_length = 10, initial_model = None, seed = 0):
+def mcmc_sampling(N = 20, dim = 2, T = 1.0, steps = 1000, initial_model = None, seed = 0):
     '''
     Samples N-dimensional Ising states using MCMC with the Metropolis algorithm.
     Parameters:
     - N: The size of the Ising model (N x N for 2D)
     - dim: The dimensionality of the Ising model
     - T: The temperature (K is set to 1 for simplicity)
-    - sample_length: The number of samples to collect after burn-in
-    - burn_in and thin are functions of the size of the model.
+    - steps: The total number of steps to run the MCMC
+    - initial_model: The initial state of the Ising model
+    - seed: The random seed for reproducibility
+
+    NOTE: The number of steps is a placeholder for more sophisticated autocorrelation studies.
+    Good steps number:
+    - 1D: 100_000
+    - 2D: 500_000
+    - 3D: 2_000_000
     '''
-    # Good results with N = 20, T = 1.0
+
     if initial_model is None:
         np.random.seed(seed)
         m = new_random_ising(tuple([N] * dim))
     else:
         m = np.array(initial_model, copy = True)
-    steps = np.power(N, dim + 2) + sample_length * np.power(N, dim)
-    burn_in = int(np.power(N, dim + 2))
-    thin = int(np.power(N, dim))
 
-    models = metropolis_ising(m, T = T, steps = steps, burn_in = burn_in, seed = seed)
-
-    # Thinning
-    models = models[::thin]
-    # print(models[0])
-
-    # img = array_to_png(models[-1].spins, filename = '') # visualize the last sampled configuration
-    # img.save('tmp.png')
+    # Avoiding burn_in and thinning
+    models = metropolis_ising(m, T = T, steps = steps, burn_in = 0, seed = seed)
 
     return models
 
-def magnetization_graph():
+
+def simulate(N, dim, steps, data_file = "tmp.hdf5"):
     '''
-    Plots the magnetization of the Ising model as a function of temperature.
-    '''
-
-    N = 40
-    dim = 2
-    sample_length = 20
-
-    temps = np.arange(0.05, 5.0, .2)
-    magns = np.zeros_like(temps)
-    errors = np.zeros_like(temps)
-    current_model = None
-    for i, t in enumerate(temps):
-        models = mcmc_sampling(
-            N = N,
-            dim = dim,
-            T = t,
-            sample_length = sample_length,
-            initial_model = current_model,
-        )
-        current_model = models[-1]
-        magn_i = [magnetization(model) for model in models]
-        magns[i] = np.mean(magn_i)
-        errors[i] = np.std(magn_i)
-        
-        print(f"Computed {(i + 1) / len(temps) * 100:.1f}%")
-
-    plt.plot(temps, magns, '-', alpha = 0.6)
-
-    plt.errorbar(
-        temps,
-        magns,
-        yerr = errors,
-        color = 'blue',
-        fmt = '.',
-        ecolor = 'red',
-        barsabove = False,
-        elinewidth = 1
-    )
+    Computes the simulation of the Ising model varying the temperature and stores the results in an HDF5 file.
     
-    plt.xlabel('T (Temperature)')
-    plt.ylabel('Magnetization')
-    plt.title(f"N = {N}, dim = {dim}, sample_length = {sample_length}")
-    plt.grid()
-    plt.savefig('magnetization_graph.png')
+    NOTE:
+        This is the full mcmc simulation at every temperature step.
+        Thermalization and autocorreltions are not yet considered at this point.
+    '''
+
+    temps = np.arange(0.05, 7.0, .2)
+    current_model = None
+
+    model_shape = tuple([N] * dim)
+    raw_data_shape = (len(temps), steps) + model_shape
+
+    with h5py.File("tmp.hdf5", "w") as f:
+        tmp_group = f.create_group(f"dim_{dim}_N_{N}")
+        tmp_group.create_dataset('temperatures', data = temps)
+        tmp_group.create_dataset(
+        "raw_data", 
+        shape = raw_data_shape, 
+        dtype = np.int8,
+        compression = "lzf", 
+        chunks = True
+        )
+        
+        for i, t in enumerate(temps):
+            models = mcmc_sampling(
+                N = N,
+                dim = dim,
+                T = t,
+                steps = steps,
+                initial_model = current_model,
+            )
+            current_model = models[-1]
+
+            f.get(f"dim_{dim}_N_{N}/raw_data")[i] = models
+
+            print(f"Computed {(i + 1) / len(temps) * 100:.1f}%")
+    
+    print(f"Simulation completed. Data saved to {data_file}.")
+
+    return data_file
+
+
+
+def magnetization_graph(N, dim, steps, data_file = "tmp.hdf5", filename = "magnetization.png"):
+    '''
+    Plots the magnetization of the Ising model as a function of temperature 
+    given the raw data stored in an HDF5 file.
+
+    NOTE: This code arbitrarily filters the data for the sake of time.
+    TODO: Implement proper thermalization and autocorrelation analysis.
+    '''
+
+    with h5py.File(data_file, "r") as file:
+        temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
+        raw_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"])
+
+    filtered_data = raw_data[:, 30_000::4_000]
+    mean_magnetization = np.array([np.mean([magnetization(model) for model in models]) for models in filtered_data])
+    errors = np.array([np.std([magnetization(model) for model in models]) for models in filtered_data])
+
+
+    graph(temperatures,
+          mean_magnetization,
+          yerr = errors,
+          xlabel = 'T (Temperature)',
+          ylabel = 'Mean magnetization',
+          title = f"(*) N = {N}, dim = {dim}, sample_length = {steps}",
+          filename = filename
+          )
+
+
 
 def main():
-    start = time.perf_counter()
+    N = 20
+    dim = 2
+    steps = 100_000
+
+    data_file = "tmp.hdf5"
+
+    # start = time.perf_counter()
 
     # anim_mcmc_1D()
     # anim_mcmc_2D()
+    # file = simulate(N, dim, steps, data_file = data_file)
+    magnetization_graph(N, dim, steps, data_file = data_file, filename = "tmp.png")
 
-    magnetization_graph()
-
-    end = time.perf_counter()
-    print(f"Elapsed = {end - start}s")
+    # end = time.perf_counter()
+    # print(f"Elapsed = {end - start}s")
 
 
 if __name__ == "__main__":

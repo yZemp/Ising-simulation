@@ -36,8 +36,8 @@ class IsingModel:
 
 
 def new_random_ising(N: np.shape, J = 1., h = 0.):
-    return np.random.randint(0, 2, size = N).astype(np.int8) * 2 - 1
-
+    # return np.random.choice([-1, 1], size = N)
+    return np.ones(N, dtype = np.int8)
 
 if __name__ == "__main__":
     np.random.seed(0)

@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 
 def array_to_png(arr, pixel_size=50, filename='output.png'):
@@ -104,6 +105,38 @@ def animate(arrays, pixel_size=50, filename='animation.gif', fps=5, loop=0, clea
 		duration=duration_ms,
 		loop=loop,
 	)
+	return filename
+
+
+def graph(x, y, yerr = None, xlabel = '', ylabel = '', title = '', filename = 'tmp.png', color = 'blue'):
+	'''
+	Create a line graph from x and y data and save as PNG.
+
+	- `x` and `y` are iterables of the same length containing the data points.
+	- `yerr` is an iterable of the same length as `x` and `y` containing the error bars.
+	- `xlabel`, `ylabel`, and `title` are strings for labeling the graph.
+	- `filename` is the output PNG file path.
+
+	Returns the saved file path.
+	'''
+
+	if len(x) != len(y) or (yerr is not None and len(x) != len(yerr)):
+		raise ValueError('`x` and `y` must be of the same length')
+
+	plt.figure()
+	if yerr is not None:
+		plt.errorbar(x, y, yerr = yerr, fmt = 'None', ecolor = 'red', elinewidth = 1)
+	plt.plot(x,
+			y,
+			color = color,
+			marker = '.')
+	plt.xlabel(xlabel)
+	plt.ylabel(ylabel)
+	plt.title(title)
+	plt.grid()
+	plt.savefig(filename)
+	plt.close()
+
 	return filename
 
 
