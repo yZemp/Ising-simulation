@@ -2,8 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 
-def array_to_png(arr, pixel_size=50, filename='output.png'):
-	"""Convert a 1D or 2D array of values 1 and -1 into a PNG image.
+def array_to_png(arr, pixel_size = 50, filename = "output.png"):
+	'''
+	Convert a 1D or 2D array of values 1 and -1 into a PNG image.
 
 	- `arr` can be a Python list, a list of lists (2D), or a `numpy.ndarray`
 	  containing only values 1 or -1.
@@ -11,7 +12,8 @@ def array_to_png(arr, pixel_size=50, filename='output.png'):
 	- `filename` is the output PNG file path.
 
 	Returns the saved file path.
-	"""
+	'''
+
 	is_numpy = hasattr(arr, 'ndim')
 	if is_numpy:
 		a = arr
@@ -44,8 +46,9 @@ def array_to_png(arr, pixel_size=50, filename='output.png'):
 	return img
 
 
-def animate(arrays, pixel_size=50, filename='animation.gif', fps=5, loop=0, cleanup=True):
-	"""Create an animated GIF from a sequence of 1D/2D arrays.
+def animate(arrays, pixel_size = 50, filename = "animation.gif", fps = 5, loop = 0, cleanup = True):
+	'''
+	Create an animated GIF from a sequence of 1D/2D arrays.
 
 	- `arrays` is an iterable of arrays (lists or numpy arrays) where each
 	  element is a 1D or 2D array of values 1 and -1.
@@ -57,7 +60,7 @@ def animate(arrays, pixel_size=50, filename='animation.gif', fps=5, loop=0, clea
 
 	Adds frame counter "n/N" to each frame.
 	Returns the animation filename.
-	"""
+	'''
 
 	if fps <= 0:
 		raise ValueError('`fps` must be a positive number')
@@ -73,6 +76,7 @@ def animate(arrays, pixel_size=50, filename='animation.gif', fps=5, loop=0, clea
 		raise ValueError('No frames provided')
 
 	frames = []
+
 	# Try to load a larger font; fall back to default
 	try:
 		font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 20)
@@ -105,6 +109,7 @@ def animate(arrays, pixel_size=50, filename='animation.gif', fps=5, loop=0, clea
 		duration=duration_ms,
 		loop=loop,
 	)
+	
 	return filename
 
 

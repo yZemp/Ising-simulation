@@ -1,7 +1,7 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from ising import new_random_ising
-from utils import metropolis_ising, magnetization
+from mcmc_utils import metropolis_ising
+from operators import magnetization
 from graphics import animate, graph
 
 import time
@@ -151,8 +151,8 @@ def main():
 
     # anim_mcmc_1D()
     # anim_mcmc_2D()
-    # file = simulate(N, dim, steps, data_file = data_file)
-    magnetization_graph(N, dim, steps, data_file = data_file, filename = "tmp.png")
+    # simulate(N, dim, steps, data_file = data_file)
+    # magnetization_graph(N, dim, steps, data_file = data_file, filename = "tmp.png")
 
     # end = time.perf_counter()
     # print(f"Elapsed = {end - start}s")

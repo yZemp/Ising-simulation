@@ -1,8 +1,7 @@
 import h5py
 import numpy as np
 from main import mcmc_sampling
-from utils import magnetization
-from matplotlib import pyplot
+from mcmc_utils import magnetization
 from graphics import graph
 from matplotlib import pyplot as plt
 

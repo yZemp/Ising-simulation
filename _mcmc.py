@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import maxwell_boltzmann_statistics
+from mcmc_utils import maxwell_boltzmann_statistics
 
 MIN = 0
 MAX = 2000
