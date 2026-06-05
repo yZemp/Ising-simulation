@@ -123,7 +123,7 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
         Thermalization and autocorreltions are not yet considered at this point.
     '''
 
-    temps = np.arange(0.05, 7.0, .2)
+    temps = np.arange(0.05, 7.0, .1)
     current_model = None
 
     model_shape = tuple([N] * dim)
@@ -227,7 +227,7 @@ def magnetization_graph(N, dim, steps, data_file = "tmp.hdf5", filename = "magne
 
 def main(N = 100, dim = 2, steps = 1_000):
 
-    data_file = "test.hdf5"
+    data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
 
     # start = time.perf_counter()
 

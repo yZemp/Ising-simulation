@@ -18,10 +18,12 @@ esac
 
 source "$ACTIVATE_SCRIPT"
 
+####################################################################################
+# STREAK 3
 
-N_VALUES=(10 20 30)
-DIM_VALUES=(1)
-STEPS=2_000
+N_VALUES=(20)
+DIM_VALUES=(2)
+STEPS=150_000
 
 echo "Starting many simulations:"
 echo "N_VALUES: ${N_VALUES[*]}"
@@ -44,6 +46,3 @@ for dim in "${DIM_VALUES[@]}"; do
         
     done
 done
-
-echo "All simulations have been completed."
-deactivate
