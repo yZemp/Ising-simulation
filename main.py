@@ -2,9 +2,9 @@ import argparse
 import numpy as np
 from ising import new_random_ising
 from mcmc_utils import metropolis_ising
-from operators import magnetization
-from graphics import animate, graph
+from graphics import animate
 from datetime import timedelta
+from io_utils import read_data
 
 import time
 import h5py
@@ -130,6 +130,7 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
     raw_data_shape = (len(temps), steps) + model_shape
     group_name = f"dim_{dim}_N_{N}"
 
+    # TODO: Switch to packedbits model
     with h5py.File(data_file, "a") as f:
 
         # Extending an existing simulation
@@ -172,7 +173,7 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
             shape = raw_data_shape, 
             maxshape = max_shape,
             dtype = np.int8,
-            compression = "lzf", 
+            compression = "lzf",
             chunks = True
             )
             
@@ -193,35 +194,6 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
     # print(f"Simulation completed. Data saved to {data_file}.")
 
     return data_file
-
-
-
-def magnetization_graph(N, dim, steps, data_file = "tmp.hdf5", filename = "magnetization.png"):
-    '''
-    Plots the magnetization of the Ising model as a function of temperature 
-    given the raw data stored in an HDF5 file.
-
-    NOTE: This code arbitrarily filters the data for the sake of time.
-    TODO: Implement proper thermalization and autocorrelation analysis.
-    '''
-
-    with h5py.File(data_file, "r") as file:
-        temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
-        raw_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"])
-
-    filtered_data = raw_data[:, 30_000::4_000]
-    mean_magnetization = np.array([np.mean([magnetization(model) for model in models]) for models in filtered_data])
-    errors = np.array([np.std([magnetization(model) for model in models]) for models in filtered_data])
-
-
-    graph(temperatures,
-          mean_magnetization,
-          yerr = errors,
-          xlabel = 'T (Temperature)',
-          ylabel = 'Mean magnetization',
-          title = f"(*) N = {N}, dim = {dim}, sample_length = {steps}",
-          filename = filename
-          )
 
 
 
