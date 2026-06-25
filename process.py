@@ -139,6 +139,8 @@ def _tau(observables, max_lag):
 
     return tau
 
+exit
+
 @njit(cache = ALLOW_NUMBA_CACHING)
 def tau_scw(observables, c = 5.0):
     '''
@@ -170,7 +172,7 @@ def tau_scw(observables, c = 5.0):
 def tau_int_sokal(observables, c = 5.0):
     '''
     Computes the integrated autocorrelation time using the self-consistent windowing method.
-    Optimized as per Sokal/Madras's method.
+    Optimized as per Sokal's method.
     c: The windowing parameter, determining how many times tau is used as a window size.
     '''
 
@@ -268,8 +270,8 @@ def magnetization_graph(N, dim, data_file = "tmp.hdf5", filename = "magnetizatio
 
 def main():
 
-    N = 100
-    dim = 1
+    N = 50
+    dim = 2
 
     data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
 
@@ -284,9 +286,9 @@ def main():
     #################################################################################
     # EXECUTION
 
-    # magnetization_graph(N, dim, data_file = data_file, filename = "tmp_magnetization.png")
+    magnetization_graph(N, dim, data_file = data_file, filename = "tmp_magnetization.png")
     # tau_int_1 = autocorrelation_graph(N, dim, data_file = data_file, filename = "tmp_autocorrelation.png", T_index = Tidx)
-    tau_graph(N, dim, data_file = data_file, filename = "tmp_tau.png")
+    # tau_graph(N, dim, data_file = data_file, filename = "tmp_tau.png")
 
     #################################################################################
 

@@ -1,0 +1,16 @@
+Markov Chains:
+https://www.statslab.cam.ac.uk/~jrn10//Markov/
+
+Markov chain Monte Carlo - Wikipedia:
+https://en.wikipedia.org/wiki/Markov_chain_Monte_Carlo
+
+Metropolis–Hastings algorithm - Wikipedia:
+https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm
+
+Simulating an Ising Model — Computing in Physics (498CMP):
+https://courses.physics.illinois.edu/phys498cmp/sp2022/Ising/IsingModel.html
+
+7.2 Metropolis-Hastings | Advanced Statistical Computing:
+https://bookdown.org/rdpeng/advstatcomp/metropolis-hastings.html
+
+https://www.youtube.com/watch?v=yCv2N7wGDCw
