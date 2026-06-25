@@ -2,6 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 
+#####################################################################
+# Graphics utilities for visualizations
+#####################################################################
+
 def array_to_png(arr, pixel_size = 50, filename = "output.png"):
 	'''
 	Convert a 1D or 2D array of values 1 and -1 into a PNG image.
