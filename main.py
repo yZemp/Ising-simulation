@@ -84,6 +84,12 @@ def anim_mcmc_2D():
     animate(models, fps = len(models), filename = 'tmp.gif')
 
 
+
+
+###############################################################################
+# Data generation
+
+
 def mcmc_sampling(N = 20, dim = 2, T = 1.0, steps = 1000, initial_model = None, seed = 0):
     '''
     Samples N-dimensional Ising states using MCMC with the Metropolis algorithm.
@@ -96,10 +102,6 @@ def mcmc_sampling(N = 20, dim = 2, T = 1.0, steps = 1000, initial_model = None, 
     - seed: The random seed for reproducibility
 
     NOTE: The number of steps is a placeholder for more sophisticated autocorrelation studies.
-    Good steps number:
-    - 1D: 100_000
-    - 2D: 500_000
-    - 3D: 2_000_000
     '''
 
     if initial_model is None:
@@ -123,7 +125,12 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
         Thermalization and autocorreltions are not yet considered at this point.
     '''
 
-    temps = np.arange(0.05, 7.0, .1)
+    if dim == 1:
+        temps = np.arange(0.1, 3.0, .05)
+    if dim == 2:
+        temps = np.arange(0.5, 5.0, .07)
+    if dim == 3:
+        temps = np.arange(1.0, 7.0, .1)
     current_model = None
 
     model_shape = tuple([N] * dim)
@@ -157,7 +164,7 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
                     initial_model = current_model,
                 )
                 
-                # Appende i nuovi modelli simulati nello slice appena creato
+                # Append new models to the existing data
                 raw_data[i, current_steps:new_steps_total] = models
 
                 # print(f"Computed {(i + 1) / len(temps) * 100:.1f}%")
@@ -197,19 +204,35 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
 
 
 
+def filter_data(N, dim, data_file = "tmp.hdf5"):
+    '''
+    Filters the raw data stored in an HDF5 producing an actual sample of Ising states.
+    Saves the filtered data in the same HDF5 file.
+
+    burn_in:
+        TODO: implement using 20 * tau_exp or graphical method
+    thinning:
+        1 element every 2 * tau_int
+        where tau_int is calculated with tau_int_sokal()
+    '''
+
+    pass
+
+
+
 def main(N = 100, dim = 2, steps = 1_000):
 
     data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
 
-    # start = time.perf_counter()
+    start = time.perf_counter()
 
     # anim_mcmc_1D()
     # anim_mcmc_2D()
     simulate(N, dim, steps, data_file = data_file)
     # magnetization_graph(N, dim, steps, data_file = data_file, filename = "tmp.png")
 
-    # end = time.perf_counter()
-    # print(f"Elapsed = {timedelta(seconds = end - start)}")
+    end = time.perf_counter()
+    print(f"Elapsed = {timedelta(seconds = end - start)}")
 
 
 if __name__ == "__main__":

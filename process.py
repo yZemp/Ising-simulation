@@ -107,73 +107,12 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
 # Integrated Autocorrelation Time (Tau)
 
 @njit(cache = ALLOW_NUMBA_CACHING)
-def _tau(observables, max_lag):
+def tau_int_sokal(observables, c = 7.0):
     '''
-    Computes the integrated autocorrelation time of a given Markov chain
-    (with respect to a specific observable).
-
-    Where the integrated autocorrelation time is defined as:
-        tau = 0.5 + sum_{t=1}^{max_lag} autocorrelation(t)
-
-    NOTE: This is meant to be used with the self-consistent windowing method.
-    '''
-
-
-    N = len(observables)
-    var = np.var(observables)
-    centered = observables - np.mean(observables)
-
-    if var == 0:
-        return 0.0
-
-    tau = .5
-
-    if max_lag > N:
-        print(f"Warning: max_lag ({max_lag}) is greater than the number of observables ({N}).")
-
-    for t in range(1, min(max_lag + 1, N)):
-        # if N > 10_000 and t % 1000 == 0: print(f"Progress: {t / N:.2%}")
-        autocov_t = np.sum(centered[:N-t] * centered[t:]) / N
-
-        tau += autocov_t / var
-
-    return tau
-
-exit
-
-@njit(cache = ALLOW_NUMBA_CACHING)
-def tau_scw(observables, c = 5.0):
-    '''
-    Computes the integrated autocorrelation time using the self-consistent windowing method.
+    Computes the integrated autocorrelation time using the self-consistent windowing method
+    optimized as per Sokal's method.
     c: The windowing parameter, determining how many times tau is used as a window size.
-    '''
-    
-    tau_int = 100
-    W_old = c * tau_int + 1
-
-    print("Computing tau (self-consistent windowing)...")
-
-    counter = 0
-    while True:
-        W_new = c * tau_int
-        if np.isclose(W_new, W_old, 1e-5) or counter > 200:
-            break
-
-        tau_int = _tau(observables, max_lag = int(W_new))
-        W_old = W_new
-
-        counter += 1
-        # print(f"tau = {tau_int:.2f}, W = {W_new:.2f}")
-
-    return tau_int
-
-
-@njit(cache = ALLOW_NUMBA_CACHING)
-def tau_int_sokal(observables, c = 5.0):
-    '''
-    Computes the integrated autocorrelation time using the self-consistent windowing method.
-    Optimized as per Sokal's method.
-    c: The windowing parameter, determining how many times tau is used as a window size.
+    NOTE: higher c values yield more accurate results but require more computation time.
     '''
 
     N = len(observables)
@@ -195,16 +134,13 @@ def tau_int_sokal(observables, c = 5.0):
     return tau
 
     
-def tau_graph(N, dim, data_file, filename = "tau.png"):
+def tau_int_graph(N, dim, data_file, filename = "tau.png"):
     '''
     Plots the integrated autocorrelation time (tau) with respect to magnetization
     as a function of temperature.
-
-    Also fits the tau values with a descending exponential function to extract the correlation time.
     '''
     
-    temperatures, raw_data = read_data(data_file, N, dim)
-    filtered_data = raw_data[:, :10_000]
+    temperatures, filtered_data = read_data(data_file, N, dim)
 
     print(f"Filtered data shape: {filtered_data.shape}")
 
@@ -215,13 +151,13 @@ def tau_graph(N, dim, data_file, filename = "tau.png"):
         print(f"Temperature: {T:.2f}")
         taus[i] = tau_int_sokal(observables[i])
 
-    plt.scatter(temperatures, taus, marker = "x", label = f"tau")
+    plt.scatter(temperatures, taus, marker = "x", label = r"$\tau_{int}$")
     plt.xlabel('Temperature')
-    plt.ylabel('Tau')
+    plt.ylabel(r"$\tau_{int}$")
     # plt.yscale('log')
     # plt.xscale('log')
     plt.grid(True, which="both", ls="--")
-    plt.title(f'Tau - N = {N}, dim = {dim}')
+    plt.title(r"$\tau_{int}$" + f" - N = {N}, dim = {dim}")
     plt.legend()
     plt.savefig(filename)
     plt.close()
@@ -268,14 +204,38 @@ def magnetization_graph(N, dim, data_file = "tmp.hdf5", filename = "magnetizatio
           )
 
 
+def magnetization_tfixed_graph(N, dim, Tidx, data_file = "tmp.hdf5", filename = "magnetization.png"):
+    '''
+    Plots the magnetization of the Ising model as a function of time (steps) at a fixed temperature T 
+    given the raw data stored in an HDF5 file.
+    '''
+
+
+    with h5py.File(data_file, "r") as file:
+        T = (file[f"dim_{dim}_N_{N}/temperatures"])[Tidx]
+        data = np.array(file[f"dim_{dim}_N_{N}/raw_data"][Tidx])
+
+    print(f"Filtered data shape: {data.shape}")
+    # filtered_data = raw_data[:, 30_000::10_000]
+    magnetizations = np.array([magnetization(model) for model in data])
+
+    plt.plot(range(len(magnetizations)), magnetizations, label = f"T = {T:.2f}")
+    plt.xlabel('Time (Steps)')
+    plt.ylabel('Magnetization')
+    plt.title(f"MC Magnetization - N = {N}, dim = {dim}")
+    plt.legend()
+    plt.savefig(filename)
+    plt.close()
+
+
 def main():
 
-    N = 50
-    dim = 2
+    N = 10
+    dim = 3
 
     data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
 
-    Tidx = 30
+    Tidx = 17
     
     with h5py.File(data_file, "r") as file:
         filtered_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"][Tidx, 10_000:30_000])
@@ -286,9 +246,16 @@ def main():
     #################################################################################
     # EXECUTION
 
+    # for N, dim in [(5, 1), (10, 1), (20, 1), (30, 1), (50, 1), (70, 1), (100, 1), (150, 1), (200, 1), (250, 1), (300, 1), (500, 1)]:
+    # for N, dim in [(100, 2)]:
+
+    #     data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
+
+    #     magnetization_tfixed_graph(N, dim, Tidx, data_file = data_file, filename = "tmp_magnetization_tfixed.png")
+        
     magnetization_graph(N, dim, data_file = data_file, filename = "tmp_magnetization.png")
     # tau_int_1 = autocorrelation_graph(N, dim, data_file = data_file, filename = "tmp_autocorrelation.png", T_index = Tidx)
-    # tau_graph(N, dim, data_file = data_file, filename = "tmp_tau.png")
+    # tau_int_graph(N, dim, data_file = data_file, filename = "tmp_tau.png")
 
     #################################################################################
 
