@@ -243,10 +243,17 @@ def filter_data(N, dim):
 
         # Sampling
         for i, T in enumerate(temperatures):
+            print("----------------------------------------------------------------------")
+            print(f"Filtering data {i} ({(i + 1) / len(temperatures) * 100:.1f}%)")
+
             raw_data = np.array(file[f"{group_name}/raw_data"][i])
             observables = np.array([magnetization(model) for model in raw_data])
+            
+            print("Computing tau...")
             tau_int = tau_int_sokal(observables, c = 15.0)
+            print(f"Done.")    
 
+            print("Filtering data...")
             if int(tau_int) > 0:
                 # Using 20 * tau_int as burn-in and thinning every 2 * tau_int
                 filtered_data = raw_data[int(20 * tau_int)::int(2 * tau_int)]
@@ -256,10 +263,13 @@ def filter_data(N, dim):
 
             if filtered_data.size == 0:
                 filtered_data = raw_data[-1:]
+            print("Done.")
 
+            print("Appending filtered data...")
             filtered_samples.append(filtered_data)
             filtered_lengths[i] = filtered_data.shape[0]
-
+            print("Done.")
+    
         max_length = int(np.max(filtered_lengths))
         filtered_dataset = file.create_dataset(
             filtered_data_path,
