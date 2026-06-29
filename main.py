@@ -5,10 +5,12 @@ from mcmc_utils import metropolis_ising
 from graphics import animate
 from datetime import timedelta
 from io_utils import read_data
+from operators import magnetization
+from process import tau_exp_fit, tau_int_sokal
 
 import time
 import h5py
-
+from matplotlib import pyplot as plt
 
 def positive_int(value):
     try:
@@ -204,32 +206,91 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
 
 
 
-def filter_data(N, dim, data_file = "tmp.hdf5"):
+def filter_data(N, dim):
     '''
     Filters the raw data stored in an HDF5 producing an actual sample of Ising states.
     Saves the filtered data in the same HDF5 file.
 
     burn_in:
-        TODO: implement using 20 * tau_exp or graphical method
+        TODO: implement using tau_exp or graphical method
     thinning:
         1 element every 2 * tau_int
         where tau_int is calculated with tau_int_sokal()
     '''
 
-    pass
+    data_file = f"dim_{dim}_N_{N}_data.hdf5"
+    group_name = f"dim_{dim}_N_{N}"
+    filtered_data_path = f"{group_name}/filtered_data"
+    filtered_lengths_path = f"{group_name}/filtered_lengths"
+
+    print(f"Filtering data for N = {N}, dim = {dim}...")
+
+    with h5py.File(data_file, "r") as file:
+        temperatures = np.array(file[f"{group_name}/temperatures"])
+        raw_data = file[f"{group_name}/raw_data"]
+        model_shape = raw_data.shape[2:]
+        raw_dtype = raw_data.dtype
+
+    filtered_samples = []
+    filtered_lengths = np.zeros(len(temperatures), dtype = np.int32)
+
+    with h5py.File(data_file, "a") as file:
+        if filtered_data_path in file:
+            del file[filtered_data_path]
+
+        if filtered_lengths_path in file:
+            del file[filtered_lengths_path]
+
+        # Sampling
+        for i, T in enumerate(temperatures):
+            raw_data = np.array(file[f"{group_name}/raw_data"][i])
+            observables = np.array([magnetization(model) for model in raw_data])
+            tau_int = tau_int_sokal(observables, c = 15.0)
+
+            if int(tau_int) > 0:
+                # Using 20 * tau_int as burn-in and thinning every 2 * tau_int
+                filtered_data = raw_data[int(20 * tau_int)::int(2 * tau_int)]
+            else:
+                # Using arbitrary thinning (should not matter)
+                filtered_data = raw_data[::10_000]
+
+            if filtered_data.size == 0:
+                filtered_data = raw_data[-1:]
+
+            filtered_samples.append(filtered_data)
+            filtered_lengths[i] = filtered_data.shape[0]
+
+        max_length = int(np.max(filtered_lengths))
+        filtered_dataset = file.create_dataset(
+            filtered_data_path,
+            shape = (len(temperatures), max_length) + model_shape,
+            dtype = raw_dtype,
+            compression = "lzf",
+            chunks = True,
+        )
+        file.create_dataset(
+            filtered_lengths_path,
+            data = filtered_lengths,
+        )
+
+        for i, filtered_data in enumerate(filtered_samples):
+            filtered_dataset[i, :filtered_data.shape[0]] = filtered_data
+
+        filtered_dataset.attrs["lengths_dataset"] = "filtered_lengths"
 
 
+def main(N, dim, steps):
 
-def main(N = 100, dim = 2, steps = 1_000):
-
-    data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
+    data_file = "simulations_data/" + f"dim_{dim}_N_{N}" + "_data.hdf5"
 
     start = time.perf_counter()
 
     # anim_mcmc_1D()
     # anim_mcmc_2D()
-    simulate(N, dim, steps, data_file = data_file)
+    # simulate(N, dim, steps, data_file = data_file)
     # magnetization_graph(N, dim, steps, data_file = data_file, filename = "tmp.png")
+
+    filter_data(N, dim)
 
     end = time.perf_counter()
     print(f"Elapsed = {timedelta(seconds = end - start)}")

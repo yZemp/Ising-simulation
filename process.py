@@ -67,23 +67,23 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
     fit_times = times[mask]
     fit_taus = acs[mask]
 
-    tau_fit_function = lambda T, tau_int, K: K * np.exp(- T / tau_int)
+    tau_fit_function = lambda T, tau_exp, K: K * np.exp(- T / tau_exp)
 
     fit_curve = None
     if len(fit_times) >= 3:
         tau0 = float(np.ptp(fit_taus)) if np.ptp(fit_taus) > 0 else float(fit_taus[0])
         K0 = float(np.mean(fit_taus))
 
-        def chi2(tau_int, K):
-            return np.sum((fit_taus - tau_fit_function(fit_times, tau_int, K)) ** 2)
+        def chi2(tau_exp, K):
+            return np.sum((fit_taus - tau_fit_function(fit_times, tau_exp, K)) ** 2)
 
-        m = Minuit(chi2, tau_int = tau0, K = K0)
+        m = Minuit(chi2, tau_exp = tau0, K = K0)
         m.errordef = Minuit.LEAST_SQUARES
         m.limits["K"] = (0, None)
         m.migrad()
 
         fit_curve = tau_fit_function(fit_times, *m.values)
-        print(f"Fit parameters: tau_int = {m.values['tau_int']:.2f}, K = {m.values['K']:.2f}")
+        print(f"Fit parameters: tau_exp = {m.values['tau_exp']:.2f}, K = {m.values['K']:.2f}")
     
 
     plt.plot(times, acs, label = f'Autocorrelation function')
@@ -94,7 +94,7 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
     # plt.yscale('log')
     plt.xscale('log')
     plt.grid(True, which="both", ls="--")
-    plt.title(f'Autocorrelation Function - N = {N}, dim = {dim}, T = {temperatures[T_index]:.2f}, tau_int = {m.values["tau_int"]:.2f}')
+    plt.title(f'Autocorrelation Function - N = {N}, dim = {dim}, T = {temperatures[T_index]:.2f}, tau_exp = {m.values["tau_exp"]:.2f}')
     plt.legend()
     plt.savefig(filename)
     plt.close()
@@ -104,10 +104,10 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
 
 
 ###############################################################################
-# Integrated Autocorrelation Time (Tau)
+# Integrated Autocorrelation Time (Tau_int)
 
 @njit(cache = ALLOW_NUMBA_CACHING)
-def tau_int_sokal(observables, c = 7.0):
+def tau_int_sokal(observables, c = 15.0):
     '''
     Computes the integrated autocorrelation time using the self-consistent windowing method
     optimized as per Sokal's method.
@@ -134,9 +134,9 @@ def tau_int_sokal(observables, c = 7.0):
     return tau
 
     
-def tau_int_graph(N, dim, data_file, filename = "tau.png"):
+def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
     '''
-    Plots the integrated autocorrelation time (tau) with respect to magnetization
+    Plots the integrated autocorrelation time (tau_int) with respect to magnetization
     as a function of temperature.
     '''
     
@@ -165,34 +165,70 @@ def tau_int_graph(N, dim, data_file, filename = "tau.png"):
     
     # Save temperatures and taus to a text file
     data_to_save = np.column_stack((temperatures, taus))
-    np.savetxt("dati.txt", data_to_save, header="temperature tau", fmt="%g")
 
 
 
+###############################################################################
+# Exponential Autocorrelation Time (Tau_exp)
+# (For thermalization analysis)
 
+def tau_exp_fit(observables):
+    '''
+    Computes the exponential autocorrelation time by fitting.
+    '''
+
+    times = np.arange(0, len(observables) // 2, 1)
+    acs = np.zeros_like(times, dtype = float)
+
+    for i, t in enumerate(times):
+        acs[i] = autocorrelation(t, observables)
+
+    # Fit autocorrelation(t) with a custom function
+    mask = np.isfinite(times) & np.isfinite(acs)
+    mask[0] = False  # Exclude t = 0 from the fit
+    fit_times = times[mask]
+    fit_taus = acs[mask]
+
+    tau_fit_function = lambda T, tau_exp, K: K * np.exp(- T / tau_exp)
+
+    if len(fit_times) >= 3:
+        tau0 = float(np.ptp(fit_taus)) if np.ptp(fit_taus) > 0 else float(fit_taus[0])
+        K0 = float(np.mean(fit_taus))
+
+        def chi2(tau_exp, K):
+            return np.sum((fit_taus - tau_fit_function(fit_times, tau_exp, K)) ** 2)
+
+        m = Minuit(chi2, tau_exp = tau0, K = K0)
+        m.errordef = Minuit.LEAST_SQUARES
+        m.limits["K"] = (0, None)
+        m.migrad()
+
+    return m.values['tau_exp']
 
 
 ###############################################################################
 # Magnetization study
 
-def magnetization_graph(N, dim, data_file = "tmp.hdf5", filename = "magnetization.png"):
+def magnetization_graph(N, dim, filename = "magnetization.png"):
     '''
     Plots the magnetization of the Ising model as a function of temperature 
     given the raw data stored in an HDF5 file.
-
-    NOTE: This code arbitrarily filters the data for the sake of time.
-    TODO: Implement proper thermalization and autocorrelation analysis.
     '''
+
+    data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
 
     with h5py.File(data_file, "r") as file:
         temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
-        filtered_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"][:, 10_000::2_000])
+        filtered_data = np.array(file[f"dim_{dim}_N_{N}/filtered_data"])
+        if f"dim_{dim}_N_{N}/filtered_lengths" in file:
+            filtered_lengths = np.array(file[f"dim_{dim}_N_{N}/filtered_lengths"])
+        else:
+            filtered_lengths = np.full(len(temperatures), filtered_data.shape[1], dtype = np.int32)
 
-    print(f"Filtered data shape: {filtered_data.shape}")
-    # filtered_data = raw_data[:, 30_000::10_000]
-    mean_magnetization = np.array([np.mean([magnetization(model) for model in models]) for models in filtered_data])
-    errors = np.array([np.std([magnetization(model) for model in models]) for models in filtered_data])
-
+    valid_models = [filtered_data[i, :filtered_lengths[i]] for i in range(len(temperatures))]
+    mean_magnetization = np.array([np.mean([magnetization(model) for model in models]) for models in valid_models])
+    errors = np.array([np.std([magnetization(model) for model in models]) / np.sqrt(len(models)) for models in valid_models])
+    # errors = np.array([np.std([magnetization(model) for model in models]) for models in valid_models])
 
     graph(temperatures,
           mean_magnetization,
@@ -230,15 +266,15 @@ def magnetization_tfixed_graph(N, dim, Tidx, data_file = "tmp.hdf5", filename = 
 
 def main():
 
-    N = 10
-    dim = 3
+    N = 15
+    dim = 2
 
-    data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
+    data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
 
-    Tidx = 17
+    Tidx = 6
     
     with h5py.File(data_file, "r") as file:
-        filtered_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"][Tidx, 10_000:30_000])
+        filtered_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"][Tidx])
     observables = np.array([magnetization(model) for model in filtered_data])
 
     start = time.perf_counter()
@@ -251,9 +287,10 @@ def main():
 
     #     data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
 
-    #     magnetization_tfixed_graph(N, dim, Tidx, data_file = data_file, filename = "tmp_magnetization_tfixed.png")
+        # magnetization_tfixed_graph(N, dim, Tidx, data_file = data_file, filename = "tmp_magnetization_tfixed.png")
         
-    magnetization_graph(N, dim, data_file = data_file, filename = "tmp_magnetization.png")
+    magnetization_graph(N, dim, filename = "tmp_magnetization_reduced.png")
+    # magnetization_tfixed_graph(N, dim, Tidx, data_file = data_file, filename = "tmp_magnetization_tfixed.png")
     # tau_int_1 = autocorrelation_graph(N, dim, data_file = data_file, filename = "tmp_autocorrelation.png", T_index = Tidx)
     # tau_int_graph(N, dim, data_file = data_file, filename = "tmp_tau.png")
 
