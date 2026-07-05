@@ -1,10 +1,11 @@
 import numpy as np
 import h5py
 import time
+from datetime import timedelta
 from ising import new_random_ising
 from mcmc_utils import metropolis_ising
 from operators import magnetization
-from process import tau_exp_fit, tau_int_sokal
+from autocorrelation import tau_exp_fit, tau_int_sokal
 
 
 ###################################################################################
@@ -30,7 +31,7 @@ def mcmc_sampling(N = 20, dim = 2, T = 1.0, steps = 1000, initial_model = None, 
     else:
         m = np.array(initial_model, copy = True)
 
-    models = metropolis_ising(m, T = T, seed = seed)
+    models = metropolis_ising(m, T = T, steps = steps, seed = seed)
 
     return models
 
@@ -43,6 +44,10 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
         This is the full mcmc simulation at every temperature step.
         Thermalization and autocorreltions are not yet considered at this point.
     '''
+
+    start_time = time.time()
+    print(f"Generating data: Ising model MCMC for N = {N}, dim = {dim}, steps = {steps}...")
+    print(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
 
     if dim == 1:
         temps = np.arange(0.1, 3.0, .05)
@@ -74,6 +79,8 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
             
             for i, t in enumerate(temps):
                 current_model = raw_data[i, current_steps - 1]
+
+                print(f"Computing MCMC for T = {t:.2f}... ({i * 100 / len(temps):.1f}%)")
                 
                 models = mcmc_sampling(
                     N = N,
@@ -104,6 +111,8 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
             )
             
             for i, t in enumerate(temps):
+                print(f"Computing MCMC for T = {t:.2f}... ({i * 100 / len(temps):.1f}%)")
+
                 models = mcmc_sampling(
                     N = N,
                     dim = dim,
@@ -117,7 +126,8 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
 
                 # print(f"Computed {(i + 1) / len(temps) * 100:.1f}%")
     
-    # print(f"Simulation completed. Data saved to {data_file}.")
+    end_time = time.time()
+    print(f"Done. Elapsed: {timedelta(seconds = end_time - start_time)}.")
 
     return data_file
 
@@ -125,7 +135,7 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
 ###################################################################################
 # Data filtering
 
-def filter_data(N, dim):
+def filter_data(N, dim, data_file = "tmp.hdf5"):
     '''
     Filters the raw data stored in an HDF5 producing an actual sample of Ising states.
     Saves the filtered data in the same HDF5 file.
@@ -137,7 +147,8 @@ def filter_data(N, dim):
         where tau_int is calculated with tau_int_sokal()
     '''
 
-    data_file = f"dim_{dim}_N_{N}_data.hdf5"
+    if data_file is None:
+        data_file = f"dim_{dim}_N_{N}_data.hdf5"
     group_name = f"dim_{dim}_N_{N}"
     filtered_data_path = f"{group_name}/filtered_data"
     filtered_lengths_path = f"{group_name}/filtered_lengths"

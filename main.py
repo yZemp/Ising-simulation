@@ -5,7 +5,7 @@ from mcmc_utils import metropolis_ising
 from graphics import animate
 from datetime import timedelta
 from io_utils import read_data
-from operators import magnetization
+from process import magnetization_graph
 from generation import simulate, filter_data
 
 import time
@@ -88,16 +88,16 @@ def anim_mcmc_2D():
 
 def main(N, dim, steps):
 
-    data_file = "simulations_data/" + f"dim_{dim}_N_{N}" + "_data.hdf5"
+    data_file = "tmp.hdf5"
 
     start = time.perf_counter()
 
     # anim_mcmc_1D()
     # anim_mcmc_2D()
-    # simulate(N, dim, steps, data_file = data_file)
-    # magnetization_graph(N, dim, steps, data_file = data_file, filename = "tmp.png")
 
-    filter_data(N, dim)
+    simulate(N, dim, steps, data_file = "tmp.hdf5")
+    filter_data(N, dim, data_file = data_file)
+    magnetization_graph(N, dim, data_file = data_file, filename = "tmp.png")
 
     end = time.perf_counter()
     print(f"Elapsed = {timedelta(seconds = end - start)}")

@@ -10,13 +10,14 @@ from matplotlib import pyplot as plt
 ###############################################################################
 # Magnetization study
 
-def magnetization_graph(N, dim, filename = "magnetization.png"):
+def magnetization_graph(N, dim, data_file = None, filename = "tmp.png"):
     '''
     Plots the magnetization of the Ising model as a function of temperature 
     given the raw data stored in an HDF5 file.
     '''
 
-    data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
+    if data_file is None:
+        data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
 
     with h5py.File(data_file, "r") as file:
         temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
