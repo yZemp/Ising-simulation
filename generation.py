@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+import time
 from ising import new_random_ising
 from mcmc_utils import metropolis_ising
 from operators import magnetization
@@ -29,8 +30,7 @@ def mcmc_sampling(N = 20, dim = 2, T = 1.0, steps = 1000, initial_model = None, 
     else:
         m = np.array(initial_model, copy = True)
 
-    # Avoiding burn_in and thinning
-    models = metropolis_ising(m, T = T, steps = steps, burn_in = 0, seed = seed)
+    models = metropolis_ising(m, T = T, seed = seed)
 
     return models
 
@@ -164,15 +164,13 @@ def filter_data(N, dim):
         for i, T in enumerate(temperatures):
             print("----------------------------------------------------------------------")
             print(f"Filtering data {i} ({i / len(temperatures) * 100:.1f}%)")
+            print(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
 
             raw_data = np.array(file[f"{group_name}/raw_data"][i])
             observables = np.array([magnetization(model) for model in raw_data])
             
-            print("Computing tau...")
             tau_int = tau_int_sokal(observables, c = 15.0)
-            print(f"Done.")    
 
-            print("Filtering data...")
             if int(tau_int) > 0:
                 # Using 20 * tau_int as burn-in and thinning every 2 * tau_int
                 filtered_data = raw_data[int(20 * tau_int)::int(2 * tau_int)]
@@ -182,12 +180,9 @@ def filter_data(N, dim):
 
             if filtered_data.size == 0:
                 filtered_data = raw_data[-1:]
-            print("Done.")
 
-            print("Appending filtered data...")
             filtered_samples.append(filtered_data)
             filtered_lengths[i] = filtered_data.shape[0]
-            print("Done.")
     
         max_length = int(np.max(filtered_lengths))
         filtered_dataset = file.create_dataset(

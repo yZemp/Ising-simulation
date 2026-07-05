@@ -13,11 +13,12 @@ ALLOW_NUMBA_CACHING = True
 def maxwell_boltzmann_statistics(epsilon, beta = 1.):
     return np.exp(- (beta * epsilon))
 
+
 @njit(cache = ALLOW_NUMBA_CACHING)
-def _metropolis_ising_1d(model: np.ndarray, T: float, steps: int, burn_in: int = 0):
+def _metropolis_ising_1d(model: np.ndarray, T: float, steps: int):
     '''1D version of Metropolis-Hastings for Ising model (Numba-compiled).'''
     curr_model = np.copy(model)
-    models_samples = np.empty((steps,) + curr_model.shape, dtype=curr_model.dtype)
+    models_samples = np.empty((steps,) + curr_model.shape, dtype = curr_model.dtype)
     N = curr_model.shape[0]
     
     for i in range(steps):
@@ -33,11 +34,11 @@ def _metropolis_ising_1d(model: np.ndarray, T: float, steps: int, burn_in: int =
         
         models_samples[i] = curr_model
     
-    return models_samples[burn_in:]
+    return models_samples
 
 
 @njit(cache = ALLOW_NUMBA_CACHING)
-def _metropolis_ising_2d(model: np.ndarray, T: float, steps: int, burn_in: int = 0):
+def _metropolis_ising_2d(model: np.ndarray, T: float, steps: int):
     '''2D version of Metropolis-Hastings for Ising model (Numba-compiled).'''
     curr_model = np.copy(model)
     models_samples = np.empty((steps,) + curr_model.shape, dtype=curr_model.dtype)
@@ -61,11 +62,11 @@ def _metropolis_ising_2d(model: np.ndarray, T: float, steps: int, burn_in: int =
         
         models_samples[i] = curr_model
     
-    return models_samples[burn_in:]
+    return models_samples
 
 
 @njit(cache = ALLOW_NUMBA_CACHING)
-def _metropolis_ising_3d(model: np.ndarray, T: float, steps: int, burn_in: int = 0):
+def _metropolis_ising_3d(model: np.ndarray, T: float, steps: int):
     '''3D version of Metropolis-Hastings for Ising model (Numba-compiled).'''
     curr_model = np.copy(model)
     models_samples = np.empty((steps,) + curr_model.shape, dtype=curr_model.dtype)
@@ -94,10 +95,10 @@ def _metropolis_ising_3d(model: np.ndarray, T: float, steps: int, burn_in: int =
         
         models_samples[i] = curr_model
     
-    return models_samples[burn_in:]
+    return models_samples
 
 
-def metropolis_ising(model: np.ndarray, T: float, steps: int, min = 0, max = 100_000, burn_in = 0, seed = 0):
+def metropolis_ising(model: np.ndarray, T: float, steps: int, seed = 0):
     '''
     Given:
         Target probability distribution function
@@ -117,11 +118,11 @@ def metropolis_ising(model: np.ndarray, T: float, steps: int, min = 0, max = 100
         np.random.seed(seed)
     
     if model.ndim == 1:
-        return _metropolis_ising_1d(model, T, steps, burn_in)
+        return _metropolis_ising_1d(model, T, steps)
     elif model.ndim == 2:
-        return _metropolis_ising_2d(model, T, steps, burn_in)
+        return _metropolis_ising_2d(model, T, steps)
     elif model.ndim == 3:
-        return _metropolis_ising_3d(model, T, steps, burn_in)
+        return _metropolis_ising_3d(model, T, steps)
     else:
         raise ValueError("metropolis_ising supports 1D, 2D, and 3D models only")
 
