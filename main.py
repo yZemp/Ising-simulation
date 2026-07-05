@@ -100,7 +100,7 @@ def main(N, dim, steps):
     magnetization_graph(N, dim, data_file = data_file, filename = "tmp.png")
 
     end = time.perf_counter()
-    print(f"Elapsed = {timedelta(seconds = end - start)}")
+    print(f"Time elapsed since main.py was run = {timedelta(seconds = end - start)}")
 
 
 if __name__ == "__main__":

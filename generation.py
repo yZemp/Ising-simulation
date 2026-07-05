@@ -135,11 +135,16 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
 ###################################################################################
 # Data filtering
 
-def filter_data(N, dim, data_file = "tmp.hdf5"):
+def filter_data(N, dim, data_file = "tmp.hdf5", max_chunk_size = 50_000):
     '''
     Filters the raw data stored in an HDF5 producing an actual sample of Ising states.
     Saves the filtered data in the same HDF5 file.
 
+    The raw Markov chain is processed in chunks to keep memory usage bounded.
+    A short pilot chunk is used only to estimate tau_int for each temperature.
+    NOTE: The bigger the chunk size, the more accurate the tau_int estimation will be.
+    Probably should be somewhere close to 100_000 or higher.
+    
     burn_in:
         TODO: implement using tau_exp or graphical method
     thinning:
@@ -155,46 +160,72 @@ def filter_data(N, dim, data_file = "tmp.hdf5"):
 
     print(f"Filtering data for N = {N}, dim = {dim}...")
 
-    with h5py.File(data_file, "r") as file:
+    with h5py.File(data_file, "r+") as file:
+        raw_dataset = file[f"{group_name}/raw_data"]
         temperatures = np.array(file[f"{group_name}/temperatures"])
-        raw_data = file[f"{group_name}/raw_data"]
-        model_shape = raw_data.shape[2:]
-        raw_dtype = raw_data.dtype
+        steps = raw_dataset.shape[1]
+        model_shape = raw_dataset.shape[2:]
+        raw_dtype = raw_dataset.dtype
 
-    filtered_samples = []
-    filtered_lengths = np.zeros(len(temperatures), dtype = np.int32)
+        if steps > max_chunk_size:
+            print(
+                f"The simulation length exceeds the maximum chunk size ({steps} > {max_chunk_size}).\n"
+                f"Filtering will be done in chunks to avoid memory issues."
+            )
 
-    with h5py.File(data_file, "a") as file:
+        filtered_lengths = np.zeros(len(temperatures), dtype = np.int32)
+        burn_ins = np.zeros(len(temperatures), dtype = np.int32)
+        thinnings = np.zeros(len(temperatures), dtype = np.int32)
+
         if filtered_data_path in file:
             del file[filtered_data_path]
 
         if filtered_lengths_path in file:
             del file[filtered_lengths_path]
 
-        # Sampling
+        def count_filtered_samples(burn_in, thinning):
+            count = 0
+
+            for chunk_start in range(burn_in, steps, max_chunk_size):
+                chunk_end = min(chunk_start + max_chunk_size, steps)
+                first_sample = chunk_start + ((thinning - ((chunk_start - burn_in) % thinning)) % thinning)
+
+                if first_sample < chunk_end:
+                    count += ((chunk_end - first_sample - 1) // thinning) + 1
+
+            return count
+
+        def iter_filtered_chunks(temperature_index, burn_in, thinning):
+            for chunk_start in range(burn_in, steps, max_chunk_size):
+                chunk_end = min(chunk_start + max_chunk_size, steps)
+                first_sample = chunk_start + ((thinning - ((chunk_start - burn_in) % thinning)) % thinning)
+
+                if first_sample < chunk_end:
+                    yield np.array(raw_dataset[temperature_index, first_sample:chunk_end:thinning])
+
+        pilot_length = min(max_chunk_size, steps)
+
+        # First pass: estimate tau_int from a short prefix and determine output lengths.
         for i, T in enumerate(temperatures):
             print("----------------------------------------------------------------------")
-            print(f"Filtering data {i} ({i / len(temperatures) * 100:.1f}%)")
-            print(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
+            print(f"Estimating filtering window for T = {T:.2f} ({i / len(temperatures) * 100:.1f}%)")
 
-            raw_data = np.array(file[f"{group_name}/raw_data"][i])
-            observables = np.array([magnetization(model) for model in raw_data])
-            
-            tau_int = tau_int_sokal(observables, c = 15.0)
+            pilot_data = np.array(raw_dataset[i, :pilot_length])
+            observables = np.array([magnetization(model) for model in pilot_data])
+            tau_int = tau_int_sokal(observables, c = 20.0)
 
-            if int(tau_int) > 0:
-                # Using 20 * tau_int as burn-in and thinning every 2 * tau_int
-                filtered_data = raw_data[int(20 * tau_int)::int(2 * tau_int)]
+            if tau_int > 0:
+                burn_in = min(int(20 * tau_int), max(steps - 1, 0))
+                thinning = max(int(2 * tau_int), 1)
             else:
-                # Using arbitrary thinning (should not matter)
-                filtered_data = raw_data[::10_000]
+                # Default values for non properly physical systems (e.g. T --> 0)
+                burn_in = 0
+                thinning = 10_000
 
-            if filtered_data.size == 0:
-                filtered_data = raw_data[-1:]
+            burn_ins[i] = burn_in
+            thinnings[i] = thinning
+            filtered_lengths[i] = count_filtered_samples(burn_in, thinning)
 
-            filtered_samples.append(filtered_data)
-            filtered_lengths[i] = filtered_data.shape[0]
-    
         max_length = int(np.max(filtered_lengths))
         filtered_dataset = file.create_dataset(
             filtered_data_path,
@@ -208,7 +239,19 @@ def filter_data(N, dim, data_file = "tmp.hdf5"):
             data = filtered_lengths,
         )
 
-        for i, filtered_data in enumerate(filtered_samples):
-            filtered_dataset[i, :filtered_data.shape[0]] = filtered_data
+        # Second pass: stream the filtered samples directly into the output dataset.
+        for i, T in enumerate(temperatures):
+            print("----------------------------------------------------------------------")
+            print(f"Filtering data {i} ({i / len(temperatures) * 100:.1f}%)")
+            print(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
+
+            write_pos = 0
+            for filtered_chunk in iter_filtered_chunks(i, burn_ins[i], thinnings[i]):
+                chunk_length = filtered_chunk.shape[0]
+                filtered_dataset[i, write_pos:write_pos + chunk_length] = filtered_chunk
+                write_pos += chunk_length
+
+            if write_pos == 0:
+                filtered_dataset[i, 0] = np.array(raw_dataset[i, steps - 1])
 
         filtered_dataset.attrs["lengths_dataset"] = "filtered_lengths"
