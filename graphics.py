@@ -1,3 +1,4 @@
+import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
@@ -149,6 +150,39 @@ def graph(x, y, yerr = None, xlabel = '', ylabel = '', title = '', filename = 't
 	return filename
 
 
+
+def graph_magnetization_convergence(sources, filename = 'magnetization_convergence.png'):
+	'''
+	Plots magnetizations functions of T for different Ns and saves as PNG.
+	A convergence should be observed as N increases (for dim = 1 this doesn't mathematically converge, but for dim = 2 and 3 it should).
+
+	- `sources` is a list of file paths to HDF5 files containing the simulation data:
+		this function should only extract the already computed magnetization functions
+		and should be only called after said data has been extracted.
+	- `filename` is the output PNG file path.
+
+	Returns the saved file path.
+	'''
+
+	for source in sources:
+		with h5py.File(source, 'r') as f:
+			# Extract dim and N from the group name
+			group_name = list(f.keys())[0]
+
+			temperatures = np.array(f[f"{group_name}/temperatures"])
+			magnetizations = np.array(f[f"{group_name}/magnetizations"])
+
+			plt.plot(temperatures, magnetizations)
+
+	plt.xlabel('Temperature (T)')
+	plt.ylabel('Magnetization')
+	plt.title('Magnetization vs Temperature for different N')
+	plt.grid()
+	plt.legend([f"{list(f.keys())[0]}" for f in [h5py.File(source, 'r') for source in sources]], title='N values')
+	plt.savefig(filename)
+	plt.close()
+
+	
 
 if __name__ == '__main__':
 	demo1 = [1, -1, 1, 1, -1, -1, 1]
