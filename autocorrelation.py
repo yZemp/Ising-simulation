@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+from typing import cast
 
 from operators import magnetization
 from graphics import graph
@@ -46,8 +47,8 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
 
     # Not using read_data() here to economize memory usage
     with h5py.File(data_file, "r") as file:
-        temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
-        filtered_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"][T_index, :LEN])
+        temperatures = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/temperatures"]))
+        filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/raw_data"])[T_index, :LEN])
 
     print(f"Filtered data shape: {filtered_data.shape} (T = {temperatures[T_index]:.2f})")
 
@@ -67,12 +68,14 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
     tau_fit_function = lambda T, tau_exp, K: K * np.exp(- T / tau_exp)
 
     fit_curve = None
+    m = None
     if len(fit_times) >= 3:
         tau0 = float(np.ptp(fit_taus)) if np.ptp(fit_taus) > 0 else float(fit_taus[0])
         K0 = float(np.mean(fit_taus))
 
-        def chi2(tau_exp, K):
-            return np.sum((fit_taus - tau_fit_function(fit_times, tau_exp, K)) ** 2)
+        def chi2(*params: float) -> float:
+            tau_exp, K = params
+            return float(np.sum((fit_taus - tau_fit_function(fit_times, tau_exp, K)) ** 2))
 
         m = Minuit(chi2, tau_exp = tau0, K = K0)
         m.errordef = Minuit.LEAST_SQUARES
@@ -85,13 +88,18 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
 
     plt.plot(times, acs, label = f'Autocorrelation function')
     plt.plot(0, acs[0], label = f"Initial value: {acs[0]:.2f}", marker = 'x', markersize = 8, color = 'green')
-    plt.plot(fit_times, fit_curve, label = f"Fit - valid: {m.valid}", color = "red")
+    if fit_curve is not None and m is not None:
+        plt.plot(fit_times, fit_curve, label = f"Fit - valid: {m.valid}", color = "red")
     plt.xlabel('Time (steps)')
     plt.ylabel('Autocorrelation')
     # plt.yscale('log')
     plt.xscale('log')
     plt.grid(True, which="both", ls="--")
-    plt.title(f'Autocorrelation Function - N = {N}, dim = {dim}, T = {temperatures[T_index]:.2f}, tau_exp = {m.values["tau_exp"]:.2f}')
+    if m is not None:
+        title_tau = f", tau_exp = {m.values['tau_exp']:.2f}"
+    else:
+        title_tau = ""
+    plt.title(f'Autocorrelation Function - N = {N}, dim = {dim}, T = {temperatures[T_index]:.2f}{title_tau}')
     plt.legend()
     plt.savefig(filename)
     plt.close()
@@ -188,16 +196,22 @@ def tau_exp_fit(observables):
 
     tau_fit_function = lambda T, tau_exp, K: K * np.exp(- T / tau_exp)
 
+    m = None
+
     if len(fit_times) >= 3:
         tau0 = float(np.ptp(fit_taus)) if np.ptp(fit_taus) > 0 else float(fit_taus[0])
         K0 = float(np.mean(fit_taus))
 
-        def chi2(tau_exp, K):
-            return np.sum((fit_taus - tau_fit_function(fit_times, tau_exp, K)) ** 2)
+        def chi2(*params: float) -> float:
+            tau_exp, K = params
+            return float(np.sum((fit_taus - tau_fit_function(fit_times, tau_exp, K)) ** 2))
 
         m = Minuit(chi2, tau_exp = tau0, K = K0)
         m.errordef = Minuit.LEAST_SQUARES
         m.limits["K"] = (0, None)
         m.migrad()
 
-    return m.values['tau_exp']
+    if m is None:
+        return float(np.nan)
+
+    return float(m.values['tau_exp'])

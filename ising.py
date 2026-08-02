@@ -1,10 +1,8 @@
-from encodings import undefined
-
 import numpy as np
 import matplotlib.pyplot as plt
 
 class IsingModel:
-    def __init__(self, N: np.shape, J = 1., h = 0.):
+    def __init__(self, N: tuple[int, ...], J = 1., h = 0.):
         self.N = N
         self.J = J
         self.h = h
@@ -35,7 +33,7 @@ class IsingModel:
         return f"IsingModel_{self.N}D:\n{self.spins}"
 
 
-def new_random_ising(N: np.shape, J = 1., h = 0.):
+def new_random_ising(N: tuple[int, ...], J = 1., h = 0.):
     # return np.random.choice([-1, 1], size = N)
     return np.ones(N, dtype = np.int8)
 

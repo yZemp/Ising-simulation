@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
+from typing import cast
 from mcmc_utils import energy
 import time
 from datetime import timedelta
@@ -12,8 +13,10 @@ from iminuit import Minuit
 def energy_distributions(N, dim, data_file = "tmp_mcmc.hdf5", filename = "energy_distributions.png", distrib_freq = 1 / 5):
 
     with h5py.File(data_file, "r") as file:
-        temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
-        filtered_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"][:, 30_000::1_000])
+        group = cast(h5py.Group, file[f"dim_{dim}_N_{N}"])
+        temperatures = np.array(cast(h5py.Dataset, group["temperatures"]))
+        raw_data = cast(h5py.Dataset, group["raw_data"])
+        filtered_data = np.array(raw_data[:, 30_000::1_000])
 
     energy_distributions = np.array([[energy(model) for model in models] for models in filtered_data])
 
@@ -31,8 +34,11 @@ def energy_distributions(N, dim, data_file = "tmp_mcmc.hdf5", filename = "energy
 def fit_distribution(N, dim, data_file = "tmp_mcmc.hdf5", filename = "fit_distribution.png", T_index = 30):
 
     with h5py.File(data_file, "r") as file:
-        temperature = float(file[f"dim_{dim}_N_{N}/temperatures"][T_index])
-        filtered_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"][T_index, 30_000::100])
+        group = cast(h5py.Group, file[f"dim_{dim}_N_{N}"])
+        temperatures = cast(h5py.Dataset, group["temperatures"])
+        raw_data = cast(h5py.Dataset, group["raw_data"])
+        temperature = float(temperatures[T_index])
+        filtered_data = np.array(raw_data[T_index, 30_000::100])
 
     energy_distribution = np.array([energy(model) for model in filtered_data])
 
@@ -55,13 +61,15 @@ def fit_distribution(N, dim, data_file = "tmp_mcmc.hdf5", filename = "fit_distri
         out[mask] = np.sqrt(2.0 / np.pi) * (z[mask] ** 2 / scale) * np.exp(-0.5 * z[mask] ** 2)
         return out
 
-    def chi2_normal(mu, sigma):
+    def chi2_normal(*params: float) -> float:
+        mu, sigma = params
         model = normal_dist(centers, mu, sigma)
-        return np.sum(((density - model) / density_err) ** 2)
+        return float(np.sum(((density - model) / density_err) ** 2))
 
-    def chi2_maxwell(loc, scale):
+    def chi2_maxwell(*params: float) -> float:
+        loc, scale = params
         model = maxwell_shifted_dist(centers, loc, scale)
-        return np.sum(((density - model) / density_err) ** 2)
+        return float(np.sum(((density - model) / density_err) ** 2))
 
     mu_init = float(np.mean(energy_distribution))
     sigma_init = float(np.std(energy_distribution))
@@ -78,7 +86,7 @@ def fit_distribution(N, dim, data_file = "tmp_mcmc.hdf5", filename = "fit_distri
     m2.limits["scale"] = (1e-8, None)
     m2.migrad()
 
-    plt.hist(energy_distribution, bins=bin_edges, density=True, alpha=0.35, label = f"T = {temperature:.2f}")
+    plt.hist(energy_distribution, bins=list(bin_edges), density=True, alpha=0.35, label = f"T = {temperature:.2f}")
 
     x = np.linspace(min(energy_distribution), max(energy_distribution), 100)
     plt.plot(x, normal_dist(x, m.values["mu"], m.values["sigma"]), label = f"Normal fit (mu = {m.values['mu']:.2f}, sigma = {m.values['sigma']:.2f}, valid = {m.valid})", color = "red")

@@ -63,27 +63,26 @@ def anim_mcmc_1D():
     N = 50
     m = new_random_ising((N,))
     steps = int(np.power(N, 1.5))
-    fps = steps / 10
 
-    models = metropolis_ising(m, T = 1.0, steps = steps, burn_in = 0)
+    models = metropolis_ising(m, T = 2.3, steps = steps)
+
     print("MCMC completed.")
-
-    animate(models, fps = fps, filename = 'tmp.gif')
-
+    if steps >= 500:
+        models = models[::(steps // 500 + 1)]  # Limit to 500 frames for animation
+    animate(models, fps = len(models), filename = 'tmp1D.gif')
 
 def anim_mcmc_2D():
     np.random.seed(0)
     N = 20
     m = new_random_ising((N, N))
-    steps = 2 * N * N
-    fps = steps / 10
+    steps = N * N * N
 
-    models = metropolis_ising(m, T = 1.0, steps = steps, burn_in = 0)
+    models = metropolis_ising(m, T = 3.3, steps = steps)
     
     print("MCMC completed.")
     if steps >= 500:
         models = models[::(steps // 500 + 1)]  # Limit to 500 frames for animation
-    animate(models, fps = len(models), filename = 'tmp.gif')
+    animate(models, fps = len(models), filename = 'tmp2D.gif')
 
 
 def main(N, dim, steps):
@@ -93,11 +92,11 @@ def main(N, dim, steps):
     start = time.perf_counter()
 
     # anim_mcmc_1D()
-    # anim_mcmc_2D()
+    anim_mcmc_2D()
 
-    simulate(N, dim, steps, data_file = "tmp.hdf5")
-    filter_data(N, dim, data_file = data_file)
-    magnetization_graph(N, dim, data_file = data_file, filename = "tmp.png")
+    # simulate(N, dim, steps, data_file = "tmp.hdf5")
+    # filter_data(N, dim, data_file = data_file)
+    # magnetization_graph(N, dim, data_file = data_file, filename = "tmp.png")
 
     end = time.perf_counter()
     print(f"Time elapsed since main.py was run = {timedelta(seconds = end - start)}")

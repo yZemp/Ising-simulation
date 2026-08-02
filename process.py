@@ -3,6 +3,7 @@ import h5py
 import time
 
 from datetime import timedelta
+from typing import cast
 from operators import magnetization
 from graphics import graph
 from matplotlib import pyplot as plt
@@ -20,10 +21,11 @@ def magnetization_graph(N, dim, data_file = None, filename = "tmp.png"):
         data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
 
     with h5py.File(data_file, "r") as file:
-        temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
-        filtered_data = np.array(file[f"dim_{dim}_N_{N}/filtered_data"])
+        group = cast(h5py.Group, file[f"dim_{dim}_N_{N}"])
+        temperatures = np.array(cast(h5py.Dataset, group["temperatures"]))
+        filtered_data = np.array(cast(h5py.Dataset, group["filtered_data"]))
         if f"dim_{dim}_N_{N}/filtered_lengths" in file:
-            filtered_lengths = np.array(file[f"dim_{dim}_N_{N}/filtered_lengths"])
+            filtered_lengths = np.array(cast(h5py.Dataset, group["filtered_lengths"]))
         else:
             filtered_lengths = np.full(len(temperatures), filtered_data.shape[1], dtype = np.int32)
 
@@ -50,8 +52,11 @@ def magnetization_tfixed_graph(N, dim, Tidx, data_file = "tmp.hdf5", filename = 
 
 
     with h5py.File(data_file, "r") as file:
-        T = (file[f"dim_{dim}_N_{N}/temperatures"])[Tidx]
-        data = np.array(file[f"dim_{dim}_N_{N}/raw_data"][Tidx])
+        group = cast(h5py.Group, file[f"dim_{dim}_N_{N}"])
+        temperatures = cast(h5py.Dataset, group["temperatures"])
+        raw_data = cast(h5py.Dataset, group["raw_data"])
+        T = temperatures[Tidx]
+        data = np.array(raw_data[Tidx])
 
     print(f"Filtered data shape: {data.shape}")
     # filtered_data = raw_data[:, 30_000::10_000]
@@ -76,7 +81,9 @@ def main():
     Tidx = 6
     
     with h5py.File(data_file, "r") as file:
-        filtered_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"][Tidx])
+        group = cast(h5py.Group, file[f"dim_{dim}_N_{N}"])
+        raw_data = cast(h5py.Dataset, group["raw_data"])
+        filtered_data = np.array(raw_data[Tidx])
     observables = np.array([magnetization(model) for model in filtered_data])
 
     start = time.perf_counter()

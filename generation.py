@@ -2,6 +2,7 @@ import numpy as np
 import h5py
 import time
 from datetime import timedelta
+from typing import cast
 from ising import new_random_ising
 from mcmc_utils import metropolis_ising
 from operators import magnetization
@@ -68,9 +69,9 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
         if group_name in f:
             print("Data of an existing simulation was found.\nOverwriting temperatures and continuing previous simulation...")
 
-            tmp_group = f[group_name]
-            temps = tmp_group['temperatures'][:]
-            raw_data = tmp_group['raw_data']
+            tmp_group = cast(h5py.Group, f[group_name])
+            temps = cast(h5py.Dataset, tmp_group['temperatures'])[:]
+            raw_data = cast(h5py.Dataset, tmp_group['raw_data'])
             
             current_steps = raw_data.shape[1]
             new_steps_total = current_steps + steps
@@ -101,14 +102,14 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
 
             tmp_group = f.create_group(group_name)
             tmp_group.create_dataset('temperatures', data = temps)
-            tmp_group.create_dataset(
+            raw_data = cast(h5py.Dataset, tmp_group.create_dataset(
             "raw_data", 
             shape = raw_data_shape, 
             maxshape = max_shape,
             dtype = np.int8,
             compression = "lzf",
             chunks = True
-            )
+            ))
             
             for i, t in enumerate(temps):
                 print(f"Computing MCMC for T = {t:.2f}... ({i * 100 / len(temps):.1f}%)")
@@ -122,7 +123,7 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
                 )
                 current_model = models[-1]
 
-                f.get(f"dim_{dim}_N_{N}/raw_data")[i] = models
+                raw_data[i] = models
 
                 # print(f"Computed {(i + 1) / len(temps) * 100:.1f}%")
     
@@ -161,8 +162,8 @@ def filter_data(N, dim, data_file = "tmp.hdf5", max_chunk_size = 50_000):
     print(f"Filtering data for N = {N}, dim = {dim}...")
 
     with h5py.File(data_file, "r+") as file:
-        raw_dataset = file[f"{group_name}/raw_data"]
-        temperatures = np.array(file[f"{group_name}/temperatures"])
+        raw_dataset = cast(h5py.Dataset, file[f"{group_name}/raw_data"])
+        temperatures = np.array(cast(h5py.Dataset, file[f"{group_name}/temperatures"]))
         steps = raw_dataset.shape[1]
         model_shape = raw_dataset.shape[2:]
         raw_dtype = raw_dataset.dtype

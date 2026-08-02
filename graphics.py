@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 # Graphics utilities for visualizations
 #####################################################################
 
-def array_to_png(arr, pixel_size = 50, filename = "output.png"):
+def array_to_png(arr, pixel_size = 50, filename: str | None = "output.png") -> str | Image.Image:
 	'''
 	Convert a 1D or 2D array of values 1 and -1 into a PNG image.
 
@@ -92,7 +92,9 @@ def animate(arrays, pixel_size = 50, filename = "animation.gif", fps = 5, loop =
 			font = ImageFont.load_default()
 
 	for frame_idx, arr in enumerate(arrays_list):
-		img = array_to_png(arr, pixel_size=pixel_size, filename=None)
+		img = array_to_png(arr, pixel_size = pixel_size, filename = None)
+		if not isinstance(img, Image.Image):
+			raise TypeError('array_to_png must return an Image when filename is None')
 		
 		# Convert to RGB for colored text
 		img_rgb = img.convert('RGB')

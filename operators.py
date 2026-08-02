@@ -115,13 +115,15 @@ def delta_energy(model: np.ndarray, index: tuple) -> float:
         return _delta_energy_3d(model, index[0], index[1], index[2])
     else:
         # Fallback for higher dimensions (Python)
-        spin = model[index]
-        E_local = 0.0
+        spin: float = float(model[index])
+        E_local: float = 0.0
         for axis in range(model.ndim):
             forward_idx = (*index[:axis], (index[axis] + 1) % model.shape[axis], *index[axis+1:])
             backward_idx = (*index[:axis], (index[axis] - 1) % model.shape[axis], *index[axis+1:])
-            E_local += spin * (model[forward_idx] + model[backward_idx])
-        return 2.0 * E_local
+            forward_value: float = float(model[forward_idx])
+            backward_value: float = float(model[backward_idx])
+            E_local += spin * (forward_value + backward_value)
+        return float(2.0 * E_local)
 
 
 @njit(cache = ALLOW_NUMBA_CACHING)
