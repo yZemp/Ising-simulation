@@ -185,7 +185,6 @@ def magnetization_tfixed_graph(N, dim, Tidx, data_file = "tmp.hdf5", filename = 
     plt.close()
 
 	
-
 def graph_magnetization_convergence(sources, filename = 'magnetization_convergence.png'):
 	'''
 	Plots magnetizations functions of T for different Ns and saves as PNG.

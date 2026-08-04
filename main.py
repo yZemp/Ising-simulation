@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import time
+import os
 
 from ising import new_random_ising
 from mcmc_utils import metropolis_ising
@@ -8,6 +9,7 @@ from graphics import animate
 from datetime import timedelta
 from process import filter_data, magnetization_bake
 from generation import simulate
+from graphics import graph, graph_magnetization_convergence
 
 def positive_int(value):
     try:
@@ -93,6 +95,23 @@ def anim_mcmc_2D():
         models = models[::(steps // 500 + 1)]  # Limit to 500 frames for animation
     animate(models, fps = len(models), filename = 'tmp2D.gif')
 
+def graph_magnetization_convergence_for_fixed_dim(dim, path = ".", filename = "tmp.png"):
+    '''
+    Graphs magnetization of each dataset for a fixed dimension in a given path.
+    The datasets are expected to be named in the format "dim_{dim}_N_{N}_data.hdf5".
+    '''
+
+    sources = []
+
+    for file in os.listdir(path):
+        if file.startswith(f"dim_{dim}_N_") and file.endswith("_data.hdf5"):
+            sources.append(path + file)
+
+    print(f"Graphing magnetization convergence for dim = {dim}...")
+    print(f"Sources: {sources}")
+
+    graph_magnetization_convergence(sources, filename = filename)
+
 
 def main(N, dim, steps):
 
@@ -103,9 +122,11 @@ def main(N, dim, steps):
     # anim_mcmc_1D()
     # anim_mcmc_2D()
 
-    simulate(N, dim, steps, data_file = data_file)
-    filter_data(N, dim, data_file = data_file)
-    magnetization_bake(N, dim, data_file = data_file)
+    # simulate(N, dim, steps, data_file = data_file)
+    # filter_data(N, dim, data_file = data_file)
+    # magnetization_bake(N, dim, data_file = data_file)
+
+    graph_magnetization_convergence_for_fixed_dim(dim, path = "E:\\simulations_data\\")
 
     end = time.perf_counter()
     print(f"Time elapsed since main.py was run = {timedelta(seconds = end - start)}")
