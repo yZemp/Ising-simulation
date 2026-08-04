@@ -1,6 +1,9 @@
 import h5py
 import numpy as np
 
+# This is barely (if ever) used for performance reasons
+# Stored as reference more than anything else
+
 def read_data(data_file, N, dim):
     
     print(f"Reading data from {data_file}...")

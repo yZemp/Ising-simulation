@@ -1,7 +1,10 @@
+from typing import cast
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
+
+from operators import magnetization
 
 #####################################################################
 # Graphics utilities for visualizations
@@ -152,6 +155,36 @@ def graph(x, y, yerr = None, xlabel = '', ylabel = '', title = '', filename = 't
 	return filename
 
 
+def magnetization_tfixed_graph(N, dim, Tidx, data_file = "tmp.hdf5", filename = "magnetization.png"):
+    '''
+    Plots the magnetization of the Ising model as a function of time (steps) at a fixed temperature T 
+    given the raw data stored in an HDF5 file.
+
+    NOTE: This function is not really useful
+    it was somewhat useful to check the correct functioning of the mcmc process
+    '''
+
+
+    with h5py.File(data_file, "r") as file:
+        group = cast(h5py.Group, file[f"dim_{dim}_N_{N}"])
+        temperatures = cast(h5py.Dataset, group["temperatures"])
+        raw_data = cast(h5py.Dataset, group["raw_data"])
+        T = temperatures[Tidx]
+        data = np.array(raw_data[Tidx])
+
+    print(f"Filtered data shape: {data.shape}")
+    # filtered_data = raw_data[:, 30_000::10_000]
+    magnetizations = np.array([magnetization(model) for model in data])
+
+    plt.plot(range(len(magnetizations)), magnetizations, label = f"T = {T:.2f}")
+    plt.xlabel('Time (Steps)')
+    plt.ylabel('Magnetization')
+    plt.title(f"MC Magnetization - N = {N}, dim = {dim}")
+    plt.legend()
+    plt.savefig(filename)
+    plt.close()
+
+	
 
 def graph_magnetization_convergence(sources, filename = 'magnetization_convergence.png'):
 	'''

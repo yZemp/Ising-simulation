@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# This is deprecated
+# Ising models are now stored in simple arrays (down in this file) for performance 
 class IsingModel:
     def __init__(self, N: tuple[int, ...], J = 1., h = 0.):
         self.N = N
