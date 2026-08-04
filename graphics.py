@@ -166,15 +166,20 @@ def graph_magnetization_convergence(sources, filename = 'magnetization_convergen
 	Returns the saved file path.
 	'''
 
-	for source in sources:
+	if len(sources) <= 0:
+		raise ValueError('`sources` must contain at least one file path')
+	L = len(sources)
+
+	for i, source in enumerate(sources):
 		with h5py.File(source, 'r') as f:
 			# Extract dim and N from the group name
 			group_name = list(f.keys())[0]
 
 			temperatures = np.array(f[f"{group_name}/temperatures"])
 			magnetizations = np.array(f[f"{group_name}/magnetizations"])
+			errors = np.array(f[f"{group_name}/magnetization_errors"])
 
-			plt.plot(temperatures, magnetizations)
+			plt.errorbar(temperatures, magnetizations, yerr = errors, color = (.3, i / L, 1. - i / L), marker = '.')
 
 	plt.xlabel('Temperature (T)')
 	plt.ylabel('Magnetization')
@@ -187,10 +192,16 @@ def graph_magnetization_convergence(sources, filename = 'magnetization_convergen
 	
 
 if __name__ == '__main__':
-	demo1 = [1, -1, 1, 1, -1, -1, 1]
-	array_to_png(demo1, pixel_size=40, filename='demo_row.png')
+	# Convergence example usage
 
-	demo2 = [[1, -1, 1, -1], [ -1, 1, -1, 1], [1, 1, -1, -1]]
-	array_to_png(demo2, pixel_size=30, filename='demo_grid.png')
+	Ns = [5, 10, 20, 30, 50, 70, 100, 150, 200, 250, 300, 500]
+	dims = [1]
+
+	# Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
+	# dims = [2]
+
+	sources = [r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns for dim in dims]
+
+	graph_magnetization_convergence(sources, filename = f"magnetization_convergence_{dims[0]}D.png")
 
 

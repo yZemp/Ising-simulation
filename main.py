@@ -5,7 +5,7 @@ from mcmc_utils import metropolis_ising
 from graphics import animate
 from datetime import timedelta
 from io_utils import read_data
-from process import magnetization_graph
+from process import magnetization_bake
 from generation import simulate, filter_data
 
 import time
@@ -20,6 +20,18 @@ def positive_int(value):
 
     if parsed_value <= 0:
         raise argparse.ArgumentTypeError("value must be a positive integer")
+
+    return parsed_value
+
+
+def nonnegative_int(value):
+    try:
+        parsed_value = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"'{value}' is not an integer") from exc
+
+    if parsed_value < 0:
+        raise argparse.ArgumentTypeError("value must be a non-negative integer")
 
     return parsed_value
 
@@ -40,11 +52,11 @@ def parse_args():
     )
     parser.add_argument("N_pos", nargs = "?", type = positive_int, default = 100, metavar = "N", help = "Linear size of the lattice")
     parser.add_argument("dim_pos", nargs = "?", type = positive_int, default = 2, metavar = "dim", help = "Number of dimensions")
-    parser.add_argument("steps_pos", nargs = "?", type = positive_int, default = 1_000, metavar = "steps", help = "MCMC steps per temperature")
+    parser.add_argument("steps_pos", nargs = "?", type = nonnegative_int, default = 1_000, metavar = "steps", help = "MCMC steps per temperature")
 
     parser.add_argument("-N", dest = "N", type = positive_int, default = argparse.SUPPRESS, help = "Linear size of the lattice")
     parser.add_argument("-dim", dest = "dim", type = positive_int, default = argparse.SUPPRESS, help = "Number of dimensions")
-    parser.add_argument("-steps", dest = "steps", type = positive_int, default = argparse.SUPPRESS, help = "MCMC steps per temperature")
+    parser.add_argument("-steps", dest = "steps", type = nonnegative_int, default = argparse.SUPPRESS, help = "MCMC steps per temperature")
 
     args = parser.parse_args()
 
@@ -62,7 +74,7 @@ def anim_mcmc_1D():
     np.random.seed(0)
     N = 50
     m = new_random_ising((N,))
-    steps = int(np.power(N, 1.5))
+    steps = N * N
 
     models = metropolis_ising(m, T = 2.3, steps = steps)
 
@@ -73,7 +85,7 @@ def anim_mcmc_1D():
 
 def anim_mcmc_2D():
     np.random.seed(0)
-    N = 20
+    N = 30
     m = new_random_ising((N, N))
     steps = N * N * N
 
@@ -87,16 +99,16 @@ def anim_mcmc_2D():
 
 def main(N, dim, steps):
 
-    data_file = "tmp.hdf5"
+    data_file = r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N)
 
     start = time.perf_counter()
 
     # anim_mcmc_1D()
-    anim_mcmc_2D()
+    # anim_mcmc_2D()
 
-    # simulate(N, dim, steps, data_file = "tmp.hdf5")
+    simulate(N, dim, steps, data_file = data_file)
     # filter_data(N, dim, data_file = data_file)
-    # magnetization_graph(N, dim, data_file = data_file, filename = "tmp.png")
+    # magnetization_bake(N, dim, data_file = data_file)
 
     end = time.perf_counter()
     print(f"Time elapsed since main.py was run = {timedelta(seconds = end - start)}")

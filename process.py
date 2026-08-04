@@ -11,13 +11,16 @@ from matplotlib import pyplot as plt
 ###############################################################################
 # Magnetization study
 
-def magnetization_graph(N, dim, data_file = None, filename = "tmp.png"):
+def magnetization_bake(N, dim, data_file = ""):
     '''
-    Plots the magnetization of the Ising model as a function of temperature 
-    given the raw data stored in an HDF5 file.
+    Bakes the magnetization of the Ising model as a function of temperature
+    and stores the results in an HDF5 file.
+    The magnetization is the mean of the magnetization of the filtered models at each temperature.
+
+    (Prepares the data for plotting)
     '''
 
-    if data_file is None:
+    if data_file is None or data_file == "":
         data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
 
     with h5py.File(data_file, "r") as file:
@@ -34,20 +37,23 @@ def magnetization_graph(N, dim, data_file = None, filename = "tmp.png"):
     errors = np.array([np.std([magnetization(model) for model in models]) / np.sqrt(len(models)) for models in valid_models])
     # errors = np.array([np.std([magnetization(model) for model in models]) for models in valid_models])
 
-    graph(temperatures,
-          mean_magnetization,
-          yerr = errors,
-          xlabel = 'T (Temperature)',
-          ylabel = 'Mean magnetization',
-          title = f"(*) N = {N}, dim = {dim}",
-          filename = filename
-          )
+    with h5py.File(data_file, "r+") as file:
+        group = cast(h5py.Group, file[f"dim_{dim}_N_{N}"])
+        if "magnetizations" in group:
+            del group["magnetizations"]
+        if "magnetization_errors" in group:
+            del group["magnetization_errors"]
+        group.create_dataset("magnetizations", data = mean_magnetization)
+        group.create_dataset("magnetization_errors", data = errors)
 
 
 def magnetization_tfixed_graph(N, dim, Tidx, data_file = "tmp.hdf5", filename = "magnetization.png"):
     '''
     Plots the magnetization of the Ising model as a function of time (steps) at a fixed temperature T 
     given the raw data stored in an HDF5 file.
+
+    NOTE: This function is not really useful
+    it was somewhat useful to check the correct functioning of the mcmc process
     '''
 
 
@@ -98,7 +104,6 @@ def main():
 
         # magnetization_tfixed_graph(N, dim, Tidx, data_file = data_file, filename = "tmp_magnetization_tfixed.png")
         
-    magnetization_graph(N, dim, filename = "tmp_magnetization_reduced.png")
     # magnetization_tfixed_graph(N, dim, Tidx, data_file = data_file, filename = "tmp_magnetization_tfixed.png")
     # tau_int_1 = autocorrelation_graph(N, dim, data_file = data_file, filename = "tmp_autocorrelation.png", T_index = Tidx)
     # tau_int_graph(N, dim, data_file = data_file, filename = "tmp_tau.png")

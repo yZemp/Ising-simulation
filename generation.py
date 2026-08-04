@@ -136,7 +136,7 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
 ###################################################################################
 # Data filtering
 
-def filter_data(N, dim, data_file = "tmp.hdf5", max_chunk_size = 50_000):
+def filter_data(N, dim, data_file = "", max_chunk_size = 100_000):
     '''
     Filters the raw data stored in an HDF5 producing an actual sample of Ising states.
     Saves the filtered data in the same HDF5 file.
@@ -152,8 +152,8 @@ def filter_data(N, dim, data_file = "tmp.hdf5", max_chunk_size = 50_000):
         1 element every 2 * tau_int
         where tau_int is calculated with tau_int_sokal()
     '''
-
-    if data_file is None:
+    
+    if data_file is None or data_file == "":
         data_file = f"dim_{dim}_N_{N}_data.hdf5"
     group_name = f"dim_{dim}_N_{N}"
     filtered_data_path = f"{group_name}/filtered_data"

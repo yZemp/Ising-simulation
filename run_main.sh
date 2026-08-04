@@ -5,10 +5,10 @@ set -e
 
 case "$(uname -s)" in
     Linux*)
-        ACTIVATE_SCRIPT="venv/bin/activate"
+        ACTIVATE_SCRIPT=".venv/bin/activate"
         ;;
     MINGW*|MSYS*|CYGWIN*|Windows_NT)
-        ACTIVATE_SCRIPT="venv/Scripts/activate"
+        ACTIVATE_SCRIPT=".venv/Scripts/activate"
         ;;
     *)
         echo "Unsupported operating system: $(uname -s)"
@@ -19,23 +19,34 @@ esac
 source "$ACTIVATE_SCRIPT"
 
 ####################################################################################
-# STREAK 3
+# STREAK
 
-N_VALUES=(20)
-DIM_VALUES=(2)
-STEPS=150_000
+# dim = 1
+# N_VALUES=(5 10 20 30 50 70 100 150 200 250 300 500)
+# DIM_VALUES=(1)
+
+# dim = 2
+# N_VALUES=(5 10 15 20 25 30 40 50 60 70 80 90 100)
+# DIM_VALUES=(2)
+
+# dim = 3
+N_VALUES=(30 30 30 30 40 40 40 40 50 50 50 50)
+# N_VALUES=(5 8 10 12 15 20 25 30 40 50)
+DIM_VALUES=(3)
+
+STEPS=500_000
 
 echo "Starting many simulations:"
 echo "N_VALUES: ${N_VALUES[*]}"
 echo "DIM_VALUES: ${DIM_VALUES[*]}"
-echo "STEPS: $STEPS"
+# echo "STEPS: $STEPS"
 
 start_time=$(date +%s)
 
 for dim in "${DIM_VALUES[@]}"; do
     for N in "${N_VALUES[@]}"; do
         
-        echo "* [$(date +'%Y-%m-%d %H:%M:%S')] Simulating: N=$N | dim=$dim | steps=$STEPS"
+        echo "* [$(date +'%Y-%m-%d %H:%M:%S')] Calling main.py with args: N=$N | dim=$dim | steps=$STEPS"
         
         python main.py -N "$N" -dim "$dim" -steps "$STEPS"
         
