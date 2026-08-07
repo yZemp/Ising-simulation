@@ -99,6 +99,7 @@ def filter_data(N, dim, data_file = "", max_chunk_size = 100_000):
             del file[filtered_lengths_path]
 
         def count_filtered_samples(burn_in, thinning):
+            # Counts the number of samples that will be kept after filtering, given burn-in and thinning parameters
             count = 0
 
             for chunk_start in range(burn_in, steps, max_chunk_size):
@@ -111,6 +112,7 @@ def filter_data(N, dim, data_file = "", max_chunk_size = 100_000):
             return count
 
         def iter_filtered_chunks(temperature_index, burn_in, thinning):
+            # Iterates over the filtered samples for a given temperature index, yielding chunks of filtered samples
             for chunk_start in range(burn_in, steps, max_chunk_size):
                 chunk_end = min(chunk_start + max_chunk_size, steps)
                 first_sample = chunk_start + ((thinning - ((chunk_start - burn_in) % thinning)) % thinning)
@@ -210,4 +212,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+
+    # Ns = [5, 8, 10, 12, 15, 20, 25]
+    Ns = [25]
+    dim = 3
+
+    for N in Ns:
+        filter_data(N, dim, data_file = r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(N = N, dim = dim))
+        magnetization_bake(N, dim, data_file = r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(N = N, dim = dim))

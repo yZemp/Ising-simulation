@@ -30,11 +30,12 @@ source "$ACTIVATE_SCRIPT"
 # DIM_VALUES=(2)
 
 # dim = 3
-N_VALUES=(30 30 30 30 40 40 40 40 50 50 50 50)
-# N_VALUES=(5 8 10 12 15 20 25 30 40 50)
+N_VALUES=(25 25 25 25 25 25 25 25 25 25)
+# completed for 4, 6, 8, 10, 15
+# N_VALUES=(4 6 8 10 15 25)
 DIM_VALUES=(3)
 
-STEPS=500_000
+STEPS=200_000
 
 echo "Starting many simulations:"
 echo "N_VALUES: ${N_VALUES[*]}"
@@ -52,6 +53,19 @@ for dim in "${DIM_VALUES[@]}"; do
         
     done
 done
+
+current_hour=$(date +%H)
+
+if [ "$current_hour" -lt 12 ]; then
+    echo "* [$(date +'%Y-%m-%d %H:%M:%S')] It's before 12:00"
+    echo "* [$(date +'%Y-%m-%d %H:%M:%S')] ==> Calling process.py (args are hardcoded inside the script) to filter and bake magnetization data for all simulations"
+    
+    python process.py
+else
+    echo "* [$(date +'%Y-%m-%d %H:%M:%S')] It's after 12:00"
+    echo "* [$(date +'%Y-%m-%d %H:%M:%S')] ==> NOT executing process.py"
+fi
+
 
 end_time=$(date +%s)
 elapsed_seconds=$((end_time - start_time))

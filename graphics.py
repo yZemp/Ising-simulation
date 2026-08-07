@@ -226,14 +226,25 @@ def graph_magnetization_convergence(sources, filename = 'magnetization_convergen
 if __name__ == '__main__':
 	# Convergence example usage
 
-	Ns = [5, 10, 20, 30, 50, 70, 100, 150, 200, 250, 300, 500]
-	dims = [1]
+	# Ns = [5, 10, 20, 30, 50, 70, 100, 150, 200, 250, 300, 500]
+	# dims = [1]
 
 	# Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
 	# dims = [2]
+	
+	Ns = [4, 6, 8, 10, 15, 25]
+	dims = [3]
 
 	sources = [r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns for dim in dims]
-
 	graph_magnetization_convergence(sources, filename = f"magnetization_convergence_{dims[0]}D.png")
 
+
+
+
+
+	##################################
+	# Single file example usage
+	##################################
+	# sources = [r"E:\simulations_data\dim_3_N_4_data.hdf5"]
+	# graph_magnetization_convergence(sources, filename = f"tmp.png")
 

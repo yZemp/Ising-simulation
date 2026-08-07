@@ -115,18 +115,18 @@ def graph_magnetization_convergence_for_fixed_dim(dim, path = ".", filename = "t
 
 def main(N, dim, steps):
 
-    data_file = r"tmp.hdf5".format(dim = dim, N = N)
+    data_file = r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N)
 
     start = time.perf_counter()
 
     # anim_mcmc_1D()
     # anim_mcmc_2D()
 
-    # simulate(N, dim, steps, data_file = data_file)
+    simulate(N, dim, steps, data_file = data_file)
     # filter_data(N, dim, data_file = data_file)
     # magnetization_bake(N, dim, data_file = data_file)
 
-    graph_magnetization_convergence_for_fixed_dim(dim, path = "E:\\simulations_data\\")
+    # graph_magnetization_convergence_for_fixed_dim(dim, path = "E:\\simulations_data\\")
 
     end = time.perf_counter()
     print(f"Time elapsed since main.py was run = {timedelta(seconds = end - start)}")

@@ -6,7 +6,7 @@ from operators import magnetization
 from graphics import graph
 from matplotlib import pyplot as plt
 from iminuit import Minuit
-from io_utils import read_data
+from hdf5_utils import read_data
 from numba import njit
 
 ALLOW_NUMBA_CACHING = True

@@ -47,7 +47,11 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
     if dim == 2:
         temps = np.arange(0.5, 5.0, .07)
     if dim == 3:
-        temps = np.arange(1.0, 7.0, .1)
+        temps = np.concatenate((
+            np.arange(1.0, 3.0, .3),
+            np.arange(3.3, 6.5, .15),
+            np.arange(6.6, 8.5, .3),
+        ))
     current_model = None
 
     model_shape = tuple([N] * dim)
