@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 
 from operators import magnetization
-from analytical_curves import analytical_curve_2D
+from analytical_curves import plot_analytical_curve
 
 #####################################################################
 # Graphics utilities for visualizations
@@ -212,17 +212,26 @@ def graph_magnetization_convergence(sources, filename = 'magnetization_convergen
 			magnetizations = np.array(f[f"{group_name}/magnetizations"])
 			errors = np.array(f[f"{group_name}/magnetization_errors"])
 
-			plt.errorbar(temperatures, magnetizations, yerr = errors, color = (.3, i / L, 1. - i / L), marker = '.')
+			plt.errorbar(
+				temperatures, 
+				magnetizations, 
+				yerr = errors, 
+				color = (.3, i / L, 1. - i / L), 
+				marker = '.', 
+				label = f"{group_name.split('_')[1]}D, N = {group_name.split('_')[3]}"
+				)
 
 	# Plot analytical curve
-	t = np.linspace(0.1, 5, 100)
-	plt.plot(t, analytical_curve_2D(t), color='black', linestyle='--', label='Analytical')
+	with h5py.File(source, 'r') as f:
+		temps = np.array(f[f"{list(f.keys())[0]}/temperatures"])
+		t = np.linspace(temps[5], temps[-5], 100)
+	plot_analytical_curve(dim = int(sources[0].split('_')[2]), t = t)
 
 	plt.xlabel('Temperature (T)')
 	plt.ylabel('Magnetization')
 	plt.title('Magnetization vs Temperature for different N')
 	plt.grid()
-	plt.legend([f"{list(f.keys())[0]}" for f in [h5py.File(source, 'r') for source in sources]], title='N values')
+	plt.legend()
 	plt.savefig(filename)
 	plt.close()
 
