@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 
 from operators import magnetization
+from analytical_curves import analytical_curve_2D
 
 #####################################################################
 # Graphics utilities for visualizations
@@ -212,6 +213,10 @@ def graph_magnetization_convergence(sources, filename = 'magnetization_convergen
 			errors = np.array(f[f"{group_name}/magnetization_errors"])
 
 			plt.errorbar(temperatures, magnetizations, yerr = errors, color = (.3, i / L, 1. - i / L), marker = '.')
+
+	# Plot analytical curve
+	t = np.linspace(0.1, 5, 100)
+	plt.plot(t, analytical_curve_2D(t), color='black', linestyle='--', label='Analytical')
 
 	plt.xlabel('Temperature (T)')
 	plt.ylabel('Magnetization')
