@@ -2,8 +2,7 @@ import numpy as np
 from ising import new_random_ising
 from numba import njit
 from operators import energy, delta_energy
-
-ALLOW_NUMBA_CACHING = True
+from global_variables import ALLOW_NUMBA_CACHING
 
 #####################################################################
 # MCMC Simulation algorithms

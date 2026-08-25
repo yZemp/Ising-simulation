@@ -2,8 +2,8 @@ from typing import cast
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
-from PIL import Image, ImageDraw, ImageFont
 
+from PIL import Image, ImageDraw, ImageFont
 from operators import magnetization
 from analytical_curves import plot_analytical_curve
 

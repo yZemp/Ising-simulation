@@ -115,7 +115,8 @@ def graph_magnetization_convergence_for_fixed_dim(dim, path = ".", filename = "t
 
 def main(N, dim, steps):
 
-    data_file = r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N)
+    # data_file = r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N)
+    data_file = r"dim_{dim}_N_{N}_B_1_data.hdf5".format(dim = dim, N = N)
 
     start = time.perf_counter()
 

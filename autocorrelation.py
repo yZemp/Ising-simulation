@@ -8,8 +8,7 @@ from matplotlib import pyplot as plt
 from iminuit import Minuit
 from hdf5_utils import read_data
 from numba import njit
-
-ALLOW_NUMBA_CACHING = True
+from global_variables import ALLOW_NUMBA_CACHING
 
 ###############################################################################
 # Autocorrelation
@@ -138,25 +137,108 @@ def tau_int_sokal(observables, c = 15.0):
 
     return tau
 
-    
+
+@njit(cache = ALLOW_NUMBA_CACHING)
+def tau_int_blocking(observables, burn_in = None):
+    '''
+    Computes the integrated autocorrelation time using the data blocking method.
+    observables: ndarray of observable values along the Markov chain.
+    burn_in: int, optional
+        The number of initial samples to discard as burn-in.
+        if None, burn_in is estimated as 20 tau_int computed with the Sokal method.
+    '''
+
+    N = len(observables)
+    if N < 2:
+        return 0.0
+
+    if burn_in is None:
+        tau0 = tau_int_sokal(observables, c = 5.0)
+        if not np.isfinite(tau0) or tau0 <= 0.0:
+            burn_in = 0
+        else:
+            burn_in = int(20 * tau0)
+
+    burn_in = max(0, min(int(burn_in), N // 2))
+
+    observables = observables[burn_in:]
+    N = len(observables)
+    if N < 2:
+        return 0.0
+
+    # Return 0 if the number of samples is too small to compute tau_int
+    var = np.var(observables)
+    if not np.isfinite(var) or var <= 0.0:
+        return 0.0
+
+    current_blocks = observables.copy()
+    tau_estimates = []
+    block_size = 1
+    Nb_array = [] # Number of blocks for each block size
+    Nb = N # Number of blocks for the current block size (Nb_array[0])
+
+    while Nb >= 2:
+        # Estimation
+        mean_blocks = np.mean(current_blocks)
+        var_blocks = np.sum(np.power(current_blocks - mean_blocks, 2)) / (Nb - 1)
+        tau_estimate = .5 * (block_size * (var_blocks / var) - 1)
+        if not np.isfinite(tau_estimate):
+            return 0.0
+        tau_estimates.append(tau_estimate)
+        Nb_array.append(Nb)
+
+        # Blocking
+        if Nb % 2 != 0:
+            current_blocks = current_blocks[:-1]  # Discard the last block if odd number of blocks
+            Nb -= 1
+        Nb //= 2
+        current_blocks = 0.5 * (current_blocks[::2] + current_blocks[1::2])
+        block_size *= 2
+
+
+    if len(tau_estimates) == 0:
+        return 0.0
+
+    # Locating plateau in the tau_estimates to determine the final tau_int value
+    for i in range(len(tau_estimates) - 1):
+        if Nb_array[i] < 30:
+            return float(tau_estimates[i])
+            
+        diff = abs(tau_estimates[i + 1] - tau_estimates[i])
+        err = (tau_estimates[i] + 0.5) * np.sqrt(2.0 / (Nb_array[i] - 1)) 
+        
+        if diff < err:
+            return float(tau_estimates[i])
+            
+    return float(tau_estimates[-1])
+
+
 def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
     '''
     Plots the integrated autocorrelation time (tau_int) with respect to magnetization
     as a function of temperature.
     '''
     
-    temperatures, filtered_data = read_data(data_file, N, dim)
+    temperatures, data = read_data(data_file, N, dim)
 
-    print(f"Filtered data shape: {filtered_data.shape}")
+    print(f"Filtered data shape: {data.shape}")
 
-    observables = np.array([[magnetization(model) for model in models_at_T] for models_at_T in filtered_data])
-    taus = np.zeros_like(temperatures)
+    observables = np.array([[magnetization(model) for model in models_at_T] for models_at_T in data])
+    taus_sokal = np.zeros_like(temperatures)
+    taus_blocking = np.zeros_like(temperatures)
 
     for i, T in enumerate(temperatures):
         print(f"Temperature: {T:.2f}")
-        taus[i] = tau_int_sokal(observables[i])
+        try:
+            taus_sokal[i] = tau_int_sokal(observables[i], c = 5.0)
+            taus_blocking[i] = tau_int_blocking(observables[i])
+        except Exception as e:
+            print(f"Warning: failed at T = {T:.2f}: {type(e).__name__}: {e}")
+            taus_sokal[i] = np.nan
+            taus_blocking[i] = np.nan
 
-    plt.scatter(temperatures, taus, marker = "x", label = r"$\tau_{int}$")
+    plt.scatter(temperatures, taus_sokal, marker = "x", label = r"$\tau_{int}-sokal$")
+    plt.scatter(temperatures, taus_blocking, marker = "o", label = r"$\tau_{int}-blocking$")
     plt.xlabel('Temperature')
     plt.ylabel(r"$\tau_{int}$")
     # plt.yscale('log')
@@ -169,7 +251,7 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
 
     
     # Save temperatures and taus to a text file
-    data_to_save = np.column_stack((temperatures, taus))
+    data_to_save = np.column_stack((temperatures, taus_sokal, taus_blocking))
 
 
 
@@ -215,3 +297,10 @@ def tau_exp_fit(observables):
         return float(np.nan)
 
     return float(m.values['tau_exp'])
+
+
+if __name__ == "__main__":
+    N = 50
+    dim = 1
+    data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
+    tau_int_graph(N, dim, data_file, filename = "tau_int.png")

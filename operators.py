@@ -1,7 +1,6 @@
 import numpy as np
 from numba import njit
-
-ALLOW_NUMBA_CACHING = True
+from global_variables import ALLOW_NUMBA_CACHING
 
 #####################################################################
 # Operators that act on models configurations

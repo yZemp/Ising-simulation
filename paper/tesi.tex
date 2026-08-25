@@ -1,0 +1,77 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=3cm,right=2.5cm,top=3cm,bottom=3cm}
+
+% Metadata
+\newcommand{\Titolo}{Simulazioni numeriche di \\ Modelli di Ising}
+\newcommand{\Autore}{Maurizio Errico}
+\newcommand{\Relatore}{Prof. Mattia Bruno}
+\newcommand{\Corso}{Fisica}
+\newcommand{\AnnoAccademico}{2025/2026}
+
+\begin{document}
+
+% Title
+\begin{titlepage}
+  \centering
+  {\scshape\LARGE Università di Milano-Bicocca \par}
+
+  \vspace{1.5cm}
+  {\huge\bfseries \Titolo \par}
+  
+  \begin{center}
+    \begin{center}
+        \includegraphics[width = 0.2 \linewidth]{images/logo_unimib.png} 
+        \vspace{30px}
+    \end{center}
+  \end{center}
+
+  {\Large \Autore \par}
+  \vfill
+  Relatore: \textbf{\Relatore}\\[1ex]
+  Corso: \Corso\\[1ex]
+  Anno accademico: \AnnoAccademico
+  \vspace{1cm}
+\end{titlepage}
+
+\begin{abstract}
+\noindent Breve riassunto della tesi. Inserire qui gli obiettivi principali, i metodi e i risultati chiave in poche righe.
+\end{abstract}
+
+\tableofcontents
+\cleardoublepage
+
+\chapter*{Introduzione}
+\addcontentsline{toc}{chapter}{Introduzione}
+Introduzione generale: contesto, motivazione, struttura della tesi.
+
+\chapter{Fondamenti teorici}
+Presentare il quadro teorico e le definizioni necessarie.
+
+\chapter{Metodi}
+Descrivere i metodi usati nello studio, esperimenti o simulazioni.
+
+\chapter{Risultati}
+Mostrare e discutere i risultati principali. Inserire figure ed tabelle quando necessario.
+
+\chapter{Conclusioni}
+Sintesi dei risultati, limiti del lavoro e possibili sviluppi futuri.
+
+\appendix
+\chapter{Materiale supplementare}
+Dati aggiuntivi, derivazioni dettagliate o codice di esempio.
+
+\begin{thebibliography}{9}
+\bibitem{ref1} Autore, Titolo, Rivista/Libro, Anno.
+\end{thebibliography}
+
+\end{document}

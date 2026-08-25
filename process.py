@@ -4,7 +4,7 @@ import time
 
 from datetime import timedelta
 from typing import cast
-from autocorrelation import tau_int_sokal
+from autocorrelation import tau_int_sokal, tau_int_blocking
 from operators import magnetization
 
 ###############################################################################
@@ -64,7 +64,7 @@ def filter_data(N, dim, data_file = "", max_chunk_size = 100_000):
         TODO: implement using tau_exp or graphical method
     thinning:
         1 element every 2 * tau_int
-        where tau_int is calculated with tau_int_sokal()
+        where tau_int can be estimated using Sokal's method or the data blocking method.
     '''
     
     if data_file is None or data_file == "":
