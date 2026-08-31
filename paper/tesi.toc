@@ -1,8 +1,5 @@
-\babel@toc {italian}{}\relax 
-\babel@toc {italian}{}\relax 
-\contentsline {chapter}{Introduzione}{2}{chapter*.2}%
-\contentsline {chapter}{\numberline {1}Fondamenti teorici}{3}{chapter.1}%
-\contentsline {chapter}{\numberline {2}Metodi}{4}{chapter.2}%
-\contentsline {chapter}{\numberline {3}Risultati}{5}{chapter.3}%
-\contentsline {chapter}{\numberline {4}Conclusioni}{6}{chapter.4}%
-\contentsline {chapter}{\numberline {A}Materiale supplementare}{7}{appendix.A}%
+\contentsline {chapter}{A brief history of the Ising model}{2}{chapter*.2}%
+\contentsline {chapter}{\numberline {1}Theoretical background}{3}{chapter.1}%
+\contentsline {chapter}{\numberline {2}Methods}{4}{chapter.2}%
+\contentsline {chapter}{\numberline {3}Results}{5}{chapter.3}%
+\contentsline {chapter}{\numberline {A}Appendix}{6}{appendix.A}%

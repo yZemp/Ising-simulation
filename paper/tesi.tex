@@ -2,76 +2,74 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[italian]{babel}
+% \usepackage[italian]{babel}
 \usepackage{lmodern}
 \usepackage{microtype}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage{hyperref}
 \usepackage{geometry}
+\usepackage[hidelinks]{hyperref} % Remove colored boxes around links
 \geometry{left=3cm,right=2.5cm,top=3cm,bottom=3cm}
 
 % Metadata
-\newcommand{\Titolo}{Simulazioni numeriche di \\ Modelli di Ising}
-\newcommand{\Autore}{Maurizio Errico}
-\newcommand{\Relatore}{Prof. Mattia Bruno}
-\newcommand{\Corso}{Fisica}
-\newcommand{\AnnoAccademico}{2025/2026}
+\newcommand{\Title}{Numerical Simulations \\ of the Ising model through \\ Monte Carlo Markov Chains}
+\newcommand{\Author}{Maurizio Errico}
+\newcommand{\Supervisor}{Prof. Mattia Bruno}
+\newcommand{\Course}{Physics}
+\newcommand{\AcademicYear}{2025/2026}
 
 \begin{document}
 
 % Title
 \begin{titlepage}
   \centering
-  {\scshape\LARGE Università di Milano-Bicocca \par}
+  {\scshape\LARGE University of Milano-Bicocca \par}
 
   \vspace{1.5cm}
-  {\huge\bfseries \Titolo \par}
+  {\huge\bfseries \Title \par}
   
   \begin{center}
     \begin{center}
+        \vspace{30px}
         \includegraphics[width = 0.2 \linewidth]{images/logo_unimib.png} 
         \vspace{30px}
     \end{center}
   \end{center}
 
-  {\Large \Autore \par}
+  {\Large \Author \par}
   \vfill
-  Relatore: \textbf{\Relatore}\\[1ex]
-  Corso: \Corso\\[1ex]
-  Anno accademico: \AnnoAccademico
+  Supervisor: \textbf{\Supervisor}\\[1ex]
+  Course: \Course\\[1ex]
+  Academic Year: \AcademicYear
   \vspace{1cm}
 \end{titlepage}
 
 \begin{abstract}
-\noindent Breve riassunto della tesi. Inserire qui gli obiettivi principali, i metodi e i risultati chiave in poche righe.
+\noindent This work presents the numerical study of the ferromagnetic Ising model in one, two, and three dimensions to observe phase transitions as a function of the lattice size. The system configurations were obtained by sampling a Markov Chain at fixed temperature generated with the Metropolis-Hastings algorithm following an analysis of its thermalisation and autocorrelation time. The critical temperature was estimated in the two and three dimensional cases by analyzing the finite size scaling of the magnetization. Analogously, the absence of a finite temperature phase transition was found in the one dimensional case, in accordance with analytical results.
 \end{abstract}
 
 \tableofcontents
 \cleardoublepage
 
-\chapter*{Introduzione}
-\addcontentsline{toc}{chapter}{Introduzione}
-Introduzione generale: contesto, motivazione, struttura della tesi.
+\chapter*{A brief history of the Ising model}
+\addcontentsline{toc}{chapter}{A brief history of the Ising model}
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
-\chapter{Fondamenti teorici}
-Presentare il quadro teorico e le definizioni necessarie.
+\chapter{Theoretical background}
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
-\chapter{Metodi}
-Descrivere i metodi usati nello studio, esperimenti o simulazioni.
+\chapter{Methods}
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
-\chapter{Risultati}
-Mostrare e discutere i risultati principali. Inserire figure ed tabelle quando necessario.
-
-\chapter{Conclusioni}
-Sintesi dei risultati, limiti del lavoro e possibili sviluppi futuri.
+\chapter{Results}
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
 \appendix
-\chapter{Materiale supplementare}
-Dati aggiuntivi, derivazioni dettagliate o codice di esempio.
+\chapter{Appendix}
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
 \begin{thebibliography}{9}
-\bibitem{ref1} Autore, Titolo, Rivista/Libro, Anno.
+\bibitem{ref1} Author, Title, Journal/Book, Year.
 \end{thebibliography}
 
 \end{document}
