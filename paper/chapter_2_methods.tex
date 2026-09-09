@@ -1,0 +1,43 @@
+\chapter{Methods}
+
+\section{Data representation}
+
+[TODO: discuss floating point precision, data structures, etc.]
+
+\section{Monte Carlo Markov Chains}
+
+\subsection{Generation}
+
+[TODO: discuss Metropolis-Hastings algorithm]
+
+\subsection{Analysis}
+
+After having generated the Markov Chain, the one of the analysis is a problem composed of two parts: the thermalisation and the autocorrelation time. The first one is the number of steps that the Markov Chain needs to reach a stationary distribution, while the second one is the number of steps that need to exist between successive samples before they can be considered independent.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=1.\textwidth]{../pics_and_anims/autocorrelation_plot.png}
+	\caption{Example of autocorrelation function for a Markov Chain.}
+	\label{figure:autocorrelation_plot}
+\end{figure}
+
+[TODO: discussion of the autocorrelation function and its properties. An exponential fit after a certainb number of steps is only fitting noise.]
+
+NOTA: Figure \ref{figure:autocorrelation_plot} prove the need of selecting a proper range to fit over. This is given by the linear portion of the following plot.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=1.\textwidth]{../pics_and_anims/autocorrelation_fit.png}
+	\caption{Fitting to find $\tau_{exp}$.}
+	\label{figure:autocorrelation_fit}
+\end{figure}
+
+[TODO: Didnt manage to make use of this]
+
+\br
+
+[TODO: discussion of Sokal's method]
+
+\br
+
+[TODO: discussion of the data blocking method]
