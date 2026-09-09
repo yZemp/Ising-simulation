@@ -8,22 +8,36 @@
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{geometry}
+\usepackage{parskip} % Indentation
 \usepackage[hidelinks]{hyperref} % Remove colored boxes around links
 \geometry{left=3cm,right=2.5cm,top=3cm,bottom=3cm}
+
+% Physical constants
+\newcommand{\kb}{k_{\mathrm{B}}}       % Bolztmann
+\newcommand{\epszero}{\varepsilon_0}
+\newcommand{\muzero}{\mu_0}
+\newcommand{\me}{m_{\mathrm{e}}}       % e- mass
+
+\newcommand{\br}{%
+  \par\vspace{1em}
+  \noindent\makebox[\linewidth]{\rule{0.5\linewidth}{0.2pt}}
+  \par\vspace{1em}
+}
 
 % Metadata
 \newcommand{\Title}{Numerical Simulations \\ of the Ising model through \\ Monte Carlo Markov Chains}
 \newcommand{\Author}{Maurizio Errico}
 \newcommand{\Supervisor}{Prof. Mattia Bruno}
-\newcommand{\Course}{Physics}
+\newcommand{\Course}{Fisica}
 \newcommand{\AcademicYear}{2025/2026}
+\newcommand{\Department}{Dipartimento di Fisica "Giuseppe Occhialini"}
 
 \begin{document}
 
 % Title
 \begin{titlepage}
   \centering
-  {\scshape\LARGE University of Milano-Bicocca \par}
+  {\scshape\LARGE Università degli Studi di \\ Milano - Bicocca \par}
 
   \vspace{1.5cm}
   {\huge\bfseries \Title \par}
@@ -40,7 +54,8 @@
   \vfill
   Supervisor: \textbf{\Supervisor}\\[1ex]
   Course: \Course\\[1ex]
-  Academic Year: \AcademicYear
+  Academic Year: \AcademicYear\\[1ex]
+  Department: \Department
   \vspace{1cm}
 \end{titlepage}
 
@@ -53,10 +68,114 @@
 
 \chapter*{A brief history of the Ising model}
 \addcontentsline{toc}{chapter}{A brief history of the Ising model}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+Does this chapter really need to exist?
 
 \chapter{Theoretical background}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+\section{General overview}
+The Ising model is a mathematical model of a ferromagnet. [TODO: add context].
+
+The fundamental assumption of the model is that the solid can be represented with every ion fixed in space and only interacting with its closest neighbours (and, optionally, an external magnetic field). Such system is described by the classical Hamiltonian
+
+\begin{equation}
+  \label{eq:ham}
+  H = - \sum_{\left< i, j \right>} J_{ij} \sigma_i \sigma_j - \mu \sum_{i} h_i \sigma_i
+\end{equation}
+
+where:
+
+\begin{itemize}
+  \item $\sigma_i$ is the spin value of the ion of the i-th lattice site.
+  \item $J_{ij}$ is a coupling factor between the i-th and j-th lattice sites.
+  \item The sum over $\left< i, j \right>$ is meant to be over closest neighbours.
+  \item $h_i$ is the magnetic field in the i-th site.
+  \item $\mu$ is the magnetic moment of the ions.
+\end{itemize}
+
+This is the special case of the more general quantum Hamiltonian 
+
+\begin{equation}
+  \label{eq:qham}
+  \hat{H} = - \sum_{\left< i, j \right>} J_{ij} \hat{\sigma_i^z} \hat{\sigma_j^z} - \mu \sum_{i} \left( h_{i,x} \hat{\sigma_i^x} + h_{i,y} \hat{\sigma_i^y} + h_{i,z} \hat{\sigma_i^z} \right)
+\end{equation}
+
+where $\sigma_i$ are replaced by the Pauli matrices of the i-th site.
+
+In this text only $ h_{i,z} $ will ever be assumed $\neq 0$, which makes every operator commute with each other in the canonical basis, which means equations \ref{eq:ham} and \ref{eq:qham} are the same.
+
+\br
+
+Given that the quantities $N = $ number of particles, $V = N a = $ volume of the lattice (where $a$ is the unimportant lattice constant that can be set to $1$) are fixed, if the system is in thermal equilibrium with a reservoir at temperature $T$ then the set of microstates of the system is described by the canonical ensemble. In this case, the probability of the system to be in a microstate $\sigma$ is given by the Boltzmann distribution
+
+\begin{equation}
+  P_{\beta}(\sigma) = \frac{e^{- \beta H(\sigma)}}{Z_{\beta}}
+\end{equation}
+
+where $Z_{\beta}$ is the canonical partition function
+
+\begin{equation}
+  Z = \sum_{i} e^{- \beta E_i} = \sum_{{\sigma_i}} e^{- \beta \sum_{\left< i, j \right>} J_{ij} \sigma_i \sigma_j - \beta \mu \sum_{i} h_i \sigma_i}
+\end{equation}
+
+All the same, given an operator $\hat{O}$ its mean is intended to be
+
+\begin{equation}
+  \left< \hat{O} \right>_{\beta} = \sum_{\sigma} \hat{O} \left(\sigma\right) P_{\beta} \left(\sigma\right)
+\end{equation}
+
+which is the canonical average.
+
+\br
+
+The minus in front of the first sum in equations \ref{eq:ham} and \ref{eq:qham} are conventional. Varying the sign of the coefficients $J_{ij}$ two differently behaving systems are described:
+
+\begin{enumerate}
+  \item $J_{ij} > 0$: ferromagnetic
+  \item $J_{ij} < 0$: antiferromagnetic
+  \item $J_{ij} = 0$: non-interacting
+\end{enumerate}
+
+Historically, the Ising model is conventionally intended to be ferromagnetic. For simplicity sake, $J_{ij}$ along the constants $\kb$, $\hbar$, $h_i$, $\mu$ will be set $= 1 \; \forall i, j$, when not null.
+
+\section{Phase transitions}
+
+It's been stated that the system described by the Ising model is represented by the canonical ensemble, which is governed by the Helmoltz free energy. This, like every other thermodynamic potential, can be expressed as a function of the partition function $Z = Z(T, h)$:
+
+\begin{equation}
+  F = E - TS = - \frac{\ln \left(Z\right)}{N \beta}
+\end{equation}
+
+Formally, a phase transition is defined as a non-analyticity in the free energy in the thermodynamic limit. To observe such a non-analyticity one can study the  partial derivative
+
+\begin{equation}
+  M = - \frac{\partial F}{\partial H}
+\end{equation}
+
+that takes the name of magnetization.
+
+This is a handy observable in the numerical approach beacuse its average is easily obtainable by averaging the spin values of the lattice sites:
+
+\begin{equation}
+  \left<M\right> = \frac{1}{N} \sum_{i} \sigma_i
+\end{equation}
+
+and studying its behaviour as a function of the temperature $T$ and the external magnetic field $h$ one can identify the phase transitions.
+
+It should be noted that this definitions formally hold even in the case of no external magnetic field. This is true only in the thermodynamic limit, where the system is infinitely large and the magnetization can be non-zero even when $h$ vanishes.
+
+In a finite system the Hamiltonian is symmetric under the transformation $\sigma_i \rightarrow -\sigma_i$, and this causes the magnetization to be zero when $h = 0$ because 
+
+$$ \left<M\right> = \left. \frac{\partial \frac{\ln \left(Z\right)}{\beta N}}{\partial h} \right|_{h=0} = 0 \; \forall T $$
+
+The solution to this problem is 
+
+
+[TODO: i fear this can be greatly expanded on]
+
+\section{Solutions}
+
+\subsection{One dimensional case}
+
+The one dimensional Ising model is exactly solvable with and without an external magnetic field. The magnetization is given by:
 
 \chapter{Methods}
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
