@@ -1,7 +1,10 @@
 import argparse
+from ctypes import cast
+import h5py
 import numpy as np
 import time
 import os
+from typing import cast
 
 from ising import new_random_ising
 from mcmc_utils import metropolis_ising
@@ -69,31 +72,20 @@ def parse_args():
 
     return args
 
-def anim_mcmc_1D():
-    np.random.seed(0)
-    N = 50
-    m = new_random_ising((N,))
-    steps = N * N
+def anim_mcmc(dim, N, LEN = 1_000, T_index = 15):
 
-    models = metropolis_ising(m, T = 2.3, steps = steps)
+    datafile = r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N)
 
-    print("MCMC completed.")
-    if steps >= 500:
-        models = models[::(steps // 500 + 1)]  # Limit to 500 frames for animation
-    animate(models, fps = len(models), filename = 'tmp1D.gif')
-
-def anim_mcmc_2D():
-    np.random.seed(0)
-    N = 30
-    m = new_random_ising((N, N))
-    steps = N * N * N
-
-    models = metropolis_ising(m, T = 3.3, steps = steps)
+    with h5py.File(datafile, "r") as f:
+        models = np.array(cast(h5py.Dataset, f[f"dim_{dim}_N_{N}/raw_data"])[T_index, 0:LEN])
     
-    print("MCMC completed.")
+    print("Data loaded.")
+    steps = models.shape[0]
     if steps >= 500:
-        models = models[::(steps // 500 + 1)]  # Limit to 500 frames for animation
-    animate(models, fps = len(models), filename = 'tmp2D.gif')
+            models = models[::(steps // 500 + 1)]  # Limit to 500 frames for animation
+
+    animate(models, fps = len(models), filename = "tmp_anim.gif")
+
 
 def graph_magnetization_convergence_for_fixed_dim(dim, path = ".", filename = "tmp.png"):
     '''
@@ -115,19 +107,22 @@ def graph_magnetization_convergence_for_fixed_dim(dim, path = ".", filename = "t
 
 def main(N, dim, steps):
 
-    # data_file = r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N)
-    data_file = r"dim_{dim}_N_{N}_B_1_data.hdf5".format(dim = dim, N = N)
+    data_file = r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N)
+    # data_file = r"dim_{dim}_N_{N}_B_1_data.hdf5".format(dim = dim, N = N)
 
     start = time.perf_counter()
 
-    # anim_mcmc_1D()
-    # anim_mcmc_2D()
+    anim_mcmc(dim, N, LEN = 100_000, T_index = 26)
 
-    simulate(N, dim, steps, data_file = data_file)
+    # simulate(N, dim, steps, data_file = data_file)
     # filter_data(N, dim, data_file = data_file)
     # magnetization_bake(N, dim, data_file = data_file)
 
-    # graph_magnetization_convergence_for_fixed_dim(dim, path = "E:\\simulations_data\\")
+    # graph_magnetization_convergence_for_fixed_dim(
+    #     dim,
+    #     path = "E:\\simulations_data\\",
+    #     filename = f"magnetization_convergence_{dim}D.png"
+    #     )
 
     end = time.perf_counter()
     print(f"Time elapsed since main.py was run = {timedelta(seconds = end - start)}")

@@ -201,7 +201,17 @@ def graph_magnetization_convergence(sources, filename = 'magnetization_convergen
 
 	if len(sources) <= 0:
 		raise ValueError('`sources` must contain at least one file path')
+
+	# Sorting by N
+	def get_n_from_file(filepath):
+		with h5py.File(filepath, 'r') as f:
+			group_name = list(f.keys())[0]
+			return int(group_name.split('_')[3])
+
+	sources = sorted(sources, key = get_n_from_file)
 	L = len(sources)
+
+	plt.figure(figsize = (12, 7))
 
 	for i, source in enumerate(sources):
 		with h5py.File(source, 'r') as f:

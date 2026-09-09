@@ -42,8 +42,10 @@ def plot_analytical_curve(dim: int, t: np.ndarray) -> None:
         f = _analytical_curve_3D
     else:
         raise ValueError(f"Unsupported dimension: {dim}")
-    
-    plt.plot(t, f(t), color='black', linestyle='--', label='Analytical Curve')
+    if dim == 1 or dim == 2:
+        plt.plot(t, f(t), color='black', linestyle='--', label='Analytical Curve')
+    else:
+        plt.plot(t, f(t), color='black', linestyle='--', label='Numerical Approximation')
 
 
 
