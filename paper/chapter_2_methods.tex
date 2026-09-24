@@ -2,11 +2,34 @@
 
 \section{Data representation}
 
+The code used in this project was written in python, using the Numba just-in-time compiler to achieve optimal execution speed (along best practices and algorithm optimizations in writing the code). From a development standpoint, every single Ising model configuration is represented in python as a $d$ dimensional numpy array of shape $N$ repeated $d$ times.
+
+\begin{minted}[linenos, frame=lines]{python}
+
+def new_random_ising(N: tuple[int, ...]):
+    return np.ones(N, dtype = np.int8)
+
+m = new_random_ising(tuple([N] * dim))
+
+\end{minted}
+
+[TODO: Fix J, h in the code snippet]
+
+Note that the data type that the numpy array contains is np.int8. In order to minimize storage space, the idea of using boolean variables to represent $1$ and $-1$ was considered, but was ultimately ditched in favour of the integer implementation. The latter grants faster executions when calculating physical observables (e.g.: energy, magnetization).
+
+\br
+
+Every one of these numpy array is generated and stored in another numpy array of arbitrary length that represents the Markov Chain. This is done for a number of temperatures around the expected critical temperature, and is repeated for every lattice size under scrutiny and for every dimension. Ultimately, this data is stored in a hdf5 file for efficient i/o operations and in order to contextually add metadata and processed data (e.g.: autocorrelation time, thermalisation time, etc.) to the raw chain.
+
+For every combination of dimension and lattice size, the generated row data is stored in a numpy array of shape ($N_{temps}$, $N_{steps}$, [$N_{dim}$] \times \: $d$).
+
 [TODO: discuss floating point precision, data structures, etc.]
 
 \section{Monte Carlo Markov Chains}
 
 \subsection{Generation}
+
+The chosen implementatation for the generation of the Markov Chain is the Metropolis-Hastings algorithm. 
 
 [TODO: discuss Metropolis-Hastings algorithm]
 
