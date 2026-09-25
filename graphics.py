@@ -4,7 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from PIL import Image, ImageDraw, ImageFont
-from operators import magnetization
+from mcmc_utils import metropolis_ising
+from operators import energy, magnetization
 from analytical_curves import plot_analytical_curve
 
 #####################################################################
@@ -12,148 +13,148 @@ from analytical_curves import plot_analytical_curve
 #####################################################################
 
 def array_to_png(arr, pixel_size = 50, filename: str | None = "output.png") -> str | Image.Image:
-	'''
-	Convert a 1D or 2D array of values 1 and -1 into a PNG image.
+    '''
+    Convert a 1D or 2D array of values 1 and -1 into a PNG image.
 
-	- `arr` can be a Python list, a list of lists (2D), or a `numpy.ndarray`
-	  containing only values 1 or -1.
-	- `pixel_size` is the size (in pixels) of each square cell in the grid (default: 50).
-	- `filename` is the output PNG file path.
+    - `arr` can be a Python list, a list of lists (2D), or a `numpy.ndarray`
+      containing only values 1 or -1.
+    - `pixel_size` is the size (in pixels) of each square cell in the grid (default: 50).
+    - `filename` is the output PNG file path.
 
-	Returns the saved file path.
-	'''
+    Returns the saved file path.
+    '''
 
-	is_numpy = hasattr(arr, 'ndim')
-	if is_numpy:
-		a = arr
-	else:
-		a = np.array(arr)
+    is_numpy = hasattr(arr, 'ndim')
+    if is_numpy:
+        a = arr
+    else:
+        a = np.array(arr)
 
-	if a.ndim == 1:
-		rows, cols = 1, a.shape[0]
-		grid = a.reshape((1, cols))
-	elif a.ndim == 2:
-		rows, cols = a.shape
-		grid = a
-	else:
-		raise ValueError('Array must be 1D or 2D')
+    if a.ndim == 1:
+        rows, cols = 1, a.shape[0]
+        grid = a.reshape((1, cols))
+    elif a.ndim == 2:
+        rows, cols = a.shape
+        grid = a
+    else:
+        raise ValueError('Array must be 1D or 2D')
 
-	if not np.all((grid == 1) | (grid == -1)):
-		raise ValueError('Array values must be only 1 or -1')
+    if not np.all((grid == 1) | (grid == -1)):
+        raise ValueError('Array values must be only 1 or -1')
 
-	# map 1 -> 255 (white), -1 -> 0 (black)
-	mapped = np.where(grid == 1, 255, 0).astype(np.uint8)
-	if pixel_size > 1:
-		mapped = np.repeat(np.repeat(mapped, pixel_size, axis=0), pixel_size, axis=1)
+    # map 1 -> 255 (white), -1 -> 0 (black)
+    mapped = np.where(grid == 1, 255, 0).astype(np.uint8)
+    if pixel_size > 1:
+        mapped = np.repeat(np.repeat(mapped, pixel_size, axis=0), pixel_size, axis=1)
 
-	img = Image.fromarray(mapped, mode='L')
-	# If a filename is provided, save to disk and return the path.
-	# Otherwise, return the PIL Image object for in-memory use.
-	if filename:
-		img.save(filename, format='PNG')
-		return filename
-	return img
+    img = Image.fromarray(mapped, mode='L')
+    # If a filename is provided, save to disk and return the path.
+    # Otherwise, return the PIL Image object for in-memory use.
+    if filename:
+        img.save(filename, format='PNG')
+        return filename
+    return img
 
 
 def animate(arrays, pixel_size = 50, filename = "animation.gif", fps = 5, loop = 0, cleanup = True):
-	'''
-	Create an animated GIF from a sequence of 1D/2D arrays.
+    '''
+    Create an animated GIF from a sequence of 1D/2D arrays.
 
-	- `arrays` is an iterable of arrays (lists or numpy arrays) where each
-	  element is a 1D or 2D array of values 1 and -1.
-	- `pixel_size` sets the size of each square cell (default: 50).
-	- `filename` is the output animation path (GIF).
-	- `fps` frames per second; used to compute per-frame duration.
-	- `loop` number of loops for the GIF (0 means infinite).
-	- `cleanup` whether to remove temporary frame files after creation (deprecated, ignored).
+    - `arrays` is an iterable of arrays (lists or numpy arrays) where each
+      element is a 1D or 2D array of values 1 and -1.
+    - `pixel_size` sets the size of each square cell (default: 50).
+    - `filename` is the output animation path (GIF).
+    - `fps` frames per second; used to compute per-frame duration.
+    - `loop` number of loops for the GIF (0 means infinite).
+    - `cleanup` whether to remove temporary frame files after creation (deprecated, ignored).
 
-	Adds frame counter "n/N" to each frame.
-	Returns the animation filename.
-	'''
+    Adds frame counter "n/N" to each frame.
+    Returns the animation filename.
+    '''
 
-	if fps <= 0:
-		raise ValueError('`fps` must be a positive number')
-	duration_ms = int(1000 / fps)
+    if fps <= 0:
+        raise ValueError('`fps` must be a positive number')
+    duration_ms = int(1000 / fps)
 
-	# Convert to list to get total frame count
-	arrays_list = list(arrays)
-	total_frames = len(arrays_list)
+    # Convert to list to get total frame count
+    arrays_list = list(arrays)
+    total_frames = len(arrays_list)
 
-	print(f"Creating animation with {total_frames} frames at {fps} fps...")
+    print(f"Creating animation with {total_frames} frames at {fps} fps...")
 
-	if not arrays_list:
-		raise ValueError('No frames provided')
+    if not arrays_list:
+        raise ValueError('No frames provided')
 
-	frames = []
+    frames = []
 
-	# Try to load a larger font; fall back to default
-	try:
-		font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 20)
-	except Exception:
-		try:
-			font = ImageFont.truetype('arial.ttf', 20)
-		except Exception:
-			font = ImageFont.load_default()
+    # Try to load a larger font; fall back to default
+    try:
+        font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 20)
+    except Exception:
+        try:
+            font = ImageFont.truetype('arial.ttf', 20)
+        except Exception:
+            font = ImageFont.load_default()
 
-	for frame_idx, arr in enumerate(arrays_list):
-		img = array_to_png(arr, pixel_size = pixel_size, filename = None)
-		if not isinstance(img, Image.Image):
-			raise TypeError('array_to_png must return an Image when filename is None')
-		
-		# Convert to RGB for colored text
-		img_rgb = img.convert('RGB')
-		
-		# Add frame counter text in red
-		draw = ImageDraw.Draw(img_rgb)
-		text = f'{frame_idx + 1}/{total_frames}'
-		# Position text in top-left corner with small margin
-		draw.text((5, 5), text, fill=(255, 0, 0), font=font)
-		                                 
-		# ensure palette mode for GIF
-		frames.append(img_rgb.convert('P'))
+    for frame_idx, arr in enumerate(arrays_list):
+        img = array_to_png(arr, pixel_size = pixel_size, filename = None)
+        if not isinstance(img, Image.Image):
+            raise TypeError('array_to_png must return an Image when filename is None')
+        
+        # Convert to RGB for colored text
+        img_rgb = img.convert('RGB')
+        
+        # Add frame counter text in red
+        draw = ImageDraw.Draw(img_rgb)
+        text = f'{frame_idx + 1}/{total_frames}'
+        # Position text in top-left corner with small margin
+        draw.text((5, 5), text, fill=(255, 0, 0), font=font)
+                                         
+        # ensure palette mode for GIF
+        frames.append(img_rgb.convert('P'))
 
 
-	frames[0].save(
-		filename,
-		save_all=True,
-		append_images=frames[1:],
-		duration=duration_ms,
-		loop=loop,
-	)
-	
-	return filename
+    frames[0].save(
+        filename,
+        save_all=True,
+        append_images=frames[1:],
+        duration=duration_ms,
+        loop=loop,
+    )
+    
+    return filename
 
 
 def graph(x, y, yerr = None, xlabel = '', ylabel = '', title = '', filename = 'tmp.png', color = 'blue'):
-	'''
-	Create a line graph from x and y data and save as PNG.
+    '''
+    Create a line graph from x and y data and save as PNG.
 
-	- `x` and `y` are iterables of the same length containing the data points.
-	- `yerr` is an iterable of the same length as `x` and `y` containing the error bars.
-	- `xlabel`, `ylabel`, and `title` are strings for labeling the graph.
-	- `filename` is the output PNG file path.
+    - `x` and `y` are iterables of the same length containing the data points.
+    - `yerr` is an iterable of the same length as `x` and `y` containing the error bars.
+    - `xlabel`, `ylabel`, and `title` are strings for labeling the graph.
+    - `filename` is the output PNG file path.
 
-	Returns the saved file path.
-	'''
+    Returns the saved file path.
+    '''
 
-	if len(x) != len(y) or (yerr is not None and len(x) != len(yerr)):
-		raise ValueError('`x` and `y` must be of the same length')
+    if len(x) != len(y) or (yerr is not None and len(x) != len(yerr)):
+        raise ValueError('`x` and `y` must be of the same length')
 
-	plt.figure()
-	if yerr is not None:
-		plt.errorbar(x, y, yerr = yerr, fmt = 'None', ecolor = 'red', elinewidth = 1)
-	plt.plot(x,
-			y,
-			color = color,
-			marker = '.')
-	plt.xlabel(xlabel)
-	plt.ylabel(ylabel)
-	plt.title(title)
-	plt.grid()
-	plt.savefig(filename)
-	plt.close()
+    plt.figure()
+    if yerr is not None:
+        plt.errorbar(x, y, yerr = yerr, fmt = 'None', ecolor = 'red', elinewidth = 1)
+    plt.plot(x,
+            y,
+            color = color,
+            marker = '.')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.grid()
+    plt.savefig(filename)
+    plt.close()
 
-	return filename
+    return filename
 
 
 def magnetization_tfixed_graph(N, dim, Tidx, data_file = "tmp.hdf5", filename = "magnetization.png"):
@@ -185,90 +186,162 @@ def magnetization_tfixed_graph(N, dim, Tidx, data_file = "tmp.hdf5", filename = 
     plt.savefig(filename)
     plt.close()
 
-	
+    
 def graph_magnetization_convergence(sources, filename = 'magnetization_convergence.png'):
-	'''
-	Plots magnetizations functions of T for different Ns and saves as PNG.
-	A convergence should be observed as N increases (for dim = 1 this doesn't mathematically converge, but for dim = 2 and 3 it should).
+    '''
+    Plots magnetizations functions of T for different Ns and saves as PNG.
+    A convergence should be observed as N increases (for dim = 1 this doesn't mathematically converge, but for dim = 2 and 3 it should).
 
-	- `sources` is a list of file paths to HDF5 files containing the simulation data:
-		this function should only extract the already computed magnetization functions
-		and should be only called after said data has been extracted.
-	- `filename` is the output PNG file path.
+    - `sources` is a list of file paths to HDF5 files containing the simulation data:
+        this function should only extract the already computed magnetization functions
+        and should be only called after said data has been extracted.
+    - `filename` is the output PNG file path.
 
-	Returns the saved file path.
-	'''
+    Returns the saved file path.
+    '''
 
-	if len(sources) <= 0:
-		raise ValueError('`sources` must contain at least one file path')
+    if len(sources) <= 0:
+        raise ValueError('`sources` must contain at least one file path')
 
-	# Sorting by N
-	def get_n_from_file(filepath):
-		with h5py.File(filepath, 'r') as f:
-			group_name = list(f.keys())[0]
-			return int(group_name.split('_')[3])
+    # Sorting by N
+    def get_n_from_file(filepath):
+        with h5py.File(filepath, 'r') as f:
+            group_name = list(f.keys())[0]
+            return int(group_name.split('_')[3])
 
-	sources = sorted(sources, key = get_n_from_file)
-	L = len(sources)
+    sources = sorted(sources, key = get_n_from_file)
+    L = len(sources)
 
-	plt.figure(figsize = (12, 7))
+    plt.figure(figsize = (12, 7))
 
-	for i, source in enumerate(sources):
-		with h5py.File(source, 'r') as f:
-			# Extract dim and N from the group name
-			group_name = list(f.keys())[0]
+    for i, source in enumerate(sources):
+        with h5py.File(source, 'r') as f:
+            # Extract dim and N from the group name
+            group_name = list(f.keys())[0]
 
-			temperatures = np.array(f[f"{group_name}/temperatures"])
-			magnetizations = np.array(f[f"{group_name}/magnetizations"])
-			errors = np.array(f[f"{group_name}/magnetization_errors"])
+            temperatures = np.array(f[f"{group_name}/temperatures"])
+            magnetizations = np.array(f[f"{group_name}/magnetizations"])
+            errors = np.array(f[f"{group_name}/magnetization_errors"])
 
-			plt.errorbar(
-				temperatures, 
-				magnetizations, 
-				yerr = errors, 
-				color = (.3, i / L, 1. - i / L), 
-				marker = '.', 
-				label = f"{group_name.split('_')[1]}D, N = {group_name.split('_')[3]}"
-				)
+            plt.errorbar(
+                temperatures, 
+                magnetizations, 
+                yerr = errors, 
+                color = (.3, i / L, 1. - i / L), 
+                marker = '.', 
+                label = f"{group_name.split('_')[1]}D, N = {group_name.split('_')[3]}"
+                )
 
-	# Plot analytical curve
-	with h5py.File(source, 'r') as f:
-		temps = np.array(f[f"{list(f.keys())[0]}/temperatures"])
-		t = np.linspace(temps[5], temps[-5], 100)
-	plot_analytical_curve(dim = int(sources[0].split('_')[2]), t = t)
+    # Plot analytical curve
+    with h5py.File(source, 'r') as f:
+        temps = np.array(f[f"{list(f.keys())[0]}/temperatures"])
+        t = np.linspace(temps[5], temps[-5], 100)
+    plot_analytical_curve(dim = int(sources[0].split('_')[2]), t = t)
 
-	plt.xlabel('Temperature (T)')
-	plt.ylabel('Magnetization')
-	plt.title('Magnetization vs Temperature for different N')
-	plt.grid()
-	plt.legend()
-	plt.savefig(filename)
-	plt.close()
+    plt.xlabel('Temperature (T)')
+    plt.ylabel('Magnetization')
+    plt.title('Magnetization vs Temperature for different N')
+    plt.grid()
+    plt.legend()
+    plt.savefig(filename)
+    plt.close()
 
-	
 
+
+
+def metropolis_ising_graphics(initial_states, T: float, steps: int, seed: int):
+    '''
+    Given:
+        A dictionary of initial states of an ising model
+        A fixed temperature T
+        Number of steps to take (in the markov process)
+    
+    Saves an image containing:
+    A graph representing the evolution of the energy of the system over time for each initial state.
+    The distribution of the energy of the system is also plotted at the end of the simulation.
+    '''
+
+    fig, (ax_up, ax_down) = plt.subplots(2, 1, figsize = (9, 16), sharex = True, gridspec_kw = {'height_ratios': [1, 2]})
+
+    for initial_state in initial_states.keys():
+        print(f"Running Metropolis-Hastings for initial state: {initial_state} at T = {T} for {steps} steps...")
+        models_samples = metropolis_ising(initial_states[initial_state], T, steps, seed)
+        energies = np.array([energy(model) for model in models_samples])
+
+        line, = ax_down.plot(energies, range(len(energies)), label = f'Initial state: {initial_state}')
+        color = line.get_color()
+        ax_up.hist(
+            energies,
+            bins=(1 + int(np.log2(len(energies)))),
+            edgecolor=color,
+            linewidth=1,
+            linestyle='solid',
+            facecolor=color,
+            density=True,
+            histtype='stepfilled',
+            alpha = .5,
+            label=f'Initial state: {initial_state}'
+        )
+    
+    ax_down.set_xlabel('Energy')
+    ax_down.set_ylabel('Time')
+    ax_down.set_title(f'Energy Evolution: T = {T}, Shape = {models_samples.shape}')
+    ax_down.legend()
+    ax_down.grid()
+    ax_down.set_axisbelow(True)
+    
+    ax_up.set_ylabel('Probability Density')
+    ax_up.set_title(f'Energy Distribution: T = {T}, Shape = {models_samples.shape}')
+    ax_up.legend()
+    ax_up.grid()
+    ax_up.set_axisbelow(True)
+
+    plt.tight_layout()
+    plt.subplots_adjust(hspace = 0.1)
+
+    plt.savefig(f"ED_{models_samples.shape}_{T}.png")
+    plt.close()
+
+    
 if __name__ == '__main__':
-	# Convergence example usage
+    # Convergence example usage
 
-	# Ns = [5, 10, 20, 30, 50, 70, 100, 150, 200, 250, 300, 500]
-	# dims = [1]
+    # Ns = [5, 10, 20, 30, 50, 70, 100, 150, 200, 250, 300, 500]
+    # dims = [1]
 
-	# Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
-	# dims = [2]
-	
-	Ns = [4, 6, 8, 10, 15, 25]
-	dims = [3]
+    # Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
+    # dims = [2]
+    
+    # Ns = [4, 6, 8, 10, 15, 25]
+    # dims = [3]
 
-	sources = [r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns for dim in dims]
-	graph_magnetization_convergence(sources, filename = f"magnetization_convergence_{dims[0]}D.png")
-
-
+    # sources = [r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns for dim in dims]
+    # graph_magnetization_convergence(sources, filename = f"magnetization_convergence_{dims[0]}D.png")
 
 
 
-	##################################
-	# Single file example usage
-	##################################
-	# sources = [r"E:\simulations_data\dim_3_N_4_data.hdf5"]
-	# graph_magnetization_convergence(sources, filename = f"tmp.png")
+    ##################################
+    # Single file example usage
+    ##################################
+    # sources = [r"E:\simulations_data\dim_3_N_4_data.hdf5"]
+    # graph_magnetization_convergence(sources, filename = f"tmp.png")
 
+
+
+    #########################################################################################
+    #########################################################################################
+    #########################################################################################
+
+    N = (15, 15)
+    x1 = np.random.choice([-1, 1], size = N)
+    x2 = np.ones(N, dtype = np.int8)
+    x3 = - np.ones(N, dtype = np.int8)
+    SEED = 43
+
+    starting_configs = {
+        "random": x1,
+        "all_up": x2,
+        "all_down": x3
+    }
+
+    metropolis_ising_graphics(starting_configs, T = 2.26, steps = 30_000, seed = SEED)
