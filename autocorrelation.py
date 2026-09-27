@@ -1,8 +1,7 @@
-from cmath import tau
-
 import numpy as np
 import h5py
 from typing import cast
+from matplotlib.patches import Rectangle
 
 from operators import magnetization
 from graphics import graph
@@ -234,7 +233,7 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
     given the raw data stored in an HDF5 file.
     '''
 
-    LEN = 10_000
+    LEN = 50_000
 
     # Not using read_data() here to economize memory usage
     with h5py.File(data_file, "r") as file:
@@ -251,25 +250,27 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
         acs[i] = autocorrelation(t, observables)
 
     plt.figure(figsize=(10, 6))
-    plt.plot(times, acs, label='Autocorrelation function', color=(.3, 1, 0))
-    plt.plot(0, acs[0], label=f"Initial value: {acs[0]:.2f}", marker='x', markersize=8, color='black')
+    plt.plot(times, acs, label='Autocorrelation function', color=(53 / 255, 183 / 255, 121 / 255))
+    plt.plot(0, acs[0], label=f"Initial value: {acs[0]:.2f}", marker='x', markersize=8, color=(72 / 255, 40 / 255, 120 / 255))
+
+    # x_min, x_max = 200, 10_000
+    # y_min, y_max = -.3, .3
+    # rect = Rectangle(
+    #     xy=(x_min, y_min), 
+    #     width=(x_max - x_min), 
+    #     height=(y_max - y_min), 
+    #     facecolor=(253 / 255, 231 / 255, 37 / 255),
+    #     alpha=1,
+    #     zorder=0
+    # )
+    # plt.gca().add_patch(rect)
 
     plt.xlabel('Time (steps)')
     plt.ylabel('Autocorrelation')
     
-    # plt.yscale('symlog', linthresh=1e-3)
     plt.grid(True, which="both", ls="--", alpha=0.5)
 
-    tau_int = int(tau_int_sokal(observables, c = 20.0))
-    tmin = 2 * tau_int
-    tmax = 8 * tau_int
-
-    compute_tau = compute_tau_exp(observables, t_min = tmin, t_max = tmax)
-    # plt.vlines(tmin, ymin = -.2, ymax = 1, colors = (.3, 0, 1), linestyles = '--', alpha = 0.7)
-    # plt.vlines(tmax, ymin = -.2, ymax = 1, colors = (.3, 0, 1), linestyles = '--', alpha = 0.7)
-    plt.hlines([], 0, 0, alpha = 0, label = f"$\\tau_{{int}}$ = {tmin / 2:.2f}")
-
-    plt.title(f'Autocorrelation Function - N = {N}, dim = {dim}, T = {temperatures[T_index]:.2f}')
+    plt.title(f'Autocorrelation Function - T = {temperatures[T_index]:.2f}')
     plt.legend()
     plt.tight_layout()
     plt.savefig(filename)
@@ -279,10 +280,10 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
 
 
 if __name__ == "__main__":
-    N = 50
-    dim = 1
-    data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
-    autocorrelation_graph(N, dim, data_file, filename = "autocorrelation.png", T_index = 30) 
+    N = 10
+    dim = 2
+    data_file = "E:\\simulations_data\\" + f"dim_{dim}_N_{N}" + "_data.hdf5"
+    autocorrelation_graph(N, dim, data_file, filename = "autocorrelation.png", T_index = 40) 
 
     # with h5py.File(data_file, "r") as file:
     #     temperatures = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/temperatures"]))

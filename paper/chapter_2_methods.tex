@@ -13,8 +13,6 @@ m = new_random_ising(tuple([N] * dim))
 
 \end{minted}
 
-[TODO: Fix J, h in the code snippet]
-
 Note that the data type that the numpy array contains is np.int8. In order to minimize storage space, the idea of using boolean variables to represent $1$ and $-1$ was considered, but was ultimately ditched in favour of storing integers. The latter grants faster executions when calculating physical observables (e.g.: energy, magnetization) at the loss of some disk space.
 
 \br
@@ -23,7 +21,7 @@ Every one of these numpy array is generated and stored in another numpy array of
 
 For every combination of dimension and lattice size, the generated row data is stored in a numpy array of shape ($N_{temps}$, $N_{steps}$, [$N_{dim}$] \times \: $d$).
 
-[TODO: discuss floating point precision, data structures, etc.]
+[TODO: maybe discuss floating point precision]
 
 \section{Monte Carlo Markov Chains}
 
@@ -93,9 +91,7 @@ def metropolis_hastings(model: np.ndarray, T: float, steps: int):
 
 Also note that since $\alpha$ depends only on the relative energy change the computation can be greatly optimized by computing only the energy change given by the single spin flip, instead of computing the energy of two entire configurations.
 
-[TODO: discuss Metropolis-Hastings algorithm]
-
-\begin{figure}[]
+\begin{figure}[htbp]
 	\centering
 	\includegraphics[height=0.9\textheight]{../pics_and_anims/ED_(5000, 15, 15)_3.26.png}
 	\caption{Markov Chain and relative distribution of the energy of the system.}
@@ -104,16 +100,22 @@ Also note that since $\alpha$ depends only on the relative energy change the com
 
 In figure \ref{figure:markov_chain_head} some of the first steps of the chain can be seen as starting from different configurations (every spin set at random, all spins up, all spins down). Note that all of the chains start far from what should be the center of the distribution. This assures that before a single sample can be considered randomly sampled from the posterior some "adjusting" time needs to pass. More generally, such a chain suffers from some kind of "recency bias", meaning that, even though the exact previous step at any point of the chain is not ever identifiable, the approximate location (in energy) in of the configuration needs some time to be allowed to properly change. This is shown in the chains by the macro clusters of samples that remains in a narrow vertical space.
 
+\FloatBarrier
+
 \br
 
-The configurations in a single Markov Chain are distributed (in energy) normally if far enough from the critical temperature. This is a consequence of CLT that is applicable given that the autocorrelation time in the chain is short. On the contrary, close to $T_C$ CLT is not applicable and the distribution diverges. [TODO: this can be expanded on]
+Figure \ref{figure:markov_chain_convergence} shows the very same chains after a much larger number of steps. It's clear that the chains have converged to a stationary distribution, and that the initial configuration is no longer relevant. 
 
-\begin{figure}[]
+The energy distribution of the elements in the chain can now be appreciated to be converging to a normal distribution. This is not in contradiction with the fact that the distribution is supposed to be a Boltzmann distribution, but is in fact a consequence of the Central Limit Theorem (CLT), which for temperatures far from the critical temperature is applicable. On the contrary, close to $T_C$ CLT is not applicable and the distribution diverges. [TODO: this can be expanded on]
+
+\begin{figure}[htbp]
 	\centering
-	\includegraphics[height=0.9\textheight]{../pics_and_anims/ED_(50000, 15, 15)_2.26.png}
+	\includegraphics[width=0.9\textwidth]{../pics_and_anims/ED_(300000, 15, 15)_3.26.png}
 	\caption{Markov Chain and relative distribution of the energy of the system.}
 	\label{figure:markov_chain_convergence}
 \end{figure}
+
+\FloatBarrier
 
 \subsection{Analysis}
 

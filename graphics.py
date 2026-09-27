@@ -211,6 +211,7 @@ def graph_magnetization_convergence(sources, filename = 'magnetization_convergen
             return int(group_name.split('_')[3])
 
     sources = sorted(sources, key = get_n_from_file)
+    cmap = plt.get_cmap('viridis_r')
     L = len(sources)
 
     plt.figure(figsize = (12, 7))
@@ -224,11 +225,15 @@ def graph_magnetization_convergence(sources, filename = 'magnetization_convergen
             magnetizations = np.array(f[f"{group_name}/magnetizations"])
             errors = np.array(f[f"{group_name}/magnetization_errors"])
 
+            def norm(x):
+                return np.power(x, 2)
+            color_val = norm(i + 1) / norm(L) if L > 1 else 0.0
+
             plt.errorbar(
                 temperatures, 
                 magnetizations, 
                 yerr = errors, 
-                color = (.3, i / L, 1. - i / L), 
+                color = cmap(color_val), 
                 marker = '.', 
                 label = f"{group_name.split('_')[1]}D, N = {group_name.split('_')[3]}"
                 )
@@ -266,10 +271,18 @@ def metropolis_ising_graphics(initial_states, T: float, steps: int, seed: int):
     # fig, ax_up = plt.subplots(1, 1, figsize = (9, 5))
     first = True
 
-    for initial_state in initial_states.keys():
+    colors = [
+        (253/255, 231/255, 37/255),  # yellow
+        (53/255, 183/255, 121/255),  # green
+        (72/255, 40/255, 120/255)    # purple
+    ]
+
+    for i, initial_state in enumerate(initial_states.keys()):
         print(f"Running Metropolis-Hastings for initial state: {initial_state} at T = {T} for {steps} steps...")
         models_samples = metropolis_ising(initial_states[initial_state], T, steps, seed)
         energies = np.array([energy(model) for model in models_samples])
+
+        current_color = colors[i % len(colors)]
 
         if first:
             first = False
@@ -282,21 +295,27 @@ def metropolis_ising_graphics(initial_states, T: float, steps: int, seed: int):
             print(m.migrad())
 
             x = np.linspace(energies.min(), energies.max(), 100)
-            ax_up.plot(x, f_pdf(x, mu=m.values["mu"], sigma=m.values["sigma"]), label='Normal', color = "black", linestyle = "dotted")
+            ax_up.plot(x, f_pdf(x, mu=m.values["mu"], sigma=m.values["sigma"]), label='Normal', color="black", linestyle="dotted")
 
-        line, = ax_down.plot(energies, range(len(energies)), alpha = .5, label = f'Initial state: {initial_state}')
-        color = (1,.2, 1)
-        color = line.get_color()
+        step = 200
+        ax_down.plot(
+            energies[::step],
+            range(0, len(energies), step),
+            color=current_color,
+            alpha=1,
+            label=f'Initial state: {initial_state}'
+        )
+
         ax_up.hist(
             energies,
             bins=(1 + int(np.log2(len(energies)))),
-            edgecolor=color,
+            edgecolor=current_color,
             linewidth=1,
             linestyle='solid',
-            facecolor=color,
+            facecolor=current_color,
             density=True,
             histtype='stepfilled',
-            alpha = .5,
+            alpha = 1,
             label=f'Initial state: {initial_state}'
         )
 
@@ -363,4 +382,4 @@ if __name__ == '__main__':
         "all_down": x3
     }
 
-    metropolis_ising_graphics(starting_configs, T = 3.26, steps = 50_000, seed = SEED)
+    metropolis_ising_graphics(starting_configs, T = 3.26, steps = 300_000, seed = SEED)
