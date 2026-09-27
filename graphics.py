@@ -2,6 +2,7 @@ from typing import cast
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
+from iminuit import Minuit, cost
 
 from PIL import Image, ImageDraw, ImageFont
 from mcmc_utils import metropolis_ising
@@ -261,14 +262,30 @@ def metropolis_ising_graphics(initial_states, T: float, steps: int, seed: int):
     The distribution of the energy of the system is also plotted at the end of the simulation.
     '''
 
-    fig, (ax_up, ax_down) = plt.subplots(2, 1, figsize = (9, 16), sharex = True, gridspec_kw = {'height_ratios': [1, 2]})
+    fig, (ax_up, ax_down) = plt.subplots(2, 1, figsize = (9, 9), sharex = True, gridspec_kw = {'height_ratios': [1, 1]})
+    # fig, ax_up = plt.subplots(1, 1, figsize = (9, 5))
+    first = True
 
     for initial_state in initial_states.keys():
         print(f"Running Metropolis-Hastings for initial state: {initial_state} at T = {T} for {steps} steps...")
         models_samples = metropolis_ising(initial_states[initial_state], T, steps, seed)
         energies = np.array([energy(model) for model in models_samples])
 
-        line, = ax_down.plot(energies, range(len(energies)), label = f'Initial state: {initial_state}')
+        if first:
+            first = False
+
+            def f_pdf(E, mu, sigma):
+                return (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((E - mu) / sigma)**2)
+
+            c = cost.UnbinnedNLL(energies, f_pdf)
+            m = Minuit(c, mu = -200, sigma = 10)
+            print(m.migrad())
+
+            x = np.linspace(energies.min(), energies.max(), 100)
+            ax_up.plot(x, f_pdf(x, mu=m.values["mu"], sigma=m.values["sigma"]), label='Normal', color = "black", linestyle = "dotted")
+
+        line, = ax_down.plot(energies, range(len(energies)), alpha = .5, label = f'Initial state: {initial_state}')
+        color = (1,.2, 1)
         color = line.get_color()
         ax_up.hist(
             energies,
@@ -282,6 +299,8 @@ def metropolis_ising_graphics(initial_states, T: float, steps: int, seed: int):
             alpha = .5,
             label=f'Initial state: {initial_state}'
         )
+
+    
     
     ax_down.set_xlabel('Energy')
     ax_down.set_ylabel('Time')
@@ -336,7 +355,7 @@ if __name__ == '__main__':
     x1 = np.random.choice([-1, 1], size = N)
     x2 = np.ones(N, dtype = np.int8)
     x3 = - np.ones(N, dtype = np.int8)
-    SEED = 43
+    SEED = 42
 
     starting_configs = {
         "random": x1,
@@ -344,4 +363,4 @@ if __name__ == '__main__':
         "all_down": x3
     }
 
-    metropolis_ising_graphics(starting_configs, T = 2.26, steps = 30_000, seed = SEED)
+    metropolis_ising_graphics(starting_configs, T = 3.26, steps = 50_000, seed = SEED)

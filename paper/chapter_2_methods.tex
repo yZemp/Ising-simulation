@@ -39,9 +39,9 @@ Now, it would be ideal to write this probability analytically: to do that we wou
 
 \br
 
-The solution to this problem is the use of a Markov Chain Monte Carlo method, that is a method for generating a sequence of independent samples from a desired distribution without knowing the normalization constant. One algorithm that produces such a chain is the Metropolis-Hastings algorithm. This algorithm can draw samples from any probability distribution with probability density $P(x)$, provided that we know another function proportional to the density $P$ that we're able to compute analitically (in this case $e^{-\beta E}$) so that we can write $P(E) \propto e^{-\beta E}$.
+The solution to this problem is a Markov Chain Monte Carlo method, that is a method for generating a sequence of independent samples from a desired distribution without knowing the normalization constant. One algorithm that produces such a chain is the Metropolis-Hastings algorithm. This algorithm can draw samples from any probability distribution with probability density $P(x)$, provided that we know another function proportional to the density $P$ that we're able to compute analitically (in this case $e^{-\beta E}$) so that we can write $P(E) \propto e^{-\beta E}$. The target distribution $P$ is also called posterior.
 
-The algorithm's idea is to start from a random configuration of the system and then to move to a similar configuration with a certain probability linked to the energy distribution.
+The algorithm's idea is to start from a random configuration of the system and then to move to another configuration of the system with a set probability which is determined by the energy distribution.
 
 The formal steps of the Metropolis algorithm in this use case are:
 
@@ -52,10 +52,12 @@ The formal steps of the Metropolis algorithm in this use case are:
 	\item Set an acceptance probability parameter $\alpha$ based on the energy change and the temperature: $\alpha = \frac{T(x' \to x) P(x')}{T(x \to x') P(x)}$ where $P$ is the Boltzmann distribution. This is the core of the algorithm and it's what allows the Markov Chain to converge to the desired distribution.
 	\item Accept the new configuration with probability $\min(1, \alpha)$, otherwise reject it and keep the current configuration. That is, if the new configuration is more probable than the current one, accept it, otherwise accept it with probability $\alpha$ (that is, a probability proportional to the ratio of the two probabilities).
 	\item Add the current configuration to the Markov Chain.
-	\item Repeat steps 2-6 for a number of iterations. 
+	\item Repeat steps 2-6 for a number of iterations. The elements of the chain after enough iterations are distributed as  $e^{-\beta E}$
 \end{enumerate}
 
-Where the "trick" is that computing $\alpha$ both $Z$ and the $\Omega$ terms cancel out.
+The "trick" that makes this algorithm work is that computing $\alpha$ both $Z$ and the $\Omega$ terms cancel out.
+
+[TODO: maybe discuss (formally or not) why the sample set given by the MC converges]
 
 Note that randomly selecting a spin and flipping it (step 2) is effectively moving to another random configuration of the system close to the current one. This movement is intepreted as a random sample from a distribution centered around the current configuration. Picking a random spin to flip is an arbitrary choice, and other methods could be used to select a neighboring configuration, but has the advantage that the probability of moving from $x$ to $x'$ ($T(x \to x')$) is the same as moving from $x'$ to $x$ ($T(x' \to x)$), which is the Hastings condition of the algorithm. This condition is not striclty necessary, but it simplifies the computation of $\alpha = \frac{e^-\beta E'}{e^{-\beta E}} = e^{-\beta \Delta E}$ to be only dependent on the energy change and the temperature.
 
@@ -93,16 +95,29 @@ Also note that since $\alpha$ depends only on the relative energy change the com
 
 [TODO: discuss Metropolis-Hastings algorithm]
 
-% \begin{figure}[htbp]
-% 	\centering
-% 	\includegraphics[width=1.\textwidth]{../tmp}
-% 	\caption{Markov Chain and relative distribution of the energy of the system.}
-% 	\label{figure:markov_chain}
-% \end{figure}
+\begin{figure}[]
+	\centering
+	\includegraphics[height=0.9\textheight]{../pics_and_anims/ED_(5000, 15, 15)_3.26.png}
+	\caption{Markov Chain and relative distribution of the energy of the system.}
+	\label{figure:markov_chain_head}
+\end{figure}
+
+In figure \ref{figure:markov_chain_head} some of the first steps of the chain can be seen as starting from different configurations (every spin set at random, all spins up, all spins down). Note that all of the chains start far from what should be the center of the distribution. This assures that before a single sample can be considered randomly sampled from the posterior some "adjusting" time needs to pass. More generally, such a chain suffers from some kind of "recency bias", meaning that, even though the exact previous step at any point of the chain is not ever identifiable, the approximate location (in energy) in of the configuration needs some time to be allowed to properly change. This is shown in the chains by the macro clusters of samples that remains in a narrow vertical space.
+
+\br
+
+The configurations in a single Markov Chain are distributed (in energy) normally if far enough from the critical temperature. This is a consequence of CLT that is applicable given that the autocorrelation time in the chain is short. On the contrary, close to $T_C$ CLT is not applicable and the distribution diverges. [TODO: this can be expanded on]
+
+\begin{figure}[]
+	\centering
+	\includegraphics[height=0.9\textheight]{../pics_and_anims/ED_(50000, 15, 15)_2.26.png}
+	\caption{Markov Chain and relative distribution of the energy of the system.}
+	\label{figure:markov_chain_convergence}
+\end{figure}
 
 \subsection{Analysis}
 
-A Markov Chain is a sequence of random variables where the probability of each variable depends only on the previous variable. This effectively means that even though the sequence of data generated by the Metropolis-Hastings algorithm is distributed according to the Boltzmann distribution the samples are not very useful as a data sample since they are not independent: on the contrary, they are very closely correlated and the presence of correlations between samples would lead to biased results during analysis.
+As stated, a Markov Chain suffers of a recency bias, and the set of configurations of the chain is not very useful as a real sample set since the elements are not independent: on the contrary, they are very closely correlated and the presence of correlations between samples would lead to biased results during analysis.
 
 The extraction of decorrelated data is a problem composed of two parts: the thermalisation and the autocorrelation time. The first one is the number of steps that the Markov Chain needs to reach a stationary distribution, while the second one is the number of steps that need to exist between successive samples before they can be considered independent.
 
