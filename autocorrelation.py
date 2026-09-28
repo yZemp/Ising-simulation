@@ -20,9 +20,10 @@ from global_variables import ALLOW_NUMBA_CACHING
 @njit(cache = ALLOW_NUMBA_CACHING)
 def tau_int_sokal(observables, c = 15.0):
     '''
-    Computes the integrated autocorrelation time using the self-consistent windowing method
-    optimized as per Sokal's method.
-    c: The windowing parameter, determining how many times tau is used as a window size.
+    Computes the integrated autocorrelation time using a self-consistent windowing method.
+    c: The windowing parameter. The bigger c, the longer the window.
+        longer window: tau has less bias
+        shorter window: tau has less variance
     NOTE: higher c values yield more accurate results but require more computation time.
     '''
 

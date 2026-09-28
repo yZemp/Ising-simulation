@@ -23,6 +23,8 @@ For every combination of dimension and lattice size, the generated row data is s
 
 [TODO: maybe discuss floating point precision]
 
+[TODO: definitely discuss the chunking of data to be loaded in memory during computation and the use of lzf compression]
+
 \section{Monte Carlo Markov Chains}
 
 \subsection{Generation}
@@ -126,27 +128,131 @@ The extraction of decorrelated data is a problem composed of two parts: the ther
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=1.\textwidth]{../pics_and_anims/autocorrelation_plot.png}
-	\caption{Example of autocorrelation function for a Markov Chain.}
+	\caption{Example of autocorrelation function (of the energy) for a Markov Chain.}
 	\label{figure:autocorrelation_plot}
 \end{figure}
 
-[TODO: discussion of the autocorrelation function and its properties. An exponential fit after a certainb number of steps is only fitting noise.]
+The plot in figure \ref{figure:autocorrelation_plot} shows the autocorrelation function of one Markov Chain. The autocorrelation function can be defined as:
 
-NOTA: Figure \ref{figure:autocorrelation_plot} prove the need of selecting a proper range to fit over. This is given by the linear portion of the following plot.
+\begin{equation}
+	\rho(t) = \frac{\mathbb{E}[(X_{t + \tau} - \mu)\overline{(X_t - \mu)}]}{\sigma^2}
+\end{equation}
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=1.\textwidth]{../pics_and_anims/autocorrelation_fit.png}
-	\caption{Fitting to find $\tau_{exp}$.}
-	\label{figure:autocorrelation_fit}
-\end{figure}
+where $\mathbb{E}$ denotes the expected value and $X$ are the observable values measured on the configurations. 
 
-[TODO: Didnt manage to make use of this]
+The following is the code used to extimate $\rho$ from the Markov Chain:
 
-\br
+\begin{minted}[linenos, frame=lines, breaklines]{python}
 
-[TODO: discussion of Sokal's method]
+def autocorrelation(t, observables: np.ndarray):
+	'''
+	Computes the autocorrelation function's value given:
+	- A time (step) t
+	- An array of observable values along the Markov chain
+	'''
 
-\br
+	N = len(observables)
+	if t >= N or t < 0:
+		return 0.0
 
-[TODO: discussion of the data blocking method]
+	var = np.var(observables)
+
+	if var == 0:
+		return 0.0
+
+	centered = observables - np.mean(observables)
+	autocov = np.sum(centered[:N - t] * centered[t:]) / N
+
+	return autocov / var
+
+\end{minted}
+
+and it's computed as such for performance's sake. [TODO: maybe consider proving the formula]
+
+The function $\rho$ quantifies the similarity between observations of a random variable (energy, in this case) at different points in time, which can be used to develop methods to extract uncorrelated samples. Specifically, we see that $\rho$ needs a transient time to reach a state of close-to-zero values and after this time it remains close to zero.
+
+Two parameters can be defined from the autocorrelation function:
+
+\begin{itemize}
+	\item The exponential autocorrelation time $\tau_{\text{exp}}$, which is the time it takes for the autocorrelation function to decay into the equilibrium region.
+	\item The integrated autocorrelation time $\tau_{\text{int}}$, which is the sum of the autocorrelation function over all time lags, which is a measure of the overall correlation in the data. It's defined as $$\tau_{\text{int}} = \frac{1}{2} + \sum_{t=1}^{\infty} \rho(t)$$.
+\end{itemize}
+
+To sample uncorrelated data from the Markov Chain two numbers are needed: 
+
+\begin{itemize}
+	\item The number of steps to discard in front of the chain. This represent the thermalisation time, that is, the number of steps that the chain needs to reach a configuration that is representative of the stationary distribution at a certain temperature, in other words, the number of steps that the chain needs to "forget" its initial configuration. Conceptually, this is related to $\tau_{\text{exp}}$.
+	\item The number of steps to skip between samples (to avoid correlation between samples). This number is related to $\tau_{\text{int}}$, and is usually set to a multiple of it (e.g.: $2 \tau_{\text{int}}$).
+\end{itemize}
+
+A number of methods exist to estimate these two numbers, in this project only two are explored.
+
+[TODO: I have the feeling that this portion can be rewritten better]
+
+Note that theoretically speaking $\tau_{\text{exp}}$ can be neglected in long enough chains where we sample from a high enough multiple of $\tau_{\text{int}}$ (e.g. $1000 \tau_{\text{int}}$), because the exponential decay will have already occurred. However, in practice it is always better to discard a number of steps in front of the chain to avoid the initial transient behavior. Discarding too many steps can be a problem too though, because it can lead to a loss of information and a decrease in the effective sample size (end relative errors). Practically, the number of steps to discard in this experiments will be set to $20 \tau_{\text{int}}$, which is to be considered an extimation of $\tau_{\text{exp}}$, and $\tau_{\text{exp}}$ itself will not be computed.
+
+\subsubsection{Sokal's method}
+
+The natural estimator of $\tau_{\text{int}}$ would seem to be
+
+\begin{equation}
+    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} \sum_{t=0}^{n} \widehat{\rho}(t)
+\end{equation}
+
+but this is not really the case, because that estimator has a variance that does not go to zero as the sample size $n$ goes to infinity, so it is clearly a somewhat bad estimator of $\tau_{\text{int}}$. Roughly speaking, this is because the sample autocorrelations $\widehat{\rho}(t)$ for big $t$ contain much noise but little signal, and there are so many of them (order $n$) that the noise adds up to a total variance of order 1. The solution is to cut off the sum using a window $\lambda(t)$ which is $\approx 1$ for small $t$ but $\approx 0$ for large $t$:
+
+\begin{equation}
+    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} \sum_{t=0}^{n} \lambda(t) \widehat{\rho}(t).
+\end{equation}
+
+This retains most of the signal but discards most of the noise. A good choice is the rectangular window
+
+\begin{equation}
+    \lambda(t) = \begin{cases} 
+    1 & \text{if } t \le M \\ 
+    0 & \text{if } t > M
+    \end{cases}
+\end{equation}
+
+where M is an arbitrarily chosen cutoff. The choice of M is a tradeoff between bias and variance: if M is too small, we throw away too much signal and the estimator is biased; if M is too large, we throw away too little noise and the estimator has a large variance. A good choice is to take M to be the first t for which $\widehat{\rho}(t)$ is negative.
+
+This method is implemented in the following code:
+
+
+\begin{minted}[linenos, frame=lines, breaklines]{python}
+
+def tau_int_sokal(observables, c = 15.0):
+    '''
+    Computes the integrated autocorrelation time using a self-consistent windowing method.
+    c: The windowing parameter. The bigger c, the longer the window.
+        longer window: tau has less bias
+        shorter window: tau has less variance
+    NOTE: higher c values yield more accurate results but require more computation time.
+    '''
+
+    N = len(observables)
+    var = np.var(observables)
+    
+    if var == 0.0:
+        return 0.0
+
+    centered = observables - np.mean(observables)
+    tau = 0.5
+
+    for t in range(1, N):
+        autocov_t = np.sum(centered[:N-t] * centered[t:]) / N
+        tau += autocov_t / var
+
+        if t >= c * tau:
+            return tau
+
+    return tau
+
+\end{minted}
+
+Where the precise size of the window $M = c \tau$ is determined self-consistently dinamically at runtime.
+
+
+\subsubsection{Data blocking method}
+
+

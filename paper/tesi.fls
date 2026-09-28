@@ -203,8 +203,9 @@ INPUT ../pics_and_anims/ED_(300000, 15, 15)_3.26.png
 INPUT ../pics_and_anims/ED_(300000, 15, 15)_3.26.png
 INPUT ../pics_and_anims/autocorrelation_plot.png
 INPUT ../pics_and_anims/autocorrelation_plot.png
-INPUT ../pics_and_anims/autocorrelation_fit.png
-INPUT ../pics_and_anims/autocorrelation_fit.png
+INPUT ./_minted/B1E761BAA130545D4EA5A56B02410288.highlight.minted
+INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmr8.tfm
+INPUT ./_minted/8BB3470167CF3D8D3849C7E56D0EFDC3.highlight.minted
 OUTPUT chapter_3_results.aux
 INPUT ./chapter_3_results.tex
 INPUT ../pics_and_anims/magn_graphs/magnetization_convergence_1D.png
