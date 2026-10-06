@@ -47,7 +47,7 @@ def tau_int_sokal(observables, c = 15.0):
 
 
 @njit(cache = ALLOW_NUMBA_CACHING)
-def tau_int_blocking(observables, burn_in = None):
+def _compute_tau_int_blocking(observables, burn_in = None):
     '''
     Computes the integrated autocorrelation time using the data blocking method.
     observables: ndarray of observable values along the Markov chain.
@@ -58,7 +58,7 @@ def tau_int_blocking(observables, burn_in = None):
 
     N = len(observables)
     if N < 2:
-        return 0.0
+        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
 
     if burn_in is None:
         tau0 = tau_int_sokal(observables, c = 5.0)
@@ -72,16 +72,16 @@ def tau_int_blocking(observables, burn_in = None):
     observables = observables[burn_in:]
     N = len(observables)
     if N < 2:
-        return 0.0
+        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
 
     # Return 0 if the number of samples is too small to compute tau_int
     var = np.var(observables)
     if not np.isfinite(var) or var <= 0.0:
-        return 0.0
+        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
 
     current_blocks = observables.copy()
     tau_estimates = []
-    block_size = 1
+    block_size = 1 # k
     Nb_array = [] # Number of blocks for each block size
     Nb = N # Number of blocks for the current block size (Nb_array[0])
 
@@ -91,7 +91,7 @@ def tau_int_blocking(observables, burn_in = None):
         var_blocks = np.sum(np.power(current_blocks - mean_blocks, 2)) / (Nb - 1)
         tau_estimate = .5 * (block_size * (var_blocks / var) - 1)
         if not np.isfinite(tau_estimate):
-            return 0.0
+            return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
         tau_estimates.append(tau_estimate)
         Nb_array.append(Nb)
 
@@ -105,20 +105,45 @@ def tau_int_blocking(observables, burn_in = None):
 
 
     if len(tau_estimates) == 0:
-        return 0.0
+        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
 
-    # Locating plateau in the tau_estimates to determine the final tau_int value
     for i in range(len(tau_estimates) - 1):
         if Nb_array[i] < 30:
-            return float(tau_estimates[i])
-            
+            return float(tau_estimates[i]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64)
+
         diff = abs(tau_estimates[i + 1] - tau_estimates[i])
         err = (tau_estimates[i] + 0.5) * np.sqrt(2.0 / (Nb_array[i] - 1)) 
         
         if diff < err:
-            return float(tau_estimates[i])
-            
-    return float(tau_estimates[-1])
+            return float(tau_estimates[i]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64)
+
+    return float(tau_estimates[-1]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64)
+
+
+def tau_int_blocking(observables, burn_in = None, make_plot = False):
+    final_tau, Nb_array, tau_estimates = _compute_tau_int_blocking(observables, burn_in)
+    
+    if make_plot and len(Nb_array) > 0:
+        import matplotlib.pyplot as plt
+        import numpy as np
+        
+        k_array = 2 ** np.arange(len(Nb_array))
+        
+        plt.plot(k_array, tau_estimates, marker='.', linestyle='dashed', color='blue', label=r'$\tau_{int}(k)$')
+        
+        plt.axhline(y=final_tau, linestyle='dotted', color='red', 
+                 label=f"Stima finale = {final_tau:.2f}")
+                 
+        plt.xscale('log', base=10)
+        plt.xlabel('Block size $k$')
+        plt.ylabel(r'Estimate $\tau_{int}$')
+        plt.title('Data Blocking Method')
+        plt.legend()
+        plt.grid(True, which="both", ls="--", alpha=0.5)
+        plt.savefig("data_blocking_tau_int_estimation.png")
+        plt.close()
+        
+    return final_tau
 
 
 def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
@@ -281,14 +306,14 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
 
 
 if __name__ == "__main__":
-    N = 10
-    dim = 2
-    data_file = "E:\\simulations_data\\" + f"dim_{dim}_N_{N}" + "_data.hdf5"
-    autocorrelation_graph(N, dim, data_file, filename = "autocorrelation.png", T_index = 40) 
+    N = 100
+    dim = 1
+    # data_file = "E:\\simulations_data\\" + f"dim_{dim}_N_{N}" + "_data.hdf5"
+    data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
+    # autocorrelation_graph(N, dim, data_file, filename = "autocorrelation.png", T_index = 40) 
 
-    # with h5py.File(data_file, "r") as file:
-    #     temperatures = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/temperatures"]))
-    #     filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/raw_data"])[30, :100_000])
-    # observables = np.array([magnetization(model) for model in filtered_data])
-    # print(tau_int_sokal(observables, c = 20.0))
-    # tau_int_graph(N, dim, data_file, filename = "tau_int.png")
+    with h5py.File(data_file, "r") as file:
+        filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/raw_data"]))
+    observables = np.array([magnetization(model) for model in filtered_data])
+
+    tau_int_blocking_value = tau_int_blocking(observables, make_plot = True)

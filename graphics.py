@@ -340,7 +340,6 @@ def metropolis_ising_graphics(initial_states, T: float, steps: int, seed: int):
     plt.savefig(f"ED_{models_samples.shape}_{T}.png")
     plt.close()
 
-    
 if __name__ == '__main__':
     # Convergence example usage
 
@@ -370,16 +369,18 @@ if __name__ == '__main__':
     #########################################################################################
     #########################################################################################
 
-    N = (15, 15)
-    x1 = np.random.choice([-1, 1], size = N)
-    x2 = np.ones(N, dtype = np.int8)
-    x3 = - np.ones(N, dtype = np.int8)
-    SEED = 42
+    # N = (15, 15)
+    # x1 = np.random.choice([-1, 1], size = N)
+    # x2 = np.ones(N, dtype = np.int8)
+    # x3 = - np.ones(N, dtype = np.int8)
+    # SEED = 42
 
-    starting_configs = {
-        "random": x1,
-        "all_up": x2,
-        "all_down": x3
-    }
+    # starting_configs = {
+    #     "random": x1,
+    #     "all_up": x2,
+    #     "all_down": x3
+    # }
 
-    metropolis_ising_graphics(starting_configs, T = 3.26, steps = 300_000, seed = SEED)
+    # metropolis_ising_graphics(starting_configs, T = 3.26, steps = 300_000, seed = SEED)
+
+    pass

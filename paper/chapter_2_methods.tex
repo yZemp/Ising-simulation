@@ -199,7 +199,7 @@ The natural estimator of $\tau_{\text{int}}$ would seem to be
     \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} \sum_{t=0}^{n} \widehat{\rho}(t)
 \end{equation}
 
-but this is not really the case, because that estimator has a variance that does not go to zero as the sample size $n$ goes to infinity, so it is clearly a somewhat bad estimator of $\tau_{\text{int}}$. Roughly speaking, this is because the sample autocorrelations $\widehat{\rho}(t)$ for big $t$ contain much noise but little signal, and there are so many of them (order $n$) that the noise adds up to a total variance of order 1. The solution is to cut off the sum using a window $\lambda(t)$ which is $\approx 1$ for small $t$ but $\approx 0$ for large $t$:
+but this is not really the case, because this estimator has a variance that does not go to zero as the sample size $n$ goes to infinity, so it is clearly a somewhat bad estimator of $\tau_{\text{int}}$. Qualitatively speaking, this happens because the sample autocorrelations $\widehat{\rho}(t)$ for big $t$ contain much noise but little signal, and there are so many of them (order $n$) that the noise adds up to a total variance of order 1. The solution is to cut off the sum using a window $\lambda(t)$ which is $\approx 1$ for small $t$ but $\approx 0$ for large $t$:
 
 \begin{equation}
     \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} \sum_{t=0}^{n} \lambda(t) \widehat{\rho}(t).
@@ -250,9 +250,112 @@ def tau_int_sokal(observables, c = 15.0):
 
 \end{minted}
 
-Where the precise size of the window $M = c \tau$ is determined self-consistently dinamically at runtime.
+Where the precise size of the window $M = c \tau$ is determined dinamically at runtime. [TODO: discuss why it's called a self-consistent method. Maybe also plot the autocorrelation function with the selected window.]
 
 
 \subsubsection{Data blocking method}
 
+While Sokal's method is based on summing over the autocorrelation function in a particular way, the data blocking method operates in a fundamentally different way.
+This method is a mathematical trick: let's consider a Markov Chain of length $N$ of configurations ${x_i}$ with variance $\sigma^2$ and an observable $O$ mesured on each configuration. Now suppose to simplify this Chain by averaging the values of the observable $O$ of every consecutive $k$ elements. This will produce a new chain of length $N_b = N / k$ of block averages $\bar{O}_i$ that are less correlated than the original chain. One can then take advantage of the law:
 
+\begin{equation}
+	\label{eq:vk}
+	V_k = \frac{\sigma^2}{k} (1 + 2 \tau_{int})
+\end{equation}
+
+to build an estimator of $\tau_{int}$:
+
+\begin{equation}
+	\tau_{int}(k) = \frac{1}{2} (k \frac{V_k}{\sigma^2} - 1)
+\end{equation}
+
+Note that \ref{eq:vk} is intended to be a correction to the variance of the mean $V_k$ for a chain of truly uncorrelated data:
+
+\begin{equation}
+	\label{eq:vks}
+	V_k = \frac{1}{N_b - 1} \sum_{i = 1}^{N_b} (\bar{O}_i - \bar{O})^2 = \frac{\sigma^2}{k}
+\end{equation}
+
+and the correction factor can be written as a function of $\tau_{int}$ only in the limit $N \gg \tau_{int}$.
+To verify that these laws are consistent with each other, one can see that for truly uncorrelated data $\tau_{int} \to 0$, and so equation \ref{eq:vk} reduces to equation \ref{eq:vks} for $N = k$ (or $N_b = 1$ or $N \gg \tau_{int}$). 
+
+\br
+
+Now, the idea is that since $\tau_{int} = \tau_{int}(k)$ it can be studied as a function of $k$. This can be done by iterating the simplification process described above on the chain in order to create a coarser chain at every iteration, where $\bar{O_i (k)}$ are less correlated at every iteration
+
+The blocks will contain $k$ elements, and their size will double at every iteration. This means that for every iteration the number of blocks $N_b$ will be halved and $k$ will be doubled. The first iteration is $k = 1$ and $N_b = N$.
+
+For every $k$ the procedure is as follows:
+
+\begin{enumerate}
+	\item Divide the chain into $N_b$ blocks of size $k$. The number of blocks is then $N_b = N / k$ and compute the average of the observable $O$ in each block. This is equivalent to averaging the observables of every two consecutive blocks of the previous iteration.
+	\item Compute the variance of the new set of block averages.
+	\item Compute $\tau_{int}(k)$ as $\tau_{int}(k) = \frac{1}{2}(k \frac{V_k}{\sigma^2} - 1)$.
+\end{enumerate}
+
+The estimate $\tau_{int}(k)$ will converge to the true value of $\tau_{int}$ as $k$ increases.
+
+After a certain value of $k$ the limit $k \gg \tau_{int}$ will be reached (in a numerical sense) and the estimate for $\tau_{int}$ will converge to a plateau (because $V_k$ will be stable). The value of the plateau is then taken as the final estimate of $\tau_{int}$.
+
+It's important to note that this method can be used on a chain that has reached the stationary distribution, from the beginning. So, in the actual implementation, the thermalisation time is computed as $20 \tau_{int}^{\text{Sokal}}$ estimated with Sokal's method, and then the data blocking method is applied to the chain after discarding the first $20 \tau_{int}^{\text{Sokal}}$ steps. 
+
+The implementation is shown in the following code:
+
+\begin{minted}[linenos, frame=lines, breaklines]{python}
+
+def tau_int_blocking(observables, burn_in = None):
+    '''
+    Computes the integrated autocorrelation time using the data blocking method.
+    observables: ndarray of observable values along the Markov chain.
+    burn_in: int, optional
+        The number of initial samples to discard as burn-in.
+        if None, burn_in is estimated as 20 tau_int computed with the Sokal method.
+    '''
+
+    N = len(observables)
+
+    if burn_in is None:
+        tau0 = tau_int_sokal(observables, c = 5.0)
+
+    observables = observables[burn_in:]
+    N = len(observables)
+
+    var = np.var(observables)
+
+    current_blocks = observables.copy()
+    tau_estimates = []
+    block_size = 1 # k
+    Nb_array = [] # Number of blocks for each block size
+    Nb = N # Number of blocks for the current block size (Nb_array[0])
+
+    while Nb >= 2:
+        # Estimation
+        mean_blocks = np.mean(current_blocks)
+        var_blocks = np.sum(np.power(current_blocks - mean_blocks, 2)) / (Nb - 1)
+        tau_estimate = .5 * (block_size * (var_blocks / var) - 1)
+        tau_estimates.append(tau_estimate)
+        Nb_array.append(Nb)
+
+        # Blocking
+        if Nb % 2 != 0:
+            current_blocks = current_blocks[:-1]  # Discard the last block if odd number of blocks
+            Nb -= 1
+        Nb //= 2
+        current_blocks = 0.5 * (current_blocks[::2] + current_blocks[1::2])
+        block_size *= 2
+	
+    for i in range(len(tau_estimates) - 1):
+        if Nb_array[i] < 30:
+            return float(tau_estimates[i])
+
+        diff = abs(tau_estimates[i + 1] - tau_estimates[i])
+        err = (tau_estimates[i] + 0.5) * np.sqrt(2.0 / (Nb_array[i] - 1)) 
+        
+        if diff < err:
+            return float(tau_estimates[i])
+
+    return float(tau_estimates[-1])
+
+\end{minted}
+
+\clearpage
