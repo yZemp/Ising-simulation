@@ -1,37 +1,34 @@
 import numpy as np
-import h5py
-from typing import cast
-from matplotlib.patches import Rectangle
 
-from operators import magnetization
-from graphics import graph
+from operators import energy
+from mcmc_utils import metropolis_ising
 from matplotlib import pyplot as plt
-from iminuit import Minuit
-from hdf5_utils import read_data
-from scipy.optimize import curve_fit
 from numba import njit
 from global_variables import ALLOW_NUMBA_CACHING
 
 
-###############################################################################
+##################################################################################################
 # Integrated Autocorrelation Time (Tau_int)
-# (For decorrelating samples)
+##################################################################################################
 
 @njit(cache = ALLOW_NUMBA_CACHING)
 def tau_int_sokal(observables, c = 15.0):
     '''
     Computes the integrated autocorrelation time using a self-consistent windowing method.
-    c: The windowing parameter. The bigger c, the longer the window.
+        c: The windowing parameter. The bigger c, the longer the window.
         longer window: tau has less bias
         shorter window: tau has less variance
     NOTE: higher c values yield more accurate results but require more computation time.
+    Returns:
+        tau : float, the integrated autocorrelation time
+        M   : int, the windowing parameter calculated self-consistently
     '''
 
     N = len(observables)
     var = np.var(observables)
     
     if var == 0.0:
-        return 0.0
+        return 0.0, 0
 
     centered = observables - np.mean(observables)
     tau = 0.5
@@ -41,19 +38,19 @@ def tau_int_sokal(observables, c = 15.0):
         tau += autocov_t / var
 
         if t >= c * tau:
-            return tau
+            return tau, t
 
-    return tau
+    return tau, N - 1
 
 
 @njit(cache = ALLOW_NUMBA_CACHING)
-def _compute_tau_int_blocking(observables, burn_in = None):
+def tau_int_blocking(observables, burn_in = None, c = 10.0):
     '''
-    Computes the integrated autocorrelation time using the data blocking method.
+    Computes the integrated autocorrelation time using the data blocking method (Flyvbjerg and Petersen).
     observables: ndarray of observable values along the Markov chain.
     burn_in: int, optional
         The number of initial samples to discard as burn-in.
-        if None, burn_in is estimated as 20 tau_int computed with the Sokal method.
+        If None, burn_in is estimated as 20 tau_int computed with the Sokal method.
     '''
 
     N = len(observables)
@@ -61,13 +58,15 @@ def _compute_tau_int_blocking(observables, burn_in = None):
         return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
 
     if burn_in is None:
-        tau0 = tau_int_sokal(observables, c = 5.0)
+        tau0, _ = tau_int_sokal(observables, c = c)
         if not np.isfinite(tau0) or tau0 <= 0.0:
             burn_in = 0
         else:
             burn_in = int(20 * tau0)
 
-    burn_in = max(0, min(int(burn_in), N // 2))
+    burn_in = max(0, int(burn_in))
+    if burn_in >= N // 2:
+        print(f"Warning: thermalization time ({burn_in}) is very large for the length of the chain ({N}).")
 
     observables = observables[burn_in:]
     N = len(observables)
@@ -77,6 +76,7 @@ def _compute_tau_int_blocking(observables, burn_in = None):
     # Return 0 if the number of samples is too small to compute tau_int
     var = np.var(observables)
     if not np.isfinite(var) or var <= 0.0:
+        print(f"Warning: variance is non-positive ({var}) for the observable values after burn-in. Returning zeros.")
         return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
 
     current_blocks = observables.copy()
@@ -91,6 +91,7 @@ def _compute_tau_int_blocking(observables, burn_in = None):
         var_blocks = np.sum(np.power(current_blocks - mean_blocks, 2)) / (Nb - 1)
         tau_estimate = .5 * (block_size * (var_blocks / var) - 1)
         if not np.isfinite(tau_estimate):
+            print(f"Warning: tau_estimate is not finite ({tau_estimate}) for the observable values after burn-in.")
             return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
         tau_estimates.append(tau_estimate)
         Nb_array.append(Nb)
@@ -120,78 +121,10 @@ def _compute_tau_int_blocking(observables, burn_in = None):
     return float(tau_estimates[-1]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64)
 
 
-def tau_int_blocking(observables, burn_in = None, make_plot = False):
-    final_tau, Nb_array, tau_estimates = _compute_tau_int_blocking(observables, burn_in)
-    
-    if make_plot and len(Nb_array) > 0:
-        import matplotlib.pyplot as plt
-        import numpy as np
-        
-        k_array = 2 ** np.arange(len(Nb_array))
-        
-        plt.plot(k_array, tau_estimates, marker='.', linestyle='dashed', color='blue', label=r'$\tau_{int}(k)$')
-        
-        plt.axhline(y=final_tau, linestyle='dotted', color='red', 
-                 label=f"Stima finale = {final_tau:.2f}")
-                 
-        plt.xscale('log', base=10)
-        plt.xlabel('Block size $k$')
-        plt.ylabel(r'Estimate $\tau_{int}$')
-        plt.title('Data Blocking Method')
-        plt.legend()
-        plt.grid(True, which="both", ls="--", alpha=0.5)
-        plt.savefig("data_blocking_tau_int_estimation.png")
-        plt.close()
-        
-    return final_tau
 
-
-def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
-    '''
-    Plots the integrated autocorrelation time (tau_int) with respect to magnetization
-    as a function of temperature.
-    '''
-    
-    temperatures, data = read_data(data_file, N, dim)
-
-    print(f"Filtered data shape: {data.shape}")
-
-    observables = np.array([[magnetization(model) for model in models_at_T] for models_at_T in data])
-    taus_sokal = np.zeros_like(temperatures)
-    taus_blocking = np.zeros_like(temperatures)
-
-    for i, T in enumerate(temperatures):
-        print(f"Temperature: {T:.2f}")
-        try:
-            taus_sokal[i] = tau_int_sokal(observables[i], c = 5.0)
-            taus_blocking[i] = tau_int_blocking(observables[i])
-        except Exception as e:
-            print(f"Warning: failed at T = {T:.2f}: {type(e).__name__}: {e}")
-            taus_sokal[i] = np.nan
-            taus_blocking[i] = np.nan
-
-    plt.scatter(temperatures, taus_sokal, marker = "x", label = r"$\tau_{int}-sokal$")
-    plt.scatter(temperatures, taus_blocking, marker = "o", label = r"$\tau_{int}-blocking$")
-    plt.xlabel('Temperature')
-    plt.ylabel(r"$\tau_{int}$")
-    # plt.yscale('log')
-    # plt.xscale('log')
-    plt.grid(True, which="both", ls="--")
-    plt.title(r"$\tau_{int}$" + f" - N = {N}, dim = {dim}")
-    plt.legend()
-    plt.savefig(filename)
-    plt.close()
-
-    
-    # Save temperatures and taus to a text file
-    data_to_save = np.column_stack((temperatures, taus_sokal, taus_blocking))
-
-
-
-
-###############################################################################
-# Exponential Autocorrelation Time (Tau_exp)
-# (For thermalization)
+##################################################################################################
+# Autocorrelation Function
+##################################################################################################
 
 @njit(cache = ALLOW_NUMBA_CACHING)
 def autocorrelation(t, observables: np.ndarray):
@@ -215,105 +148,7 @@ def autocorrelation(t, observables: np.ndarray):
 
     return autocov / var
 
-def compute_tau_exp(observables, t_min, t_max):
-    '''
-    Computes the exponential autocorrelation time (tau_exp) by fitting an exponential decay to the ACF calculated in the time domain.
-    t_min: Lower limit of the region where the ACF is approximately exponential.
-    t_max: Upper limit before noise dominates (e.g., when ACF drops below 0.05).
-    '''
-
-    N = len(observables)
-    var = np.var(observables)
-    
-    if var == 0.0:
-        return 0.0
-
-    centered = observables - np.mean(observables)
-    acf = np.zeros(t_max)
-    
-    for t in range(t_max):
-        acf[t] = np.sum(centered[:N-t] * centered[t:]) / (N * var)
-        
-    t_data = np.arange(t_min, t_max)
-    y_data = acf[t_min:t_max]
-    
-    p0 = (1.0, t_max / 3.0) 
-
-    def _exp_decay(t, A, tau):
-        return A * np.exp(-t / tau)
-    
-    try:
-        popt, pcov = curve_fit(_exp_decay, t_data, y_data, p0=p0)
-        A_fit, tau_exp = popt
-
-        plt.plot(t_data, _exp_decay(t_data, *popt), color='black', label=f'$\\tau_{{exp}}$={tau_exp:.2f}')
-
-        return tau_exp
-    except RuntimeError:
-        return float('nan')
-
-
-def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrelation.png", T_index = 30):
-    '''
-    Plots the autocorrelation function of an observable O as a function of time (steps) 
-    given the raw data stored in an HDF5 file.
-    '''
-
-    LEN = 50_000
-
-    # Not using read_data() here to economize memory usage
-    with h5py.File(data_file, "r") as file:
-        temperatures = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/temperatures"]))
-        filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/raw_data"])[T_index, :LEN])
-
-    print(f"Filtered data shape: {filtered_data.shape} (T = {temperatures[T_index]:.2f})")
-
-    times = np.arange(0, LEN, 1)
-    acs = np.zeros_like(times, dtype = float)
-    observables = np.array([magnetization(model) for model in filtered_data])
-
-    for i, t in enumerate(times):
-        acs[i] = autocorrelation(t, observables)
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(times, acs, label='Autocorrelation function', color=(53 / 255, 183 / 255, 121 / 255))
-    plt.plot(0, acs[0], label=f"Initial value: {acs[0]:.2f}", marker='x', markersize=8, color=(72 / 255, 40 / 255, 120 / 255))
-
-    # x_min, x_max = 200, 10_000
-    # y_min, y_max = -.3, .3
-    # rect = Rectangle(
-    #     xy=(x_min, y_min), 
-    #     width=(x_max - x_min), 
-    #     height=(y_max - y_min), 
-    #     facecolor=(253 / 255, 231 / 255, 37 / 255),
-    #     alpha=1,
-    #     zorder=0
-    # )
-    # plt.gca().add_patch(rect)
-
-    plt.xlabel('Time (steps)')
-    plt.ylabel('Autocorrelation')
-    
-    plt.grid(True, which="both", ls="--", alpha=0.5)
-
-    plt.title(f'Autocorrelation Function - T = {temperatures[T_index]:.2f}')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(filename)
-    plt.close()
-
-    print(f"Autocorrelation graph saved to {filename}.")
 
 
 if __name__ == "__main__":
-    N = 100
-    dim = 1
-    # data_file = "E:\\simulations_data\\" + f"dim_{dim}_N_{N}" + "_data.hdf5"
-    data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
-    # autocorrelation_graph(N, dim, data_file, filename = "autocorrelation.png", T_index = 40) 
-
-    with h5py.File(data_file, "r") as file:
-        filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/raw_data"]))
-    observables = np.array([magnetization(model) for model in filtered_data])
-
-    tau_int_blocking_value = tau_int_blocking(observables, make_plot = True)
+    pass

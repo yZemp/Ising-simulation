@@ -92,3 +92,7 @@ if __name__ == "__main__":
 
     verify_hdf5_integrity(data_file)
     print_hdf5_tree(data_file)
+
+
+
+# NOTE: These functions are mostly useless

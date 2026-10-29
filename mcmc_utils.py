@@ -8,6 +8,10 @@ from global_variables import ALLOW_NUMBA_CACHING
 # MCMC Simulation algorithms
 #####################################################################
 
+@njit(cache=ALLOW_NUMBA_CACHING)
+def _set_numba_seed(seed: int):
+    np.random.seed(seed)
+
 @njit(cache = ALLOW_NUMBA_CACHING)
 def maxwell_boltzmann_statistics(epsilon, beta = 1.):
     return np.exp(- (beta * epsilon))
@@ -97,7 +101,7 @@ def _metropolis_ising_3d(model: np.ndarray, T: float, steps: int):
     return models_samples
 
 
-def metropolis_ising(model: np.ndarray, T: float, steps: int, seed = 0):
+def metropolis_ising(model: np.ndarray, T: float, steps: int, seed: int | None = None):
     '''
     Given:
         Target probability distribution function
@@ -113,9 +117,9 @@ def metropolis_ising(model: np.ndarray, T: float, steps: int, seed = 0):
         based on the dimensionality of the input model for performance.
     '''
 
-    if seed != 0:
-        np.random.seed(seed)
-    
+    if seed is not None:
+        _set_numba_seed(seed)
+
     if model.ndim == 1:
         return _metropolis_ising_1d(model, T, steps)
     elif model.ndim == 2:
