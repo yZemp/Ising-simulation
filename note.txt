@@ -17,3 +17,18 @@ studio con campo magnetico
 
 modificare metropolis a cambiare piu spin insieme
 
+
+----------------------------------------------------------------------------------
+
+plot 1: no hist e orizzontale
+plot 2: via termalizzazione
+
+autocorrelazione: piu corta
+
+bibliografia
+
+correggere errori
+
+considerare suscettivita magnetica
+
+jackknife (per blocking) B Efron

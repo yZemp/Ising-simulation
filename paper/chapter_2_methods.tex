@@ -127,7 +127,7 @@ The extraction of decorrelated data is a problem composed of two parts: the ther
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=1.\textwidth]{../pics_and_anims/autocorrelation_plot.png}
+	\includegraphics[width=1.\textwidth]{../pics_and_anims/autocorrelation_plot.pdf}
 	\caption{Example of autocorrelation function (of the energy) for a Markov Chain.}
 	\label{figure:autocorrelation_plot}
 \end{figure}
@@ -192,6 +192,8 @@ A number of methods exist to estimate these two numbers, in this project only tw
 Note that theoretically speaking $\tau_{\text{exp}}$ can be neglected in long enough chains where we sample from a high enough multiple of $\tau_{\text{int}}$ (e.g. $1000 \tau_{\text{int}}$), because the exponential decay will have already occurred. However, in practice it is always better to discard a number of steps in front of the chain to avoid the initial transient behavior. Discarding too many steps can be a problem too though, because it can lead to a loss of information and a decrease in the effective sample size (end relative errors). Practically, the number of steps to discard in this experiments will be set to $20 \tau_{\text{int}}$, which is to be considered an extimation of $\tau_{\text{exp}}$, and $\tau_{\text{exp}}$ itself will not be computed.
 
 \subsubsection{Sokal's method}
+
+A. Sokal describes a method to estime the integrated autocorrelation time $\tau_{\text{int}}$ in his lecture notes "Monte Carlo Methods in Statistical Mechanics: Foundations and New Algorithms" (1996). The following section discusses the method and its implementation in this project.
 
 The natural estimator of $\tau_{\text{int}}$ would seem to be
 
@@ -260,13 +262,13 @@ This method is a mathematical trick: let's consider a Markov Chain of length $N$
 
 \begin{equation}
 	\label{eq:vk}
-	V_k = \frac{\sigma^2}{k} (1 + 2 \tau_{int})
+	V_k = \frac{\sigma^2}{k} (1 + 2 \tau_{\text{int}})
 \end{equation}
 
-to build an estimator of $\tau_{int}$:
+to build an estimator of $\tau_{\text{int}}$:
 
 \begin{equation}
-	\tau_{int}(k) = \frac{1}{2} (k \frac{V_k}{\sigma^2} - 1)
+	\tau_{\text{int}}(k) = \frac{1}{2} (k \frac{V_k}{\sigma^2} - 1)
 \end{equation}
 
 Note that \ref{eq:vk} is intended to be a correction to the variance of the mean $V_k$ for a chain of truly uncorrelated data:
@@ -276,12 +278,12 @@ Note that \ref{eq:vk} is intended to be a correction to the variance of the mean
 	V_k = \frac{1}{N_b - 1} \sum_{i = 1}^{N_b} (\bar{O}_i - \bar{O})^2 = \frac{\sigma^2}{k}
 \end{equation}
 
-and the correction factor can be written as a function of $\tau_{int}$ only in the limit $N \gg \tau_{int}$.
-To verify that these laws are consistent with each other, one can see that for truly uncorrelated data $\tau_{int} \to 0$, and so equation \ref{eq:vk} reduces to equation \ref{eq:vks} for $N = k$ (or $N_b = 1$ or $N \gg \tau_{int}$). 
+and the correction factor can be written as a function of $\tau_{\text{int}}$ only in the limit $N \gg \tau_{\text{int}}$.
+To verify that these laws are consistent with each other, one can see that for truly uncorrelated data $\tau_{\text{int}} \to 0$, and so equation \ref{eq:vk} reduces to equation \ref{eq:vks} for $N = k$ (or $N_b = 1$ or $N \gg \tau_{\text{int}}$). 
 
 \br
 
-Now, the idea is that since $\tau_{int} = \tau_{int}(k)$ it can be studied as a function of $k$. This can be done by iterating the simplification process described above on the chain in order to create a coarser chain at every iteration, where $\bar{O_i (k)}$ are less correlated at every iteration
+Now, the idea is that since $\tau_{\text{int}} = \tau_{\text{int}}(k)$ it can be studied as a function of $k$. This can be done by iterating the simplification process described above on the chain in order to create a coarser chain at every iteration, where $\bar{O_i (k)}$ are less correlated at every iteration
 
 The blocks will contain $k$ elements, and their size will double at every iteration. This means that for every iteration the number of blocks $N_b$ will be halved and $k$ will be doubled. The first iteration is $k = 1$ and $N_b = N$.
 
@@ -290,14 +292,14 @@ For every $k$ the procedure is as follows:
 \begin{enumerate}
 	\item Divide the chain into $N_b$ blocks of size $k$. The number of blocks is then $N_b = N / k$ and compute the average of the observable $O$ in each block. This is equivalent to averaging the observables of every two consecutive blocks of the previous iteration.
 	\item Compute the variance of the new set of block averages.
-	\item Compute $\tau_{int}(k)$ as $\tau_{int}(k) = \frac{1}{2}(k \frac{V_k}{\sigma^2} - 1)$.
+	\item Compute $\tau_{\text{int}}(k)$ as $\tau_{\text{int}}(k) = \frac{1}{2}(k \frac{V_k}{\sigma^2} - 1)$.
 \end{enumerate}
 
-The estimate $\tau_{int}(k)$ will converge to the true value of $\tau_{int}$ as $k$ increases.
+The estimate $\tau_{\text{int}}(k)$ will converge to the true value of $\tau_{\text{int}}$ as $k$ increases.
 
-After a certain value of $k$ the limit $k \gg \tau_{int}$ will be reached (in a numerical sense) and the estimate for $\tau_{int}$ will converge to a plateau (because $V_k$ will be stable). The value of the plateau is then taken as the final estimate of $\tau_{int}$.
+After a certain value of $k$ the limit $k \gg \tau_{\text{int}}$ will be reached (in a numerical sense) and the estimate for $\tau_{\text{int}}$ will converge to a plateau (because $V_k$ will be stable). The value of the plateau is then taken as the final estimate of $\tau_{\text{int}}$.
 
-It's important to note that this method can be used on a chain that has reached the stationary distribution, from the beginning. So, in the actual implementation, the thermalisation time is computed as $20 \tau_{int}^{\text{Sokal}}$ estimated with Sokal's method, and then the data blocking method is applied to the chain after discarding the first $20 \tau_{int}^{\text{Sokal}}$ steps. 
+It's important to note that this method can be used on a chain that has reached the stationary distribution, from the beginning. So, in the actual implementation, the thermalisation time is computed as $20 \tau_{\text{int}}^{\text{Sokal}}$ estimated with Sokal's method, and then the data blocking method is applied to the chain after discarding the first $20 \tau_{\text{int}}^{\text{Sokal}}$ steps. 
 
 The implementation is shown in the following code:
 
