@@ -93,8 +93,8 @@ def metropolis_ising_graphics(initial_states, T: float, steps: int, seed: int):
     The distribution of the energy of the system is also plotted at the end of the simulation.
     '''
 
-    # fig, (ax_up, ax_down) = plt.subplots(2, 1, figsize = (9, 9), sharex = True, gridspec_kw = {'height_ratios': [1, 1]})
-    fig, ax_down = plt.subplots(1, 1, figsize = (9, 5))
+    fig, (ax_up, ax_down) = plt.subplots(2, 1, figsize = (9, 9), sharex = True, gridspec_kw = {'height_ratios': [1, 1]})
+    # fig, ax_down = plt.subplots(1, 1, figsize = (9, 5))
     first = True
 
     colors = [
@@ -110,70 +110,84 @@ def metropolis_ising_graphics(initial_states, T: float, steps: int, seed: int):
 
         current_color = colors[i % len(colors)]
 
-        if first:
+        if True:
             first = False
 
-            tau_int = tau_int_sokal(energies)[0]
-            ax_down.axvspan(
-                0,
-                20 * tau_int,
-                color='gray',
-                alpha=0.3,
-                zorder=0,
-                label=f'Thermalization time'
-            )
-
-        #     def f_pdf(E, mu, sigma):
-        #         return (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((E - mu) / sigma)**2)
-
-        #     c = cost.UnbinnedNLL(energies, f_pdf)
-        #     m = Minuit(c, mu = -200, sigma = 10)
-        #     print(m.migrad())
-
-        #     x = np.linspace(energies.min(), energies.max(), 100)
-        #     ax_up.plot(x, f_pdf(x, mu=m.values["mu"], sigma=m.values["sigma"]), label='Normal', color="black", linestyle="dotted")
-
-        step = 1
+            tau_int = tau_int_blocking(energies, c = 20)[0]
+            # ax_down.axvline(
+            #     x = 20 * tau_int,
+            #     color = current_color,
+            #     linestyle = '--',
+            #     linewidth = 1.5,
+            #     zorder = 0,
+            #     label = 'Thermalization time'
+            # )
+    
+        step = int(.5 * tau_int) if tau_int > 0 else 1000
         ax_down.plot(
-            range(0, len(energies), step),
-            energies[::step],
-            color=current_color,
-            alpha=1,
+            energies[int(20 * tau_int):steps:step],
+            range(0, len(energies[int(20 * tau_int):steps:step])),
+            marker='o',
+            color=mcolors.to_rgba(current_color, alpha=0.3),
+            markerfacecolor=current_color,
+            markeredgecolor=current_color,
             label=f'Initial state: {initial_state}'
         )
 
-        # ax_up.hist(
-        #     energies,
-        #     bins=(1 + int(np.log2(len(energies)))),
-        #     edgecolor=current_color,
-        #     linewidth=1,
-        #     linestyle='solid',
-        #     facecolor=current_color,
-        #     density=True,
-        #     histtype='stepfilled',
-        #     alpha = 1,
-        #     label=f'Initial state: {initial_state}'
-        # )
+        burn_in = int(20 * tau_int)
+        eq_energies = energies[burn_in:]
 
+        # Normal distribution fit to the energy histogram
+        # Not boltzmann, because g(E) * exp(-E/kT) for big lattices is a normal distribution
+        def f_pdf(E, mu, sigma):
+            return (1.0 / (np.sqrt(2 * np.pi) * sigma)) * np.exp(-0.5 * ((E - mu) / sigma)**2)
+
+        c = cost.UnbinnedNLL(eq_energies, f_pdf)
+        m = Minuit(c, mu = -200, sigma = 10)
+        print(m.migrad())
+
+        x = np.linspace(eq_energies.min(), eq_energies.max(), 100)
+        ax_up.plot(
+            x,
+            f_pdf(x, mu = m.values['mu'], sigma = m.values['sigma']),
+            color = mcolors.to_rgba(current_color, alpha = 1),
+            linestyle = "dashed",
+            linewidth = 2,
+        )
+
+        ax_up.hist(
+            eq_energies,
+            bins=(1 + int(np.log2(len(eq_energies)))),
+            edgecolor=current_color,
+            linewidth=1,
+            linestyle='solid',
+            facecolor=current_color,
+            density=True,
+            histtype='stepfilled',
+            alpha=0.5,
+            label=f'Initial state: {initial_state}'
+        )
+
+    ax_up.set_ylabel('Probability Density')
+    ax_up.set_title(f'Energy Distribution: T = {T}, Shape = {models_samples.shape}')
+    ax_up.legend()
+    ax_up.grid()
+    ax_up.set_axisbelow(True)
     
-    
-    ax_down.set_ylabel('Energy')
-    ax_down.set_xlabel('Time')
-    ax_down.set_title(f'Energy Evolution: T = {T}, Shape = {models_samples.shape}')
-    ax_down.legend(loc='lower right')
+    ax_down.set_ylabel('Time')
+    ax_down.get_yaxis().set_visible(False)
+    ax_down.set_xlabel('Energy')
+    ax_down.set_title(f'Energy Evolution: T = {T}, Shape = {models_samples.shape[1:]}')
+    # ax_down.legend(loc='lower right')
+    ax_down.legend()
     ax_down.grid()
     ax_down.set_axisbelow(True)
     
-    # ax_up.set_ylabel('Probability Density')
-    # ax_up.set_title(f'Energy Distribution: T = {T}, Shape = {models_samples.shape}')
-    # ax_up.legend()
-    # ax_up.grid()
-    # ax_up.set_axisbelow(True)
 
     plt.tight_layout()
     plt.subplots_adjust(hspace = 0.1)
 
-    plt.savefig(f"ED_{models_samples.shape}_{T}.pdf", format='pdf', bbox_inches = 'tight')
+    plt.savefig(f"ED_{models_samples.shape[1:]}_{T}.pdf", format='pdf', bbox_inches = 'tight')
     plt.close()
 
 
@@ -355,19 +369,21 @@ if __name__ == '__main__':
     #########################################################################################
     # MARKOV CHAIN VISUALIZATION EXAMPLE USAGE
 
-    # N = (15, 15)
-    # x1 = np.random.choice([-1, 1], size = N)
-    # x2 = np.ones(N, dtype = np.int8)
-    # x3 = - np.ones(N, dtype = np.int8)
-    # SEED = 5
+    N = (15, 15)
+    SEED = 69
+    np.random.seed(SEED)
 
-    # starting_configs = {
-    #     "random": x1,
-    #     "all_up": x2,
-    #     "all_down": x3
-    # }
+    x1 = np.random.choice([-1, 1], size = N)
+    x2 = np.ones(N, dtype = np.int8)
+    x3 = - np.ones(N, dtype = np.int8)
 
-    # metropolis_ising_graphics(starting_configs, T = 3.26, steps = 10_000, seed = SEED)
+    starting_configs = {
+        "random": x1,
+        "all_up": x2,
+        "all_down": x3
+    }
+
+    metropolis_ising_graphics(starting_configs, T = 2.26, steps = 200_000, seed = SEED)
 
 
 
@@ -393,9 +409,9 @@ if __name__ == '__main__':
     #########################################################################################
     # Tau_int VISUALIZATION EXAMPLE USAGE
 
-    N = 30
-    dim = 2
-    data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
-    tau_int_graph(N, dim, data_file, filename = "tau_int.pdf")
+    # N = 30
+    # dim = 2
+    # data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
+    # tau_int_graph(N, dim, data_file, filename = "tau_int.pdf")
 
     pass
