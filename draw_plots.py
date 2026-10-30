@@ -236,7 +236,10 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
     Plots the integrated autocorrelation time (tau_int) with respect to magnetization
     as a function of temperature.k
     '''
-    
+
+    csokal = 50.0
+    cblocking = 15.0
+
     temperatures, data = read_data(data_file, N, dim)
 
     print(f"Filtered data shape: {data.shape}")
@@ -250,9 +253,9 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
     for i, T in enumerate(temperatures):
         print(f"Temperature: {T:.2f}")
         try:
-            taus_sokal[i], M = tau_int_sokal(observables[i], c = 3.0)
+            taus_sokal[i], M = tau_int_sokal(observables[i], c = csokal)
             taus_sokal_errors[i] = taus_sokal[i] * np.sqrt((4 * M + 2) / len(observables[i])) if M > 0 else np.nan
-            taus_blocking[i], Nb_arr, _ = tau_int_blocking(observables[i], c = 3.0)
+            taus_blocking[i], Nb_arr, _ = tau_int_blocking(observables[i], c = cblocking)
             taus_blocking_errors[i] = (taus_blocking[i] + 0.5) * np.sqrt(2.0 / (Nb_arr[-1] - 1))
         except Exception as e:
             print(f"Warning: failed at T = {T:.2f}: {type(e).__name__}: {e}")
@@ -288,7 +291,7 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
     ax_up.set_xlabel('Temperature')
     ax_up.set_ylabel(r"$\tau_{int}$")
     ax_up.grid(True, which="both", ls="--")
-    ax_up.set_title(r"$\tau_{int}$" + f" - N = {N}, dim = {dim}")
+    ax_up.set_title(r"$\tau_{int}$" + f" - N = {N}, dim = {dim}, c_sokal = {csokal}, c_blocking = {cblocking}")
     ax_up.legend()
 
     ax_down.plot(
@@ -302,7 +305,6 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
     ax_down.set_xlabel('Temperature')
     ax_down.set_ylabel(r"Difference")
     ax_down.grid(True, which="both", ls="--")
-    ax_down.set_title(r"$\tau_{int}$" + f" - N = {N}, dim = {dim}")
     ax_down.legend()
 
     plt.savefig(filename, format='pdf', bbox_inches = 'tight')
@@ -336,8 +338,8 @@ if __name__ == '__main__':
     # Ns = [4, 6, 8, 10, 15, 25]
     # dims = [3]
 
-    sources = [r"dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns for dim in dims]
-    graph_magnetization_convergence(sources, filename = f"magnetization_convergence_{dims[0]}D.png")
+    # sources = [r"dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns for dim in dims]
+    # graph_magnetization_convergence(sources, filename = f"magnetization_convergence_{dims[0]}D.png")
 
 
 
@@ -391,7 +393,7 @@ if __name__ == '__main__':
     #########################################################################################
     # Tau_int VISUALIZATION EXAMPLE USAGE
 
-    N = 10
+    N = 30
     dim = 2
     data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
     tau_int_graph(N, dim, data_file, filename = "tau_int.pdf")
