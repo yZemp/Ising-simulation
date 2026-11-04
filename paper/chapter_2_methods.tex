@@ -390,4 +390,30 @@ The effect of this algorithm of the progressive smoothing of the chain can be ap
 \end{figure}
 
 
+\subsection{Comparing the two methods}
+
+Now that both methods have been described, they can be compared. Clearly, their estimates of $\tau_{\text{int}}$ should be roughly similar. In images \ref{figure:tau_int_1D_comparison}, \ref{figure:tau_int_2D_comparison} and \ref{figure:tau_int_3D_comparison} the estimates of $\tau_{\text{int}}$ for the two methods are compared for different dimensions.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_1D.pdf}
+	\label{figure:tau_int_1D_comparison}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_2D.pdf}
+	\label{figure:tau_int_2D_comparison}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_3D.pdf}
+	\label{figure:tau_int_3D_comparison}
+\end{figure}
+
+The correlation between the two methods is clear, and it can be noted that both methods struggle close to $T_C$ where this behavior is, of course, expected.
+
+[TODO: is the difference between the two methods significant? Is the error magnitude acceptable?]
+
 \clearpage

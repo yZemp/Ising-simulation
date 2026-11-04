@@ -236,6 +236,12 @@ INPUT ./tesi.pyg
 INPUT ./_minted-tesi/DC66DABD2526A98ED20199C31B417E588EEFF98158BBA33FD9B0E84A0BC20BCF.pygtex
 INPUT ../pics_and_anims/data_blocking_partial_visualization.pdf
 INPUT ../pics_and_anims/data_blocking_partial_visualization.pdf
+INPUT ../pics_and_anims/tau_int_1D.pdf
+INPUT ../pics_and_anims/tau_int_1D.pdf
+INPUT ../pics_and_anims/tau_int_2D.pdf
+INPUT ../pics_and_anims/tau_int_2D.pdf
+INPUT ../pics_and_anims/tau_int_3D.pdf
+INPUT ../pics_and_anims/tau_int_3D.pdf
 OUTPUT chapter_3_results.aux
 INPUT ./chapter_3_results.tex
 INPUT ../pics_and_anims/magn_graphs/magnetization_convergence_1D.png

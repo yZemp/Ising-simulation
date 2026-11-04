@@ -9,7 +9,7 @@ from iminuit import Minuit, cost
 from hdf5_utils import read_data
 from autocorrelation import tau_int_sokal, tau_int_blocking, autocorrelation
 from mcmc_utils import metropolis_ising
-from operators import energy, magnetization
+from operators import binder_cumulant, energy, magnetization
 from analytical_curves import plot_analytical_curve
 
 
@@ -275,7 +275,6 @@ def metropolis_ising_graphics_blocking(initial_state, T: float, steps: int, seed
     plt.close()
 
 
-
 def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrelation.pdf", T_index = 30):
     '''
     Plots the autocorrelation function of an observable O as a function of time (steps) 
@@ -353,7 +352,7 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
         try:
             taus_sokal[i], M = tau_int_sokal(observables[i], c = csokal)
             taus_sokal_errors[i] = taus_sokal[i] * np.sqrt((4 * M + 2) / len(observables[i])) if M > 0 else np.nan
-            taus_blocking[i], Nb_arr, _ = tau_int_blocking(observables[i], c = cblocking)
+            taus_blocking[i], Nb_arr, _, _ = tau_int_blocking(observables[i], c = cblocking)
             taus_blocking_errors[i] = (taus_blocking[i] + 0.5) * np.sqrt(2.0 / (Nb_arr[-1] - 1))
         except Exception as e:
             print(f"Warning: failed at T = {T:.2f}: {type(e).__name__}: {e}")
@@ -413,6 +412,36 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
     data_to_save = np.column_stack((temperatures, taus_sokal, taus_blocking))
 
 
+def tc_extraction(N, dim, data_file, filename = "tc_extraction.png"):
+    '''
+    Draws the plots of binder cumulants.
+    '''
+
+    print(f"Reading data from {data_file}...")
+
+    with h5py.File(data_file, "r") as file:
+        temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
+        observables = np.array(file[f"dim_{dim}_N_{N}/magnetizations"])
+
+    print(f"Done.")
+
+    binder_cumulants = np.array([binder_cumulant(M) for M in observables])
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(
+        temperatures,
+        binder_cumulants,
+        marker='o',
+        linestyle='None',
+        label=r"$U_4$"
+    )
+    plt.xlabel('Temperature')
+    plt.ylabel(r"Binder Cumulant $U_4$")
+    plt.grid(True, which="both", ls="--")
+    plt.title(f'Binder Cumulant vs Temperature - N = {N}, dim = {dim}')
+    plt.legend()
+    plt.savefig(filename, format='pdf', bbox_inches='tight')
+    plt.close()
 
 
 ##################################################################################################
@@ -430,8 +459,8 @@ if __name__ == '__main__':
     # dims = [1]
 
     # Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
-    Ns = [5, 10, 15, 16, 20, 30]
-    dims = [2]
+    # Ns = [5, 10, 15, 16, 20, 30]
+    # dims = [2]
     
     # Ns = [4, 6, 8, 10, 15, 25]
     # dims = [3]
@@ -475,13 +504,13 @@ if __name__ == '__main__':
     #########################################################################################
     # Markov Chain WITH BLOCKING VISUALIZATION EXAMPLE USAGE
 
-    N = (15, 15)
-    SEED = 420
-    np.random.seed(SEED)
+    # N = (15, 15)
+    # SEED = 420
+    # np.random.seed(SEED)
 
-    starting_config = np.random.choice([-1, 1], size = N)
+    # starting_config = np.random.choice([-1, 1], size = N)
 
-    metropolis_ising_graphics_blocking(starting_config, T = 5.26, steps = 200_000, seed = SEED)
+    # metropolis_ising_graphics_blocking(starting_config, T = 5.26, steps = 200_000, seed = SEED)
 
 
 
@@ -501,9 +530,18 @@ if __name__ == '__main__':
     #########################################################################################
     # Tau_int VISUALIZATION EXAMPLE USAGE
 
-    # N = 30
-    # dim = 2
-    # data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
+    # N = 5
+    # dim = 3
+    # data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
     # tau_int_graph(N, dim, data_file, filename = "tau_int.pdf")
+
+    #########################################################################################
+    #########################################################################################
+    # Binder cumulant VISUALIZATION EXAMPLE USAGE
+    
+    N = 10
+    dim = 2
+    data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
+    tc_extraction(N, dim, data_file, filename = "binder_cumulant.pdf")
 
     pass

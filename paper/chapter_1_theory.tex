@@ -97,6 +97,27 @@ The solution to this problem is to consider this partial derivative in th genera
 
 [TODO: i fear this can be greatly expanded on]
 
+% AI %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Another important partial derivative is the first derivative of the magnetization with respect to the temperature, which defines the (isothermal) magnetic susceptibility:
+
+\begin{equation}
+\chi = \frac{\partial \langle M \rangle}{\partial h} = -\frac{\partial^2 F}{\partial h^2}
+\end{equation}
+
+Similarly to the magnetization, the susceptibility is a fundamental observable in numerical simulations. By virtue of the fluctuation-dissipation theorem, it can be computed directly from the fluctuations of the magnetization at zero external field:
+
+\begin{equation}
+\chi = \beta N \left( \langle M^2 \rangle - \langle |M| \rangle^2 \right)
+\end{equation}
+
+where the absolute value of the magnetization is used to avoid the problem of the vanishing average magnetization in finite systems.
+
+% In the thermodynamic limit, phase transitions are characterized by non-analyticities; for the magnetic susceptibility, this manifests as a divergence at the critical temperature $T_C$ following the power law $\chi \propto \vert{}T - T_C\vert{}^{-\gamma}$.   However, in a finite system, true non-analyticities cannot occur. Instead of diverging, the susceptibility of a finite lattice of linear size $L$ (where $N=L^d$) displays a smoothed maximum at a pseudo-critical temperature $T_C(L)$. This behavior provides a robust numerical method to extract the true critical temperature $T_C$: by simulating systems of various sizes $L$ and identifying the position and height of the susceptibility peak, one can extrapolate the critical temperature in the thermodynamic limit ($L \to \infty$) using Finite-Size Scaling (FSS) techniques.
+
+% AI %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 \section{Analytical solutions}
 
 \subsection{One dimensional case}
