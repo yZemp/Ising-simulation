@@ -1,8 +1,7 @@
 \chapter{Theoretical background}
 \section{General overview}
-The Ising model is a mathematical model of a ferromagnet. [TODO: add context].
 
-The fundamental assumption of the model is that a solid can be represented as a ferromagnet as an array of fixed ions that only interacting with its closest neighbours (and, optionally, an external magnetic field). Such system is described by the classical Hamiltonian
+The fundamental assumption of the model is that a solid can be represented as a ferromagnet as an array of fixed ions that only interact with its closest neighbours (and, optionally, an external magnetic field). Such system is described by the classical Hamiltonian
 
 \begin{equation}
   \label{eq:ham}
@@ -38,10 +37,10 @@ Given that the quantities $N = $ number of particles, $V = N a = $ volume of the
   P_{\beta}(\sigma) = \frac{e^{- \beta H(\sigma)}}{Z_{\beta}}
 \end{equation}
 
-where $Z_{\beta}$ is the canonical partition function
+where $Z_{\beta}$ is the canonical partition function:
 
 \begin{equation}
-  Z = \sum_{i} e^{- \beta E_i} = \sum_{{\sigma_i}} e^{- \beta \sum_{\left< i, j \right>} J_{ij} \sigma_i \sigma_j - \beta \mu \sum_{i} h_i \sigma_i}
+  Z_{\beta} = \sum_{i} e^{- \beta E_i} = \sum_{{\sigma_i}} e^{- \beta \sum_{\left< i, j \right>} J_{ij} \sigma_i \sigma_j - \beta \mu \sum_{i} h_i \sigma_i}
 \end{equation}
 
 All the same, given an operator $\hat{O}$ its mean is intended to be
@@ -50,11 +49,11 @@ All the same, given an operator $\hat{O}$ its mean is intended to be
   \left< \hat{O} \right>_{\beta} = \sum_{\sigma} \hat{O} \left(\sigma\right) P_{\beta} \left(\sigma\right)
 \end{equation}
 
-which is the canonical average.
+which is the canonical average. In most cases the subscript $\beta$ will be dropped from the notation.
 
 \br
 
-The minus in front of the first sum in equations \ref{eq:ham} and \ref{eq:qham} are conventional. Varying the sign of the coefficients $J_{ij}$ two differently behaving systems are described:
+The minus in front of the first sum in equations \ref{eq:ham} and \ref{eq:qham} is conventional. Varying the sign of the coefficients $J_{ij}$ one can describe different types of magnetic interactions:
 
 \begin{enumerate}
   \item $J_{ij} > 0$: ferromagnetic
@@ -94,12 +93,11 @@ In a finite system the Hamiltonian is symmetric under the transformation $\sigma
 
 $$ \left<M\right> = \left. \frac{\partial \frac{\ln \left(Z\right)}{\beta N}}{\partial h} \right|_{h=0} = 0 \; \forall T $$
 
-The solution to this problem is 
-
+The solution to this problem is to consider this partial derivative in th general case, and then take the limit $h \rightarrow 0$ after the thermodynamic limit $N \rightarrow \infty$ has been taken. This is equivalent to adding a small external magnetic field to the system, and then taking the limit of this field going to zero after the thermodynamic limit has been taken.
 
 [TODO: i fear this can be greatly expanded on]
 
-\section{Solutions}
+\section{Analytical solutions}
 
 \subsection{One dimensional case}
 

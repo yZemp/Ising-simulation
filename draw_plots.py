@@ -191,8 +191,92 @@ def metropolis_ising_graphics(initial_states, T: float, steps: int, seed: int):
     plt.close()
 
 
+def metropolis_ising_graphics_blocking(initial_state, T: float, steps: int, seed: int):
+    '''
+    NOTE:   This is (conceptually) a copy of the function above,
+            but used to show the blocking method
+    '''
 
-def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrelation.png", T_index = 30):
+    colors = [
+        (253/255, 231/255, 37/255),  # yellow
+        (53/255, 183/255, 121/255),  # green
+        (72/255, 40/255, 120/255)    # purple
+    ]
+
+    LEN = 5_000
+
+    print(f"Running Metropolis-Hastings for initial state: {initial_state.shape} at T = {T} for {steps} steps...")
+    models_samples = metropolis_ising(initial_state, T, steps, seed)
+    energies = np.array([energy(model) for model in models_samples])
+
+
+    current_color = colors[1]
+
+    tau_int, Nb_array, tau_int_estimates_array, burn_in = tau_int_blocking(energies, c = 20)
+    print(f"Tau_int_blocking: {tau_int}\nNb_array: {Nb_array}\nTau_int_estimates_array: {tau_int_estimates_array}\nBurn-in: {burn_in}")
+    plateau_idx = np.where(tau_int_estimates_array == tau_int)[0][0]
+    print("Plateau index:", plateau_idx)
+
+    # BLOCKING
+    n_plots = (plateau_idx + 1) // 2
+    # n_plots = len(Nb_array)  # Show all blocking levels
+    cmap = plt.get_cmap('viridis')
+    colors = cmap(np.linspace(0, 1, n_plots))
+
+    fig, axes = plt.subplots(n_plots, 1, figsize = (9, 2 * n_plots), sharex = True)
+    if n_plots == 1: axes = [axes]
+
+    original_data = energies[burn_in:]
+    x_axis = np.arange(0, len(original_data), 1)
+
+    block_size = 1
+    data = original_data.copy()
+    extended_data = np.repeat(data, block_size)
+
+    for i in range(plateau_idx + 1):
+        # Skip half plots
+        if i % 2 == 0:
+            block_size *= 2
+            Nb = len(original_data) // block_size
+            data = original_data[:Nb * block_size].reshape(Nb, block_size).mean(axis=1)
+            extended_data = np.repeat(data, block_size)
+
+            continue
+
+        current_x = x_axis[:len(extended_data)]
+        
+        axes[i // 2].plot(
+            current_x,
+            extended_data,
+            marker='None',
+            color=mcolors.to_rgba(colors[i // 2], alpha=1.),
+            linewidth=1.2,
+            label=f'Block Size: {block_size}',
+            drawstyle='steps-post'
+        )
+
+        axes[i // 2].set_ylabel('Energy')
+        # axes[i // 2].set_xlabel('Time (steps)')
+        axes[i // 2].legend(loc='lower right')
+        axes[i // 2].grid()
+
+        # Next iteration:
+        block_size *= 2
+        Nb = len(original_data) // block_size
+        data = original_data[:Nb * block_size].reshape(Nb, block_size).mean(axis=1)
+        extended_data = np.repeat(data, block_size)
+        
+    plt.suptitle(f'Energy Evolution: T = {T}, Shape = {models_samples.shape[1:]}')
+
+    plt.tight_layout()
+    plt.subplots_adjust(hspace = 0.1)
+
+    plt.savefig(f"ED_{models_samples.shape[1:]}_{T}.pdf", format='pdf', bbox_inches = 'tight')
+    plt.close()
+
+
+
+def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrelation.pdf", T_index = 30):
     '''
     Plots the autocorrelation function of an observable O as a function of time (steps) 
     given the raw data stored in an HDF5 file.
@@ -203,13 +287,14 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
     # Not using read_data() here to economize memory usage
     with h5py.File(data_file, "r") as file:
         temperatures = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/temperatures"]))
-        filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/raw_data"])[T_index, :LEN])
+        raw_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/raw_data"])[T_index, :LEN])
+        full_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/raw_data"])[T_index])
 
-    print(f"Filtered data shape: {filtered_data.shape} (T = {temperatures[T_index]:.2f})")
+    print(f"Raw data shape: {raw_data.shape} (T = {temperatures[T_index]:.2f})")
 
     times = np.arange(0, LEN, 1)
     acs = np.zeros_like(times, dtype = float)
-    observables = np.array([magnetization(model) for model in filtered_data])
+    observables = np.array([magnetization(model) for model in raw_data])
 
     for i, t in enumerate(times):
         acs[i] = autocorrelation(t, observables)
@@ -218,17 +303,17 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
     plt.plot(times, acs, label='Autocorrelation function', color=(53 / 255, 183 / 255, 121 / 255))
     plt.plot(0, acs[0], label=f"Initial value: {acs[0]:.2f}", marker='x', markersize=8, color=(72 / 255, 40 / 255, 120 / 255))
 
-    # x_min, x_max = 200, 10_000
-    # y_min, y_max = -.3, .3
-    # rect = Rectangle(
-    #     xy=(x_min, y_min), 
-    #     width=(x_max - x_min), 
-    #     height=(y_max - y_min), 
-    #     facecolor=(253 / 255, 231 / 255, 37 / 255),
-    #     alpha=1,
-    #     zorder=0
-    # )
-    # plt.gca().add_patch(rect)
+
+    # Showing Sokal's window
+    full_observables = np.array([magnetization(model) for model in full_data])
+    tau_int, M = tau_int_sokal(full_observables, c = 20)
+    plt.axvline(x=M, color='red', linestyle='--', linewidth=2, 
+            label=f'Window M={M} ($\\tau_{{int}}$={tau_int:.2f})')
+    
+    M_idx = int(M) + 1
+    plt.fill_between(times[:M_idx], 0, acs[:M_idx], 
+                     color=(53 / 255, 183 / 255, 121 / 255), alpha=0.5)
+
 
     plt.xlabel('Time (steps)')
     plt.ylabel('Autocorrelation')
@@ -242,7 +327,6 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
     plt.close()
 
     print(f"Autocorrelation graph saved to {filename}.")
-
 
 
 def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
@@ -369,21 +453,36 @@ if __name__ == '__main__':
     #########################################################################################
     # MARKOV CHAIN VISUALIZATION EXAMPLE USAGE
 
+    # N = (15, 15)
+    # SEED = 69
+    # np.random.seed(SEED)
+
+    # x1 = np.random.choice([-1, 1], size = N)
+    # x2 = np.ones(N, dtype = np.int8)
+    # x3 = - np.ones(N, dtype = np.int8)
+
+    # starting_configs = {
+    #     "random": x1,
+    #     "all_up": x2,
+    #     "all_down": x3
+    # }
+
+    # metropolis_ising_graphics(starting_configs, T = 2.26, steps = 200_000, seed = SEED)
+
+
+
+    #########################################################################################
+    #########################################################################################
+    # Markov Chain WITH BLOCKING VISUALIZATION EXAMPLE USAGE
+
     N = (15, 15)
-    SEED = 69
+    SEED = 420
     np.random.seed(SEED)
 
-    x1 = np.random.choice([-1, 1], size = N)
-    x2 = np.ones(N, dtype = np.int8)
-    x3 = - np.ones(N, dtype = np.int8)
+    starting_config = np.random.choice([-1, 1], size = N)
 
-    starting_configs = {
-        "random": x1,
-        "all_up": x2,
-        "all_down": x3
-    }
+    metropolis_ising_graphics_blocking(starting_config, T = 5.26, steps = 200_000, seed = SEED)
 
-    metropolis_ising_graphics(starting_configs, T = 2.26, steps = 200_000, seed = SEED)
 
 
 
@@ -391,18 +490,11 @@ if __name__ == '__main__':
     #########################################################################################
     # AUTOCORRELATION VISUALIZATION EXAMPLE USAGE
 
-    # N = 20
-    # dim = 2
+    # N = 100
+    # dim = 1
     # data_file = "E:\\simulations_data\\" + f"dim_{dim}_N_{N}" + "_data.hdf5"
     # data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
-    # autocorrelation_graph(N, dim, data_file, filename = "autocorrelation.pdf", T_index = 30) 
-
-    # with h5py.File(data_file, "r") as file:
-    #     filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/raw_data"]))
-    # observables = np.array([energy(model) for model in filtered_data])
-
-    # tau_int_blocking_value = tau_int_blocking(observables, make_plot = True)
-
+    # autocorrelation_graph(N, dim, data_file, filename = "autocorrelation_with_window.pdf", T_index = 30) 
 
 
     #########################################################################################

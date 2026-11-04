@@ -1,14 +1,23 @@
 import numpy as np
-
 from PIL import Image, ImageDraw, ImageFont
 
-def array_to_png(arr, pixel_size = 50, filename: str | None = "output.png") -> str | Image.Image:
+from generation import mcmc_sampling
+
+def array_to_png(
+        arr,
+        pixel_size = 50,
+        border_width = 0,
+        border_color = 200,
+        filename: str | None = "output.pdf"
+    ) -> str | Image.Image:
     '''
     Convert a 1D or 2D array of values 1 and -1 into a PNG image.
 
     - `arr` can be a Python list, a list of lists (2D), or a `numpy.ndarray`
       containing only values 1 or -1.
     - `pixel_size` is the size (in pixels) of each square cell in the grid (default: 50).
+    - `border_width` is the width (in pixels) of the border around the grid (default: 0).
+    - `border_color` is the color of the border (default: 200, which is grey).
     - `filename` is the output PNG file path.
 
     Returns the saved file path.
@@ -37,11 +46,18 @@ def array_to_png(arr, pixel_size = 50, filename: str | None = "output.png") -> s
     if pixel_size > 1:
         mapped = np.repeat(np.repeat(mapped, pixel_size, axis=0), pixel_size, axis=1)
 
+    if border_width > 0 and pixel_size > border_width:
+        for b in range(border_width):
+            mapped[b::pixel_size, :] = border_color
+            mapped[:, b::pixel_size] = border_color
+            mapped[-(b + 1), :] = border_color
+            mapped[:, -(b + 1)] = border_color
+
     img = Image.fromarray(mapped, mode='L')
     # If a filename is provided, save to disk and return the path.
     # Otherwise, return the PIL Image object for in-memory use.
     if filename:
-        img.save(filename, format='PNG')
+        img.save(filename, format='PDF')
         return filename
     return img
 
@@ -113,3 +129,12 @@ def animate(arrays, pixel_size = 50, filename = "animation.gif", fps = 5, loop =
     )
     
     return filename
+
+if __name__ == "__main__":
+
+    N = 7
+    dim = 2
+    SEED = 67
+    configs = mcmc_sampling(N = N, dim = dim, T = 2.7, steps = 200_000, seed = SEED)
+
+    pic = array_to_png(configs[-1], pixel_size = 8, border_width = 0, filename = f"ising_{dim}D_N{N}_final.pdf")

@@ -218,8 +218,8 @@ INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam5.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
 INPUT ../pics_and_anims/ED_(15, 15)_6.26.pdf
 INPUT ../pics_and_anims/ED_(15, 15)_6.26.pdf
-INPUT ../pics_and_anims/ED_(300000, 15, 15)_3.26.png
-INPUT ../pics_and_anims/ED_(300000, 15, 15)_3.26.png
+INPUT ../pics_and_anims/ED_(20, 20)_3.26.pdf
+INPUT ../pics_and_anims/ED_(20, 20)_3.26.pdf
 INPUT ../pics_and_anims/autocorrelation_plot.pdf
 INPUT ../pics_and_anims/autocorrelation_plot.pdf
 OUTPUT tesi.pyg
@@ -229,9 +229,13 @@ INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmr8.tfm
 OUTPUT tesi.pyg
 INPUT ./tesi.pyg
 INPUT ./_minted-tesi/FEFA3CFCB1B0707853D3DCD542D881788EEFF98158BBA33FD9B0E84A0BC20BCF.pygtex
+INPUT ../pics_and_anims/autocorrelation_with_window.pdf
+INPUT ../pics_and_anims/autocorrelation_with_window.pdf
 OUTPUT tesi.pyg
 INPUT ./tesi.pyg
 INPUT ./_minted-tesi/DC66DABD2526A98ED20199C31B417E588EEFF98158BBA33FD9B0E84A0BC20BCF.pygtex
+INPUT ../pics_and_anims/data_blocking_partial_visualization.pdf
+INPUT ../pics_and_anims/data_blocking_partial_visualization.pdf
 OUTPUT chapter_3_results.aux
 INPUT ./chapter_3_results.tex
 INPUT ../pics_and_anims/magn_graphs/magnetization_convergence_1D.png
@@ -240,6 +244,13 @@ INPUT ../pics_and_anims/magn_graphs/magnetization_convergence_2D.png
 INPUT ../pics_and_anims/magn_graphs/magnetization_convergence_2D.png
 INPUT ../pics_and_anims/magn_graphs/magnetization_convergence_3D.png
 INPUT ../pics_and_anims/magn_graphs/magnetization_convergence_3D.png
+INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmri12.tfm
+INPUT ../pics_and_anims/ising_1D_N5_final.pdf
+INPUT ../pics_and_anims/ising_1D_N5_final.pdf
+INPUT ../pics_and_anims/ising_1D_N50_final.pdf
+INPUT ../pics_and_anims/ising_1D_N50_final.pdf
+INPUT ../pics_and_anims/ising_2D_N70_final.pdf
+INPUT ../pics_and_anims/ising_2D_N70_final.pdf
 INPUT ./tesi.aux
 INPUT ./chapter_1_theory.aux
 INPUT ./chapter_2_methods.aux
@@ -255,6 +266,7 @@ INPUT /usr/share/texmf/fonts/type1/public/lm/lmr12.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmr17.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmr6.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmr8.pfb
+INPUT /usr/share/texmf/fonts/type1/public/lm/lmri12.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmsy6.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmsy8.pfb

@@ -43,4 +43,40 @@ The same argument for the 2D Ising model can be applied to the 3D case, and the 
 
 The theoretical difference is that the 3D model is not analytically solved (in the plot the numerical results are confronted with a critical scaling behavior [TODO: fonte maybe  A L Talapov and H W J Blöte 1996 J. Phys. A: Math. Gen. 29 5727]), but the existence of a phase transition is well-established, and the numerical results are consistent with the expected behavior.
 
+\section{General comments}
+
+But why does a finite critical temperature exist in 2D and 3D and not in 1D?
+
+The answer can be understood in the context of the lattice approach by thinking about the energy cost of flippin a single spin: this operation depends only on the closest neighbors of the spin, which means that if $d$ is fixed, the flip energy cost does not change with $N$.
+
+In general, the probability of having a streak of aligned spins is high (because that is the most stable configuration of the system). Now, let's consider a 1D lattice of very coarse size (think $N = 5$). In this case, even at relatively high temperatures, a configuration of two different streaks of aligned spins is improbable, because it is not energetically favorable. This implies a non zero magnetization even at non-zero temperatures like can be seen in figure \ref{fig:1D_coarse}, where a white or black square is an up or down spin.
+
+This changes with finer lattices (think $N = 100$). In this case, the probability of having a configuration with two different streaks of aligned spins is much higher, because \textit{multiple long streaks of aligned spins are permitted}, and globally the magnetization averages out to zero. The key takeaway is that there does not exist a threshold temperature for this phenomenon, and the magnetization is always zero for sufficiently large $N$. This is shown in figure \ref{fig:1D_fine} with the same convention.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=.1\textwidth]{../pics_and_anims/ising_1D_N5_final.pdf}
+	\caption{Coarse 1D lattice at any temperature $T > 0$.}
+	\label{fig:1D_coarse}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=1.\textwidth]{../pics_and_anims/ising_1D_N50_final.pdf}
+	\caption{Fine 1D lattice at any temperature $T > 0$.}
+	\label{fig:1D_fine}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=.8\textwidth]{../pics_and_anims/ising_2D_N70_final.pdf}
+	\caption{Example 2D lattice thermalized close to $T_C$.}
+	\label{fig:2D}
+\end{figure}
+
+
+This logic does not hold for higher dimensions.
+
+In 2D, the equivalent of a streak is a cluster of aligned spins, and the equivalent of a single spin flip to break the streak is the flipping of the spins on the border of the cluster. Since the border of the cluster does actually scale with the size of the system, the probability of having a cluster of aligned spins is size dependent (because the energy cost of flipping the boundary of the cluster is), which means that there exists a minimum thermal excitation needed to break the cluster. The temperature at which this happens is the critical temperature. The same argument can be made about the 3D case, where the border of a cluster is a surface, which scales with the size of the system.
+
 \clearpage

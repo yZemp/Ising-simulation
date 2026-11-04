@@ -55,7 +55,7 @@ def tau_int_blocking(observables, burn_in = None, c = 10.0):
 
     N = len(observables)
     if N < 2:
-        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
+        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
 
     if burn_in is None:
         tau0, _ = tau_int_sokal(observables, c = c)
@@ -71,13 +71,13 @@ def tau_int_blocking(observables, burn_in = None, c = 10.0):
     observables = observables[burn_in:]
     N = len(observables)
     if N < 2:
-        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
+        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
 
     # Return 0 if the number of samples is too small to compute tau_int
     var = np.var(observables)
     if not np.isfinite(var) or var <= 0.0:
         print(f"Warning: variance is non-positive ({var}) for the observable values after burn-in. Returning zeros.")
-        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
+        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
 
     current_blocks = observables.copy()
     tau_estimates = []
@@ -92,7 +92,7 @@ def tau_int_blocking(observables, burn_in = None, c = 10.0):
         tau_estimate = .5 * (block_size * (var_blocks / var) - 1)
         if not np.isfinite(tau_estimate):
             print(f"Warning: tau_estimate is not finite ({tau_estimate}) for the observable values after burn-in.")
-            return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
+            return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
         tau_estimates.append(tau_estimate)
         Nb_array.append(Nb)
 
@@ -106,19 +106,20 @@ def tau_int_blocking(observables, burn_in = None, c = 10.0):
 
 
     if len(tau_estimates) == 0:
-        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64)
+        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
 
+    # Finding plateau in tau_estimates
     for i in range(len(tau_estimates) - 1):
         if Nb_array[i] < 30:
-            return float(tau_estimates[i]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64)
+            return float(tau_estimates[i]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64), burn_in
 
         diff = abs(tau_estimates[i + 1] - tau_estimates[i])
         err = (tau_estimates[i] + 0.5) * np.sqrt(2.0 / (Nb_array[i] - 1)) 
         
         if diff < err:
-            return float(tau_estimates[i]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64)
+            return float(tau_estimates[i]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64), burn_in
 
-    return float(tau_estimates[-1]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64)
+    return float(tau_estimates[-1]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64), burn_in
 
 
 
