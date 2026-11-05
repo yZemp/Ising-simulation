@@ -1,3 +1,4 @@
+import os
 from typing import cast
 from PIL.ImageQt import rgb
 import h5py
@@ -412,37 +413,6 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
     data_to_save = np.column_stack((temperatures, taus_sokal, taus_blocking))
 
 
-def tc_extraction(N, dim, data_file, filename = "tc_extraction.png"):
-    '''
-    Draws the plots of binder cumulants.
-    '''
-
-    print(f"Reading data from {data_file}...")
-
-    with h5py.File(data_file, "r") as file:
-        temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
-        observables = np.array(file[f"dim_{dim}_N_{N}/magnetizations"])
-
-    print(f"Done.")
-
-    binder_cumulants = np.array([binder_cumulant(M) for M in observables])
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(
-        temperatures,
-        binder_cumulants,
-        marker='o',
-        linestyle='None',
-        label=r"$U_4$"
-    )
-    plt.xlabel('Temperature')
-    plt.ylabel(r"Binder Cumulant $U_4$")
-    plt.grid(True, which="both", ls="--")
-    plt.title(f'Binder Cumulant vs Temperature - N = {N}, dim = {dim}')
-    plt.legend()
-    plt.savefig(filename, format='pdf', bbox_inches='tight')
-    plt.close()
-
 
 ##################################################################################################
 # Main execution block for testing and demonstration purposes
@@ -535,13 +505,5 @@ if __name__ == '__main__':
     # data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
     # tau_int_graph(N, dim, data_file, filename = "tau_int.pdf")
 
-    #########################################################################################
-    #########################################################################################
-    # Binder cumulant VISUALIZATION EXAMPLE USAGE
-    
-    N = 10
-    dim = 2
-    data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
-    tc_extraction(N, dim, data_file, filename = "binder_cumulant.pdf")
 
     pass

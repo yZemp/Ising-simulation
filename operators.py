@@ -133,12 +133,3 @@ def magnetization(model: np.ndarray) -> float:
 
     return abs(np.sum(model)) / model.size
 
-
-@njit(cache = ALLOW_NUMBA_CACHING)
-def binder_cumulant(M) -> float:
-    '''
-    Given the magnetization of an Ising model (at fixed T, N^d)
-    compute the Binder cumulant.
-    '''
-
-    return 1.0 - (np.power(M, 4) / (3.0 * np.power(M, 2) * np.power(M, 2)))
