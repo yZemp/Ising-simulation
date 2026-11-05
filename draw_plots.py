@@ -10,7 +10,7 @@ from iminuit import Minuit, cost
 from hdf5_utils import read_data
 from autocorrelation import tau_int_sokal, tau_int_blocking, autocorrelation
 from mcmc_utils import metropolis_ising
-from operators import binder_cumulant, energy, magnetization
+from operators import energy, magnetization
 from analytical_curves import plot_analytical_curve
 
 
@@ -408,9 +408,6 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
     plt.savefig(filename, format='pdf', bbox_inches = 'tight')
     plt.close()
 
-    
-    # Save temperatures and taus to a text file
-    data_to_save = np.column_stack((temperatures, taus_sokal, taus_blocking))
 
 
 
@@ -500,10 +497,10 @@ if __name__ == '__main__':
     #########################################################################################
     # Tau_int VISUALIZATION EXAMPLE USAGE
 
-    # N = 5
-    # dim = 3
-    # data_file = f"simulations_data/dim_{dim}_N_{N}" + "_data.hdf5"
-    # tau_int_graph(N, dim, data_file, filename = "tau_int.pdf")
+    N = 200
+    dim = 1
+    data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
+    tau_int_graph(N, dim, data_file, filename = "tau_int.pdf")
 
 
     pass
