@@ -194,6 +194,8 @@ INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmbx12.tfm
 INPUT /usr/share/texmf/fonts/tfm/public/lm/ts1-lmr12.tfm
 INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmr12.tfm
 INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmbx12.tfm
+INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmr8.tfm
+INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmr6.tfm
 OUTPUT chapter_2_methods.aux
 INPUT ./chapter_2_methods.tex
 OUTPUT tesi.pyg
@@ -202,7 +204,6 @@ INPUT ./tesi.pyg
 INPUT ./_minted-tesi/36EDD896404F9E530CB297E3681B15D58EEFF98158BBA33FD9B0E84A0BC20BCF.pygtex
 INPUT /usr/share/texmf/tex/latex/lm/t1lmtt.fd
 INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmtt12.tfm
-INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmr6.tfm
 INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmtk10.tfm
 OUTPUT tesi.pyg
 INPUT ./tesi.pyg
@@ -225,7 +226,6 @@ INPUT ../pics_and_anims/autocorrelation_plot.pdf
 OUTPUT tesi.pyg
 INPUT ./tesi.pyg
 INPUT ./_minted-tesi/F6BE722AA0F538415149451A2C831C6E8EEFF98158BBA33FD9B0E84A0BC20BCF.pygtex
-INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmr8.tfm
 OUTPUT tesi.pyg
 INPUT ./tesi.pyg
 INPUT ./_minted-tesi/FEFA3CFCB1B0707853D3DCD542D881788EEFF98158BBA33FD9B0E84A0BC20BCF.pygtex

@@ -41,6 +41,7 @@ where $Z_{\beta}$ is the canonical partition function:
 
 \begin{equation}
   Z_{\beta} = \sum_{i} e^{- \beta E_i} = \sum_{{\sigma_i}} e^{- \beta \sum_{\left< i, j \right>} J_{ij} \sigma_i \sigma_j - \beta \mu \sum_{i} h_i \sigma_i}
+  \label{eq:partition_function}
 \end{equation}
 
 All the same, given an operator $\hat{O}$ its mean is intended to be
@@ -63,12 +64,13 @@ The minus in front of the first sum in equations \ref{eq:ham} and \ref{eq:qham} 
 
 Historically, the Ising model is conventionally intended to be ferromagnetic. For simplicity sake, $J_{ij}$ along the constants $\kb$, $\hbar$, $h_i$, $\mu$ will be set $= 1 \; \forall i, j$, when not null.
 
-\section{Phase transitions}
+\section{Theory of phase transitions}
 
 It's been stated that the system described by the Ising model is represented by the canonical ensemble, which is governed by the Helmoltz free energy. This, like every other thermodynamic potential, can be expressed as a function of the partition function $Z = Z(T, h)$:
 
 \begin{equation}
   F = E - TS = - \frac{\ln \left(Z\right)}{N \beta}
+  \label{eq:free_energy}
 \end{equation}
 
 Formally, a phase transition is defined as a non-analyticity in the free energy in the thermodynamic limit. To observe such a non-analyticity one can study the  partial derivative
@@ -93,7 +95,7 @@ In a finite system the Hamiltonian is symmetric under the transformation $\sigma
 
 $$ \left<M\right> = \left. \frac{\partial \frac{\ln \left(Z\right)}{\beta N}}{\partial h} \right|_{h=0} = 0 \; \forall T $$
 
-The solution to this problem is to consider this partial derivative in th general case, and then take the limit $h \rightarrow 0$ after the thermodynamic limit $N \rightarrow \infty$ has been taken. This is equivalent to adding a small external magnetic field to the system, and then taking the limit of this field going to zero after the thermodynamic limit has been taken.
+The solution to this problem is to consider this partial derivative in th general case, and then take the limit $h \rightarrow 0$ after the thermodynamic limit $N \rightarrow \infty$. This is equivalent to adding a small external magnetic field to the system, and then taking the limit of this field going to zero after the thermodynamic limit has been taken into account.
 
 [TODO: i fear this can be greatly expanded on]
 
@@ -113,23 +115,97 @@ Similarly to the magnetization, the susceptibility is a fundamental observable i
 
 where the absolute value of the magnetization is used to avoid the problem of the vanishing average magnetization in finite systems.
 
+[TODO: this has to be either removed or fixed]
+
 % In the thermodynamic limit, phase transitions are characterized by non-analyticities; for the magnetic susceptibility, this manifests as a divergence at the critical temperature $T_C$ following the power law $\chi \propto \vert{}T - T_C\vert{}^{-\gamma}$.   However, in a finite system, true non-analyticities cannot occur. Instead of diverging, the susceptibility of a finite lattice of linear size $L$ (where $N=L^d$) displays a smoothed maximum at a pseudo-critical temperature $T_C(L)$. This behavior provides a robust numerical method to extract the true critical temperature $T_C$: by simulating systems of various sizes $L$ and identifying the position and height of the susceptibility peak, one can extrapolate the critical temperature in the thermodynamic limit ($L \to \infty$) using Finite-Size Scaling (FSS) techniques.
 
 % AI %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-\section{Analytical solutions}
+\section{Known solutions}
 
 \subsection{One dimensional case}
 
-The one dimensional Ising model is exactly solvable with and without an external magnetic field. The magnetization is given by:
+The one dimensional Ising model is exactly solvable with a method known as the transfer matrix method.
 
-[TODO: discuss solutions]
+The interaction between adjacent spins can be represented as a symmetric $2 \times 2$ matrix, called the transfer matrix, holding the Boltzmann factors of the possible configurations of two adjacent spins:
 
+
+\begin{equation}
+  T_{\sigma_i, \sigma_j} = e^{-\beta \sigma_i \sigma_j}
+\end{equation}
+
+which can be explicitly written by substituting the possible values of $\sigma_i$ and $\sigma_j$:
+
+\begin{equation}
+  T = \begin{pmatrix}
+    e^{\beta} & e^{-\beta} \\
+    e^{-\beta} & e^{\beta}
+  \end{pmatrix}
+\end{equation}
+
+And if we write the partition function (equation \ref{eq:partition_function}) as a sum over all the possible configurations of the system, we can see that it can be expressed as a product of transfer matrices (with periodic boundary conditions):
+
+\begin{equation}
+  Z = \sum_{\{\sigma\}} e^{- \beta \sum_{\left< i, j \right>} \sigma_i \sigma_j } =
+  \sum_{\{\sigma\}} \prod_{\left< i, j \right>} e^{- \beta \sigma_i \sigma_j } = 
+  \sum_{\sigma_1, \sigma_2, \ldots, \sigma_N} T_{\sigma_1, \sigma_2} T_{\sigma_2, \sigma_3} \ldots T_{\sigma_N, \sigma_1}
+\end{equation}
+
+where $\{\sigma\}$ is the set of all possible configurations of the system.
+
+Using the properties of the trace operator, we can rewrite the partition function as the very elegant:
+
+\begin{equation}
+  Z = \text{Tr} \left( T^N \right)
+\end{equation}
+
+Since the trace of a matrix is equal to the sum of its eigenvalues, one can find $Z$ by diagonalizing the transfer matrix:
+
+\begin{equation}
+  0 \overset{!}{=} \det \left( T - \lambda I \right) = \det \begin{pmatrix}
+    e^{\beta} - \lambda & e^{-\beta} \\
+    e^{-\beta} & e^{\beta} - \lambda
+  \end{pmatrix} = \left( e^{\beta} - \lambda \right)^2 - e^{-2\beta}
+\end{equation}
+
+Which yields the eigenvalues:
+
+\begin{align*}
+  \lambda_{+} = e^{\beta} + e^{-\beta} = 2 \cosh(\beta) \\
+  \lambda_{-} = e^{\beta} - e^{-\beta} = 2 \sinh(\beta)
+\end{align*}
+
+To which follows, for any finite $N$:
+
+\begin{equation}
+  Z = \lambda_{+}^N + \lambda_{-}^N = \left( 2 \cosh(\beta) \right)^N + \left( 2 \sinh(\beta) \right)^N
+\end{equation}
+
+Computing the limit $N \rightarrow \infty$ we can see that the partition function is dominated by the largest eigenvalue ($\lambda_{+}$):
+
+\begin{equation}
+  \lim_{N \rightarrow \infty} Z = \lim_{N \rightarrow \infty} \lambda_{+}^N \left[1 + \left(\frac{\lambda_{-}}{\lambda_{+}}\right)^N\right] = \lambda_{+}^N
+\end{equation}
+
+since $\tanh(\beta)^N \rightarrow 0$ as $N \rightarrow \infty$ for every $T > 0$.
+
+And thus, going back to the free energy (equation \ref{eq:free_energy}) we can see that it is analytic for every $T > 0$, and thus the one dimensional Ising model does not exhibit a phase transition at any finite temperature.
 
 \subsection{Two dimensional case}
 
+The 2D case is far more complicated. It is also based on the transfer matrix method, but the transfer matrix is now of size $2^L \times 2^L$, where $L$ is the side length of the lattice. Other methods have been developed to solve this problem that offer less computational complexity, but they are much more complicated. Both methods are beyond the scope of this text, and will not be discussed here.
+
+The Onsager's solution is that the critical temperature is given by the solution of the equation:
+
+\begin{equation}
+  \sinh \left( \frac{2}{T_C} \right) = 1
+\end{equation}
+
+Which yields $T_C \approx 2.269$.
+
 \subsection{Three dimensional case}
 
+As stated, the solution to the 3D case of the Ising model is still an open problem in statistical mechanics. The critical temperature has been estimated to be $T_C \approx 4.5115$ by numerical methods, but no analytical solution has been found yet.
 
 \clearpage
