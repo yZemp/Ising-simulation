@@ -5,18 +5,18 @@
 \contentsline {section}{\numberline {1.3}Known solutions}{6}{section.1.3}%
 \contentsline {subsection}{\numberline {1.3.1}One dimensional case}{6}{subsection.1.3.1}%
 \contentsline {subsection}{\numberline {1.3.2}Two dimensional case}{7}{subsection.1.3.2}%
-\contentsline {subsection}{\numberline {1.3.3}Three dimensional case}{7}{subsection.1.3.3}%
-\contentsline {chapter}{\numberline {2}Methods}{8}{chapter.2}%
-\contentsline {section}{\numberline {2.1}Data representation}{8}{section.2.1}%
-\contentsline {section}{\numberline {2.2}Monte Carlo Markov Chains}{9}{section.2.2}%
-\contentsline {subsection}{\numberline {2.2.1}Generation}{9}{subsection.2.2.1}%
-\contentsline {subsection}{\numberline {2.2.2}Analysis}{14}{subsection.2.2.2}%
-\contentsline {subsubsection}{Sokal's method}{16}{section*.3}%
-\contentsline {subsubsection}{Data blocking method}{17}{section*.4}%
-\contentsline {subsection}{\numberline {2.2.3}Comparing the two methods}{22}{subsection.2.2.3}%
-\contentsline {chapter}{\numberline {3}Results}{24}{chapter.3}%
-\contentsline {section}{\numberline {3.1}1D Ising model}{24}{section.3.1}%
-\contentsline {section}{\numberline {3.2}2D Ising model}{25}{section.3.2}%
-\contentsline {section}{\numberline {3.3}3D Ising model}{26}{section.3.3}%
-\contentsline {section}{\numberline {3.4}General comments}{26}{section.3.4}%
-\contentsline {chapter}{\numberline {A}Appendix}{29}{appendix.A}%
+\contentsline {subsection}{\numberline {1.3.3}Three dimensional case}{8}{subsection.1.3.3}%
+\contentsline {chapter}{\numberline {2}Methods}{9}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Data representation}{9}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Monte Carlo Markov Chains}{10}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Generation}{10}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Analysis}{15}{subsection.2.2.2}%
+\contentsline {subsubsection}{Sokal's method}{17}{section*.3}%
+\contentsline {subsubsection}{Data blocking method}{19}{section*.4}%
+\contentsline {subsection}{\numberline {2.2.3}Comparing the two methods}{24}{subsection.2.2.3}%
+\contentsline {chapter}{\numberline {3}Results}{26}{chapter.3}%
+\contentsline {section}{\numberline {3.1}1D Ising model}{26}{section.3.1}%
+\contentsline {section}{\numberline {3.2}2D Ising model}{27}{section.3.2}%
+\contentsline {section}{\numberline {3.3}3D Ising model}{28}{section.3.3}%
+\contentsline {section}{\numberline {3.4}General comments}{28}{section.3.4}%
+\contentsline {chapter}{\numberline {A}Appendix}{31}{appendix.A}%

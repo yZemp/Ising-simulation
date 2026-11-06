@@ -1,7 +1,7 @@
 \chapter{Theoretical background}
 \section{General overview}
 
-The fundamental assumption of the model is that a solid can be represented as a ferromagnet as an array of fixed ions that only interact with its closest neighbours (and, optionally, an external magnetic field). Such system is described by the classical Hamiltonian
+The fundamental assumption of the model is that a solid can be represented as a ferromagnet as an array of fixed ions that only interact with its nearest neighbours (and, optionally, an external magnetic field). Such system is described by the classical Hamiltonian
 
 \begin{equation}
   \label{eq:ham}
@@ -13,7 +13,7 @@ where:
 \begin{itemize}
   \item $\sigma_i$ is the spin value of the ion of the i-th lattice site.
   \item $J_{ij}$ is a coupling factor between the i-th and j-th lattice sites.
-  \item The sum over $\left< i, j \right>$ is meant to be over closest neighbours.
+  \item The sum over $\left< i, j \right>$ is meant to be over nearest neighbours.
   \item $h_i$ is the magnetic field in the i-th site.
   \item $\mu$ is the magnetic moment of the ions.
 \end{itemize}
@@ -27,11 +27,11 @@ This is the special case of the more general quantum Hamiltonian
 
 where $\sigma_i$ are replaced by the Pauli matrices of the i-th site.
 
-In this text only $ h_{i,z} $ will ever be assumed $\neq 0$, and since if both $ h_{i,y} $ and $ h_{i,y} $ are null then every operator commute with each other in the canonical basis, which means equations \ref{eq:ham} and \ref{eq:qham} are the same.
+In this text only $ h_{i,z} $ will ever be assumed $\neq 0$, and since if both $ h_{i,x} $ and $ h_{i,y} $ are null then every operator commutes with each other in the canonical basis, which means equations \ref{eq:ham} and \ref{eq:qham} are the same.
 
 \br
 
-Given that the quantities $N = $ number of particles, $V = N a = $ volume of the lattice (where $a$ is the unimportant lattice constant that can be set to $1$) are fixed, if the system is in thermal equilibrium with a reservoir at temperature $T$ then the set of microstates of the system is described by the canonical ensemble. In this case, the probability of the system to be in a microstate $\sigma$ is given by the Boltzmann distribution
+Given that the quantities $N = $ number of particles, $V = N a^d = $ volume of the lattice (where $a$ is the unimportant lattice constant that can be set to $1$) are fixed, if the system is in thermal equilibrium with a reservoir at temperature $T$ then the set of microstates of the system is described by the canonical ensemble. In this case, the probability of the system to be in a microstate $\sigma$ is given by the Boltzmann distribution
 
 \begin{equation}
   P_{\beta}(\sigma) = \frac{e^{- \beta H(\sigma)}}{Z_{\beta}}
@@ -40,9 +40,11 @@ Given that the quantities $N = $ number of particles, $V = N a = $ volume of the
 where $Z_{\beta}$ is the canonical partition function:
 
 \begin{equation}
-  Z_{\beta} = \sum_{i} e^{- \beta E_i} = \sum_{{\sigma_i}} e^{- \beta \sum_{\left< i, j \right>} J_{ij} \sigma_i \sigma_j - \beta \mu \sum_{i} h_i \sigma_i}
+  Z_{\beta} = \sum_{\{\sigma\}} e^{- \beta H(\sigma)} = \sum_{\{\sigma\}} e^{\beta \left( \sum_{\left< i, j \right>} J_{ij} \sigma_i \sigma_j + \mu \sum_{i} h_i \sigma_i \right)}
   \label{eq:partition_function}
 \end{equation}
+
+where 
 
 All the same, given an operator $\hat{O}$ its mean is intended to be
 
@@ -62,26 +64,27 @@ The minus in front of the first sum in equations \ref{eq:ham} and \ref{eq:qham} 
   \item $J_{ij} = 0$: non-interacting
 \end{enumerate}
 
-Historically, the Ising model is conventionally intended to be ferromagnetic. For simplicity sake, $J_{ij}$ along the constants $\kb$, $\hbar$, $h_i$, $\mu$ will be set $= 1 \; \forall i, j$, when not null.
+Historically, the Ising model is conventionally intended to be ferromagnetic. For simplicity's sake, $J_{ij}$ along the constants $\kb$, $\hbar$, $h_i$, $\mu$ will be set $= 1 \; \forall i, j$, when not null.
 
 \section{Theory of phase transitions}
 
-It's been stated that the system described by the Ising model is represented by the canonical ensemble, which is governed by the Helmoltz free energy. This, like every other thermodynamic potential, can be expressed as a function of the partition function $Z = Z(T, h)$:
+It's been stated that the system described by the Ising model is represented by the canonical ensemble, which is governed by the Helmholtz free energy. This, like every other thermodynamic potential, can be expressed as a function of the partition function $Z = Z(T, h)$:
 
 \begin{equation}
-  F = E - TS = - \frac{\ln \left(Z\right)}{N \beta}
+  F = E - TS = - \frac{1}{\beta} \ln{Z}
   \label{eq:free_energy}
 \end{equation}
 
 Formally, a phase transition is defined as a non-analyticity in the free energy in the thermodynamic limit. To observe such a non-analyticity one can study the  partial derivative
 
 \begin{equation}
-  M = - \frac{\partial F}{\partial H}
+  M = - \frac{\partial F}{\partial h}
+  \label{def:magnetization}
 \end{equation}
 
-that takes the name of magnetization.
+which takes the name of magnetization.
 
-This is a handy observable in the numerical approach beacuse its average is easily obtainable by averaging the spin values of the lattice sites:
+This is a handy observable in the numerical approach because its average is easily obtainable by averaging the spin values of the lattice sites [TODO: prove this]:
 
 \begin{equation}
   \left<M\right> = \frac{1}{N} \sum_{i} \sigma_i
@@ -89,19 +92,19 @@ This is a handy observable in the numerical approach beacuse its average is easi
 
 and studying its behaviour as a function of the temperature $T$ and the external magnetic field $h$ one can identify the phase transitions.
 
-It should be noted that this definitions formally hold even in the case of no external magnetic field. This is true only in the thermodynamic limit, where the system is infinitely large and the magnetization can be non-zero even when $h$ vanishes.
+It should be noted that these definitions formally hold even in the case of no external magnetic field. This is true only in the thermodynamic limit, where the system is infinitely large and the magnetization can be non-zero even when $h$ vanishes.
 
 In a finite system the Hamiltonian is symmetric under the transformation $\sigma_i \rightarrow -\sigma_i$, and this causes the magnetization to be zero when $h = 0$ because 
 
-$$ \left<M\right> = \left. \frac{\partial \frac{\ln \left(Z\right)}{\beta N}}{\partial h} \right|_{h=0} = 0 \; \forall T $$
+\begin{equation}
+  \left<M\right> = \left. \frac{1}{N} \frac{\partial}{\partial h} \left( \frac{\ln{Z}}{\beta} \right) \right|_{h=0} = 0 \quad \forall \; T
+\end{equation}
 
-The solution to this problem is to consider this partial derivative in th general case, and then take the limit $h \rightarrow 0$ after the thermodynamic limit $N \rightarrow \infty$. This is equivalent to adding a small external magnetic field to the system, and then taking the limit of this field going to zero after the thermodynamic limit has been taken into account.
-
-[TODO: i fear this can be greatly expanded on]
+The solution to this problem is to consider this partial derivative in the general case, and then take the limit $h \rightarrow 0$ after the thermodynamic limit $N \rightarrow \infty$. This is equivalent to adding a small external magnetic field to the system, and then taking the limit of this field going to zero after the thermodynamic limit has been taken into account.
 
 % AI %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Another important partial derivative is the first derivative of the magnetization with respect to the temperature, which defines the (isothermal) magnetic susceptibility:
+Another important partial derivative is the first derivative of the magnetization with respect to the magnetic field, which defines the (isothermal) magnetic susceptibility:
 
 \begin{equation}
 \chi = \frac{\partial \langle M \rangle}{\partial h} = -\frac{\partial^2 F}{\partial h^2}
@@ -132,7 +135,7 @@ The interaction between adjacent spins can be represented as a symmetric $2 \tim
 
 
 \begin{equation}
-  T_{\sigma_i, \sigma_j} = e^{-\beta \sigma_i \sigma_j}
+  T_{\sigma_i, \sigma_j} = e^{\beta \sigma_i \sigma_j}
 \end{equation}
 
 which can be explicitly written by substituting the possible values of $\sigma_i$ and $\sigma_j$:
@@ -157,26 +160,28 @@ where $\{\sigma\}$ is the set of all possible configurations of the system.
 Using the properties of the trace operator, we can rewrite the partition function as the very elegant:
 
 \begin{equation}
-  Z = \text{Tr} \left( T^N \right)
+  Z = \mathrm{Tr} \left( T^N \right)
 \end{equation}
 
 Since the trace of a matrix is equal to the sum of its eigenvalues, one can find $Z$ by diagonalizing the transfer matrix:
 
 \begin{equation}
-  0 \overset{!}{=} \det \left( T - \lambda I \right) = \det \begin{pmatrix}
-    e^{\beta} - \lambda & e^{-\beta} \\
-    e^{-\beta} & e^{\beta} - \lambda
-  \end{pmatrix} = \left( e^{\beta} - \lambda \right)^2 - e^{-2\beta}
+  0 \overset{!}{=} \det{\left(T - \lambda I\right)} = \det {
+    \begin{pmatrix}
+      e^{\beta} - \lambda & e^{-\beta} \\
+      e^{-\beta} & e^{\beta} - \lambda
+    \end{pmatrix}
+  } = \left( e^{\beta} - \lambda \right)^2 - e^{-2\beta}
 \end{equation}
 
 Which yields the eigenvalues:
 
 \begin{align*}
-  \lambda_{+} = e^{\beta} + e^{-\beta} = 2 \cosh(\beta) \\
-  \lambda_{-} = e^{\beta} - e^{-\beta} = 2 \sinh(\beta)
+  \lambda_{+} = e^{\beta} + e^{-\beta} = 2 \cosh{\beta} \\
+  \lambda_{-} = e^{\beta} - e^{-\beta} = 2 \sinh{\beta}
 \end{align*}
 
-To which follows, for any finite $N$:
+From which it follows, for any finite $N$:
 
 \begin{equation}
   Z = \lambda_{+}^N + \lambda_{-}^N = \left( 2 \cosh(\beta) \right)^N + \left( 2 \sinh(\beta) \right)^N
@@ -185,18 +190,26 @@ To which follows, for any finite $N$:
 Computing the limit $N \rightarrow \infty$ we can see that the partition function is dominated by the largest eigenvalue ($\lambda_{+}$):
 
 \begin{equation}
-  \lim_{N \rightarrow \infty} Z = \lim_{N \rightarrow \infty} \lambda_{+}^N \left[1 + \left(\frac{\lambda_{-}}{\lambda_{+}}\right)^N\right] = \lambda_{+}^N
+  \lim_{N \rightarrow \infty} Z = \lim_{N \rightarrow \infty} \lambda_{+}^N \left[1 + \left(\frac{\lambda_{-}}{\lambda_{+}}\right)^N\right] \sim \lambda_{+}^N
 \end{equation}
 
-since $\tanh(\beta)^N \rightarrow 0$ as $N \rightarrow \infty$ for every $T > 0$.
+since $\tanh{\beta}^N \rightarrow 0$ as $N \rightarrow \infty$ for every $T > 0$.
 
 And thus, going back to the free energy (equation \ref{eq:free_energy}) we can see that it is analytic for every $T > 0$, and thus the one dimensional Ising model does not exhibit a phase transition at any finite temperature.
+
+\br
+
+Some assumptions can be made to understand how the magnetization function should behave in the 1D case:
+Since $F$ is analytical for every $T > 0$, the magnetization function has to be so as well. Since $F(T, h) = F(T, -h)$, using the definition \ref{def:magnetization} it follows that $M(T, h) = - M(T, -h)$, and thus $M(T, 0) = 0$ for every $T > 0$.
+The last constraint is that the magnetization has to collapse to $M = \pm 1$ at exactly $T = 0$, since the system has no thermal fluctuations at absolute zero.
+
+These considerations illustrate the picture of a function which is zero everywhere except at $T = 0$, where it jumps to $|M| = 1$, and somehow smoothly connects the two values. This is consistent with the numerical results, as will be shown in chapter 3.
 
 \subsection{Two dimensional case}
 
 The 2D case is far more complicated. It is also based on the transfer matrix method, but the transfer matrix is now of size $2^L \times 2^L$, where $L$ is the side length of the lattice. Other methods have been developed to solve this problem that offer less computational complexity, but they are much more complicated. Both methods are beyond the scope of this text, and will not be discussed here.
 
-The Onsager's solution is that the critical temperature is given by the solution of the equation:
+Onsager's solution is that the critical temperature is given by the solution of the equation:
 
 \begin{equation}
   \sinh \left( \frac{2}{T_C} \right) = 1
@@ -204,8 +217,35 @@ The Onsager's solution is that the critical temperature is given by the solution
 
 Which yields $T_C \approx 2.269$.
 
+\br
+
+Since the 2D case is not analytically solved with $h \neq 0$, the magnetization function cannot be inferred from the free energy the same way it can be in the 1D case. Again, the methods to solve the 2D case are beyond the scope of this text, and will not be discussed here. The magnetization function is known to be given by the following expression:
+
+\begin{equation}
+  M(T) = |1 - \sinh^{-4} \left( \frac{2}{T} \right)|^{\frac{1}{8}}
+  \label{eq:onsager_condition}
+\end{equation}
+
+which is very close to a step function. This of course makes sense, since the order state of the system has to either be $|M| = 1$ for $T < T_C$ or $M = 0$ for $T > T_C$. Note that this equation is the source of the condition \ref{eq:onsager_condition} for $T_C$.
+
+This also is consistent with the numerical results, as will be shown in chapter 3.
+
 \subsection{Three dimensional case}
 
 As stated, the solution to the 3D case of the Ising model is still an open problem in statistical mechanics. The critical temperature has been estimated to be $T_C \approx 4.5115$ by numerical methods, but no analytical solution has been found yet.
+
+\br
+
+Clearly, no analytical expression for the magnetization function can be given.
+
+Some information can be assumed from physical principles ($|M| = 1$ for $T \ll T_C$ or that $M = 0$ for $T \gg T_C$), but the exact shape of the function is unknown. What can be useful to compare numerical data with is a result from the rinormalization group theory, which states that the magnetization function has to follow a power law in the vicinity of the critical temperature:
+
+\begin{equation}
+  M(T) \sim |T - T_C|^{\beta} \quad \text{for} \; T \rightarrow T_C^{-}
+\end{equation}
+
+where $\beta$ is a critical exponent that has been estimated to be $\beta \approx 0.326$ by numerical methods.
+
+Again, the numerical results are consistent with this behavior, as will be shown in chapter 3.
 
 \clearpage

@@ -32,3 +32,10 @@ correggere errori
 considerare suscettivita magnetica
 
 jackknife (per blocking) B Efron
+
+
+----------------------------------------------------------------------------------
+
+DIO BONO NON HO MAI CONSIDERATO DI SAMPLARE OGNI SWEEP INVECE CHE OGNI STEP
+
+capire cos'è esattamente la benedetta lunghezza di correlazione

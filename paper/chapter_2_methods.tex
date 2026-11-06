@@ -17,13 +17,18 @@ Note that the data type that the numpy array contains is np.int8. In order to mi
 
 \br
 
-Every one of these numpy array is generated and stored in another numpy array of arbitrary length that represents the Markov Chain. This is done for a number of temperatures around the expected critical temperature, and is repeated for every lattice size under scrutiny and for every dimension. Ultimately, this data is stored in a hdf5 file for efficient i/o operations and in order to contextually add metadata and processed data (e.g.: autocorrelation time, thermalisation time, etc.) to the raw chain.
+Every array representing a single Ising model configuration is generated and stored in another numpy array of arbitrary length that represents the Markov Chain. This is done for a number of temperatures around the expected critical temperature, and is repeated for every lattice size under scrutiny and for every dimension. Ultimately, this data is stored in a hdf5 file for efficient i/o operations and in order to contextually add metadata and processed data (e.g.: autocorrelation time, thermalisation time, etc.) to the raw chain.
 
 For every combination of dimension and lattice size, the generated row data is stored in a numpy array of shape ($N_{temps}$, $N_{steps}$, [$N_{dim}$] \times \: $d$).
+It's worth mentioning that for every lattice in every dimension periodic boundary conditions are used, which means that the first and last spins of the lattice are considered to be neighbours. This is obviously done to avoid edge effects as much as to simplify the handling of the data, as it allows to use the same code for every spin in the lattice without having to consider special cases for the spins on the edges.
 
-[TODO: maybe discuss floating point precision]
+\br
 
-[TODO: definitely discuss the chunking of data to be loaded in memory during computation and the use of lzf compression]
+A problem that arose during the development of the code was that the amount of data generated was too big to allocate in memory at once during runtime (the python scripts were run on a personal computer with 16GB of RAM). The solution to this problem was to chunk the data into smaller parts at runtime, and modify the code to load in memory these chunks, process them to obtain a partial result, discard the processed chunk, and then load the next to update the partial result until the entire dataset was processed. 
+
+This allowed to process datasets of arbitrary size without running out of memory with negligible computation time overhead.
+
+Partially because of this choice, but more in general to allow for efficient i/o operations, the compression algorithm chosen for the hdf5 files was lzf, which is a lossless compression algorithm that is very fast and has a good compression ratio.
 
 \section{Monte Carlo Markov Chains}
 
@@ -35,11 +40,11 @@ To study a system at a given temperature it is necessary to be able to generate 
 	P(E) = \frac{\Omega(E) e^{-\beta E}}{Z}
 \end{equation}
 
-Now, it would be ideal to write this probability analytically to be able to compute it directly and use simple sampling techniques: to do that we would need to know how to write both $\Omega(E)$ and $Z$, but but such an operation is, unfortunately, simply not possible. The lone computing of $Z$ would require summing over all possible configurations of the system, which in turns would mean to compute the energy of every single configuration. The number of possible configurations of a $(N d)$ spins lattice is $2^{(N d)}$ and computing the energy of a single configuration is an $O(N)$ operation, which means that the overall complexity of computing $Z$ is $\bigO(N 2^{(N d)})$, which is clearly not viable for any reasonable value of $N$.
+Now, it would be ideal to write this probability analytically to be able to compute it directly and use simple sampling techniques: to do that we would need to know how to write both $\Omega(E)$ and $Z$, but such an operation is, unfortunately, simply not possible. The sole computing of $Z$ would require summing over all possible configurations of the system, which in turns would mean to compute the energy of every single configuration. The number of possible configurations of a lattice with $N^d$ spins is $2^{N^d}$ and computing the energy of a single configuration is an $O(N^d)$ operation, which means that the overall complexity of computing $Z$ is $\bigO(N^d 2^{N^d})$, which is clearly not viable for any reasonable value of $N$.
 
 \br
 
-The solution to this problem is a Markov Chain Monte Carlo method, that is a method for generating a sequence of independent samples from a desired distribution without knowing the normalization constant. One algorithm that produces such a chain is the Metropolis-Hastings algorithm. This algorithm can draw samples from any probability distribution with probability density $P(x)$, provided that we know another function proportional to the density $P$ that we're able to compute analitically (in this case $e^{-\beta E}$) so that we can write $P(E) \propto e^{-\beta E}$. In this context, the target distribution $P$ is also called posterior.
+The solution to this problem is a Markov Chain Monte Carlo method, that is a method for generating a sequence of independent samples from a desired distribution without knowing the normalization constant. One algorithm that produces such a chain is the Metropolis-Hastings algorithm. This algorithm can draw samples from any probability distribution with probability density $P(x)$, provided that we know another function proportional to the density $P$ that we're able to compute analytically (in this case $e^{-\beta E}$) so that we can write $P(E) \propto e^{-\beta E}$.
 
 The algorithm's idea is to start from a random configuration of the system and then to move to another configuration of the system with a set probability which is determined by the energy distribution.
 
@@ -50,38 +55,36 @@ The formal steps of the Metropolis algorithm in this use case are:
 	\item Randomly select a spin (or a number of spins) and flip it. We call this new configuration $x'$.
 	\item Compute the energy difference of the two systems $\Delta E$.
 	\item Set an acceptance probability parameter $\alpha$ based on the energy change and the temperature: $\alpha = \frac{T(x' \to x) P(x')}{T(x \to x') P(x)}$ where $P$ is the Boltzmann distribution. This is the core of the algorithm and it's what allows the Markov Chain to converge to the desired distribution.
-	\item Accept the new configuration with probability $\min(1, \alpha)$, otherwise reject it and keep the current configuration. That is, if the new configuration is more probable than the current one, accept it, otherwise accept it with probability $\alpha$ (that is, a probability proportional to the ratio of the two probabilities).
+	\item Accept the new configuration with probability $p = \min{\left(1, \alpha \right)}$, otherwise reject it and keep the current configuration. That is, if the new configuration is more probable than the current one, accept it, otherwise accept it with probability $\alpha$ (that is, a probability proportional to the ratio of the two probabilities).
 	\item Add the current configuration to the Markov Chain.
 	\item Repeat steps 2-6 for a number of iterations. The elements of the chain after enough iterations are distributed as  $e^{-\beta E}$
 \end{enumerate}
 
-The "trick" that makes this algorithm work is that computing $\alpha$ both $Z$ and the $\Omega$ terms cancel out.
+The "trick" that makes this algorithm work is that computing $\alpha$ the ratio of the Boltzmann factors is sufficient, as the normalization constants $Z$ cancel out.
 
 [TODO: maybe discuss (formally or not) why the sample set given by the MC converges]
 
-Note that randomly selecting a spin and flipping it (step 2) is effectively moving to another random configuration of the system close to the current one. This movement is intepreted as a random sample from a distribution centered around the current configuration. Picking a random spin to flip is an arbitrary choice, and other methods could be used to select a neighboring configuration, but has the advantage that the probability of moving from $x$ to $x'$ ($T(x \to x')$) is the same as moving from $x'$ to $x$ ($T(x' \to x)$), which is the Hastings condition of the algorithm. This condition is not striclty necessary, but it simplifies the computation of $\alpha = \frac{e^-\beta E'}{e^{-\beta E}} = e^{-\beta \Delta E}$ to be only dependent on the energy delta and temperature.
+Note that randomly selecting a spin and flipping it (step 2) is effectively moving to another random configuration of the system close to the current one. This movement is interpreted as a random sample from a distribution centered around the current configuration. Picking a random spin to flip is an arbitrary choice, and other methods could be used to select a neighboring configuration, but has the advantage that the probability of moving from $x$ to $x'$ ($T(x \to x')$) is the same as moving from $x'$ to $x$ ($T(x' \to x)$), which is the Hastings condition of the algorithm. This condition is not striclty necessary, but it simplifies the computation of $\alpha = \frac{e^-\beta E'}{e^{-\beta E}} = e^{-\beta \Delta E}$ to be only dependent on the energy delta and temperature.
 
 \begin{minted}[linenos, frame=lines, breaklines]{python}
 
-def metropolis_hastings(model: np.ndarray, T: float, steps: int):
-	'''
-	Generate a Markov Chain of configurations of the Ising model at a given temperature T.
-	'''
+def _metropolis_ising_1d(model: np.ndarray, T: float, steps: int):
+    '''
+    1D version of Metropolis-Hastings for Ising model.
+    '''
 
     curr_model = np.copy(model)
-    models_samples = np.empty(
-		(steps,) + curr_model.shape,
-		dtype = curr_model.dtype
-	)
-    
-	N = curr_model.shape[0]
+    models_samples = np.empty((steps,) + curr_model.shape, dtype = curr_model.dtype)
+    N = curr_model.shape[0]
     
     for i in range(steps):
         idx0 = np.random.randint(0, N)
         spin = curr_model[idx0]
-        deltaE = compute_energy_change(curr_model, idx0)
+        forward = (idx0 + 1) % N
+        backward = (idx0 - 1) % N
+        deltaE = 2.0 * spin * (curr_model[forward] + curr_model[backward])
         
-        accept_probability = np.minimum(1.0, target_distribution(deltaE, T))
+        accept_probability = np.minimum(1.0, maxwell_boltzmann_statistics(deltaE, beta=1.0 / T))
         if np.random.random() <= accept_probability:
             curr_model[idx0] = -curr_model[idx0]
         
@@ -93,16 +96,19 @@ def metropolis_hastings(model: np.ndarray, T: float, steps: int):
 
 Also note that since $\alpha$ depends only on the relative energy change the computation can be greatly optimized by computing only the energy change given by the single spin flip, instead of computing the energy of two entire configurations.
 
-\begin{figure}[htbp]
+As mentioned, this algorithm can work by selecting a number of spins to flip at each proposal. In this project, only the single spin flip method was explored, but the code is written in a way that allows for easy extension to multiple spin flips.
+
+Another arbitrary choice is the starting configuration of the system: two choices make sense and were explored in this project, that is, starting from a random configuration (hot start) or starting from a configuration with all spins aligned (cold start). The former has the advantage of being unbiased, while the latter has the advantage of being closer to the expected configuration at low temperatures, which means that the chain will thermalize faster. Thermalization is discussed properly in the next section, but in short is the process by which the Markov Chain "forgets" its initial configuration and converges to a stationary distribution. Since in practice the Markov Chains were constructed starting from low temperatures and then using the last configuration of the chain as the starting configuration for the next temperature, the cold start was used in this project as it granted virtually zero correlation time. Of course, this does not mean that no configuration is ever discarded, but this grants the certainty that the chain does not have thermalization issues for the first few temperatures.
+
+\begin{figure}[htbp]a
 	\centering
 	\includegraphics[width=\textwidth]{../pics_and_anims/ED_(15, 15)_6.26.pdf}
 	\caption{Example of some Markov Chain of configurations in the energy space.}
 	\label{figure:markov_chain_head}
 \end{figure}
 
-[TODO: discuss hot start vs cold start]
 
-In figure \ref{figure:markov_chain_head} some of the first steps of the chain can be seen as starting from different configurations (every spin set at random, all spins up, all spins down). Note that all of the chains start far from what should be the center of the distribution. This assures that before a single sample can be considered randomly sampled from the posterior some "adjusting" time needs to pass. This amount of time is called thermalization time (or burn-in or equilibration time) and one estimation for this quantity is computed at runtime with techniques discussed later and shown as the dashed lines in the plot.
+In figure \ref{figure:markov_chain_head} some of the first steps of the chain can be seen as starting from different configurations (every spin set at random, all spins up, all spins down). Note that all of the chains start far from what should be the center of the distribution. This assures that before a single sample can be considered randomly sampled from the target distribution, some "adjusting" time needs to pass. This amount of time is called thermalisation time (or burn-in or equilibration time) and one estimation for this quantity is computed at runtime with techniques discussed later and shown as the dashed lines in the plot.
 
 More generally, such a chain suffers from some kind of "recency bias", meaning that, even though the exact previous step at any point of the chain is not ever identifiable, the approximate location (in energy) in of the configuration needs some time to be allowed to properly change. This can be seen in the graphs in those locations where the curve lingers in the same vertical area for a long amount of time, and it's, of course, a random fluctuation.
 
@@ -112,7 +118,7 @@ More generally, such a chain suffers from some kind of "recency bias", meaning t
 
 Figure \ref{figure:markov_chain_convergence} shows the very same chains after a much larger number of steps. It's clear that the chains have converged to a stationary distribution, and that the initial configuration is no longer relevant. 
 
-The energy distribution of the elements in the chain can now be appreciated to be converging to a normal distribution. This is not in contradiction with the fact that the distribution is supposed to be a Boltzmann distribution, but is in fact a consequence of the Central Limit Theorem (CLT), which for temperatures far from the critical temperature is applicable. On the contrary, close to $T_C$ CLT is not applicable and the distribution diverges. [TODO: this can be expanded on]
+The energy distribution of the elements in the chain can now be appreciated to be converging to a normal distribution. This is not in contradiction with the fact that the distribution is supposed to be a Boltzmann distribution, but is in fact a consequence of the Central Limit Theorem (CLT), which for temperatures far from the critical temperature is applicable. On the contrary, close to $T_C$ CLT is not applicable and the distribution diverges. [TODO: needs to be rewritten. Fundamentally flawed.]
 
 \begin{figure}[htbp]
 	\centering
@@ -126,14 +132,14 @@ Three things are to be noted about figure \ref{figure:markov_chain_convergence}:
 \begin{itemize}
     \item Not every element of the chain is shown, but only some of them selected at regular intervals. This is just for visualization purposes, and the argument holds for the entire chain.
     \item Not every energy level is accessible to the system, as discretized energy levels can be seen in the vertical direction. This is obviously a consequence of the fact that the energy of the system is quantized.
-    \item The chain starting from a random configuration is significantly longer than the other two chains. This is because plotting the chains the thermalization times were taken into the account (with techniques discussed in the next sections), and removed. The chain starting from a random configuration has a much shorter thermalization time than the other two chains, which is expected since the initial configuration of the other two is much further away from the stationary distribution.
+    \item The chain starting from a random configuration is significantly longer than the other two chains. This is because plotting the chains the thermalisation times were taken into the account (with techniques discussed in the next sections), and removed. The chain starting from a random configuration has a much shorter thermalisation time than the other two chains, which is expected since the initial configuration of the other two is much further away from the stationary distribution.
 \end{itemize}
 
 \FloatBarrier
 
 \subsection{Analysis}
 
-As stated, a Markov Chain suffers of a recency bias, and the set of configurations of the chain is not very useful as a real sample set since the elements are not independent: on the contrary, they are very closely correlated and the presence of correlations between samples would lead to biased results during analysis.
+As stated, a Markov Chain suffers from a recency bias, and the set of configurations of the chain is not very useful as a real sample set since the elements are not independent: on the contrary, they are very closely correlated and the presence of correlations between samples would lead to biased results during analysis.
 
 The extraction of decorrelated data is a problem composed of two parts: the thermalisation and the autocorrelation time. The first one is the number of steps that the Markov Chain needs to reach a stationary distribution, while the second one is the number of steps that need to exist between successive samples before they can be considered independent.
 
@@ -147,12 +153,12 @@ The extraction of decorrelated data is a problem composed of two parts: the ther
 The plot in figure \ref{figure:autocorrelation_plot} shows the autocorrelation function of one Markov Chain. The autocorrelation function can be defined as:
 
 \begin{equation}
-	\rho(t) = \frac{\mathbb{E}[(X_{t + \tau} - \mu)\overline{(X_t - \mu)}]}{\sigma^2}
+	\rho(\tau) = \frac{\mathbb{E}[(X_{t + \tau} - \mu)\overline{(X_t - \mu)}]}{\sigma^2}
 \end{equation}
 
 where $\mathbb{E}$ denotes the expected value and $X$ are the observable values measured on the configurations. 
 
-The following is the code used to extimate $\rho$ from the Markov Chain:
+The following is the code used to estimate $\rho$ from the Markov Chain:
 
 \begin{minted}[linenos, frame=lines, breaklines]{python}
 
@@ -193,30 +199,30 @@ Two parameters can be defined from the autocorrelation function:
 To sample uncorrelated data from the Markov Chain two numbers are needed: 
 
 \begin{itemize}
-	\item The number of steps to discard in front of the chain. This represent the thermalisation time, that is, the number of steps that the chain needs to reach a configuration that is representative of the stationary distribution at a certain temperature, in other words, the number of steps that the chain needs to "forget" its initial configuration. Conceptually, this is related to $\tau_{\text{exp}}$.
+	\item The number of steps to discard in front of the chain. This represents the thermalisation time, that is, the number of steps that the chain needs to reach a configuration that is representative of the stationary distribution at a certain temperature, in other words, the number of steps that the chain needs to "forget" its initial configuration. Conceptually, this is related to $\tau_{\text{exp}}$.
 	\item The number of steps to skip between samples (to avoid correlation between samples). This number is related to $\tau_{\text{int}}$, and is usually set to a multiple of it (e.g.: $2 \tau_{\text{int}}$).
 \end{itemize}
 
 A number of methods exist to estimate these two numbers, in this project only two are explored.
 
-[TODO: I have the feeling that this portion can be rewritten better]
+Note that theoretically speaking $\tau_{\text{exp}}$ can be neglected if the chains is long enough, that is, if we sample from a high enough multiple of $\tau_{\text{int}}$ (e.g. $1000 \tau_{\text{int}}$), because the exponential decay will have already occurred. However, in practice it is always better to discard a number of steps in front of the chain to avoid the initial transient behavior. Discarding too many steps can be a problem too though, because it can lead to a loss of information and a decrease in the effective sample size (and relative errors). Practically, the number of steps to discard in this experiments will be set to $20 \tau_{\text{int}}$, which is a somewhat stable estimate of $\tau_{\text{exp}}$. Dedicated techniques to study $\tau_{\text{exp}}$ itself will not be explored.
 
-Note that theoretically speaking $\tau_{\text{exp}}$ can be neglected if the chains is long enough, that is, if we sample from a high enough multiple of $\tau_{\text{int}}$ (e.g. $1000 \tau_{\text{int}}$), because the exponential decay will have already occurred. However, in practice it is always better to discard a number of steps in front of the chain to avoid the initial transient behavior. Discarding too many steps can be a problem too though, because it can lead to a loss of information and a decrease in the effective sample size (end relative errors). Practically, the number of steps to discard in this experiments will be set to $20 \tau_{\text{int}}$, which is a somewhat stable estimate of $\tau_{\text{exp}}$. Dedicated techniques to study $\tau_{\text{exp}}$ itself will not be explored.
+\br
 
 \subsubsection{Sokal's method}
 
-A. Sokal describes a method to estime the integrated autocorrelation time $\tau_{\text{int}}$ in his lecture notes "Monte Carlo Methods in Statistical Mechanics: Foundations and New Algorithms" (1996). The following section discusses the method and its implementation in this project.
+A. Sokal describes a method to estimate the integrated autocorrelation time $\tau_{\text{int}}$ in his lecture notes "Monte Carlo Methods in Statistical Mechanics: Foundations and New Algorithms" (1996). The following section discusses the method and its implementation in this project.
 
 The natural estimator of $\tau_{\text{int}}$ would seem to be
 
 \begin{equation}
-    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} \sum_{t=0}^{n} \widehat{\rho}(t)
+    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} + \sum_{t=0}^{n} \widehat{\rho}(t)
 \end{equation}
 
 but this is not really the case, because this estimator has a variance that does not go to zero as the sample size $n$ goes to infinity, so it is clearly a somewhat bad estimator of $\tau_{\text{int}}$. Qualitatively speaking, this happens because the sample autocorrelations $\widehat{\rho}(t)$ for big $t$ contain much noise but little signal, and there are so many of them (order $n$) that the noise adds up to a total variance of order 1. The solution is to cut off the sum using a window $\lambda(t)$ which is $\approx 1$ for small $t$ but $\approx 0$ for large $t$:
 
 \begin{equation}
-    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} \sum_{t=0}^{n} \lambda(t) \widehat{\rho}(t).
+    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} + \sum_{t=0}^{n} \lambda(t) \widehat{\rho}(t).
 \end{equation}
 
 This retains most of the signal but discards most of the noise. A good choice is the rectangular window
@@ -228,10 +234,9 @@ This retains most of the signal but discards most of the noise. A good choice is
     \end{cases}
 \end{equation}
 
-where M is an arbitrarily chosen cutoff. The choice of M is a tradeoff between bias and variance: if M is too small, we throw away too much signal and the estimator is biased; if M is too large, we throw away too little noise and the estimator has a large variance. A good choice is to take M to be the first t for which $\widehat{\rho}(t)$ is negative.
+where M is an arbitrarily chosen cutoff. The choice of M is a tradeoff between bias and variance: if M is too small, we throw away too much signal and the estimator is biased; if M is too large, we throw away too little noise and the estimator has a large variance. A good choice would be, for example, to take M to be the first t for which $\widehat{\rho}(t)$ is negative.
 
-This method is implemented in the following code:
-
+The method implemented in the code is a self-consistent windowing method, where the window size is determined dynamically at runtime. The idea is to choose a window size $M$ that is proportional to the estimated integrated autocorrelation time $\tau_{\text{int}}$, specifically $M = c \tau_{\text{int}}$ for some constant $c$. This allows the window size to adapt to the data, providing a balance between bias and variance in the estimator.
 
 \begin{minted}[linenos, frame=lines, breaklines]{python}
 
@@ -264,7 +269,7 @@ def tau_int_sokal(observables, c = 15.0):
 
 \end{minted}
 
-Where the precise size of the window $M = c \tau$ is determined dinamically at runtime. [TODO: discuss why it's called a self-consistent method.]
+The method is called self-consistent because the window size $M$ is determined based on the estimated value of $\tau_{\text{int}}$ itself. The algorithm iteratively computes the autocorrelation function and updates the estimate of $\tau_{\text{int}}$ until the window size $M$ is reached. This ensures that the estimator is both efficient and accurate, as it adapts to the characteristics of the data being analyzed.
 
 \begin{figure}[htbp]
 	\centering
@@ -273,12 +278,15 @@ Where the precise size of the window $M = c \tau$ is determined dinamically at r
 	\label{figure:autocorrelation_with_window}
 \end{figure}
 
+\FloatBarrier
+
+\br
 
 \subsubsection{Data blocking method}
 
 While Sokal's method is based on summing over the autocorrelation function in a particular way, the data blocking method presented in the work "Error estimates on averages of correlated data" by H. Flyvbjerg and H. G. Petersen operates in a fundamentally different way.
 
-This method is a mathematical trick: let's consider a Markov Chain of length $N$ of configurations ${x_i}$ with variance $\sigma^2$ and an observable $O$ mesured on each configuration. Now suppose to simplify this Chain by averaging the values of the observable $O$ of every consecutive $k$ elements. This will produce a new chain of length $N_b = N / k$ of block averages $\bar{O}_i$ that are less correlated than the original chain. One can then take advantage of the law:
+This method is a mathematical trick: let's consider a Markov Chain of length $N$ of configurations ${x_i}$ with variance $\sigma^2$ and an observable $O$ measured on each configuration. Now suppose we simplify this Chain by averaging the values of the observable $O$ of every consecutive $k$ elements. This will produce a new chain of length $N_b = N / k$ of block averages $\bar{O}_i$ that are less correlated than the original chain. One can then take advantage of the law:
 
 \begin{equation}
 	\label{eq:vk}
@@ -290,6 +298,8 @@ to build an estimator of $\tau_{\text{int}}$:
 \begin{equation}
 	\tau_{\text{int}}(k) = \frac{1}{2} (k \frac{V_k}{\sigma^2} - 1)
 \end{equation}
+
+[TODO: VERY IMPORTANT understand why the definition of $\tau_{\text{int}}$ is the wrong one (no term $\frac{1}{2}$) and needs to be fixed.]
 
 Note that \ref{eq:vk} is intended to be a correction to the variance of the mean $V_k$ for a chain of truly uncorrelated data:
 
@@ -325,7 +335,7 @@ The implementation is shown in the following code:
 
 \begin{minted}[linenos, frame=lines, breaklines]{python}
 
-def tau_int_blocking(observables, burn_in = None):
+def tau_int_blocking(observables, burn_in = None, c_blocking = 15.0):
     '''
     Computes the integrated autocorrelation time using the data blocking method.
     observables: ndarray of observable values along the Markov chain.
@@ -337,7 +347,7 @@ def tau_int_blocking(observables, burn_in = None):
     N = len(observables)
 
     if burn_in is None:
-        tau0 = tau_int_sokal(observables, c = 5.0)
+        tau0 = tau_int_sokal(observables, c = c_blocking)
 
     observables = observables[burn_in:]
     N = len(observables)
@@ -391,6 +401,8 @@ The effect of this algorithm of the progressive smoothing of the chain can be ap
 
 [TODO: Add plateu detection visualization]
 
+\FloatBarrier
+
 \subsection{Comparing the two methods}
 
 Now that both methods have been described, they can be compared. Clearly, their estimates of $\tau_{\text{int}}$ should be roughly similar. In images \ref{figure:tau_int_1D_comparison}, \ref{figure:tau_int_2D_comparison} and \ref{figure:tau_int_3D_comparison} the estimates of $\tau_{\text{int}}$ for the two methods are compared for different dimensions.
@@ -415,6 +427,8 @@ Now that both methods have been described, they can be compared. Clearly, their 
 
 The correlation between the two methods is clear, and it can be noted that both methods struggle close to $T_C$ where this behavior is, of course, expected.
 
-[TODO: is the difference between the two methods significant? Is the error magnitude acceptable?]
+[TODO: is the difference between the two methods significant? Is the error magnitude acceptable? Also, fix the legend]
+
+[TODO: cite critical slowing down at Tc]
 
 \clearpage
