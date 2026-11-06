@@ -10,7 +10,7 @@ from iminuit import Minuit, cost
 from hdf5_utils import read_data
 from autocorrelation import tau_int_sokal, tau_int_blocking, autocorrelation
 from mcmc_utils import metropolis_ising
-from operators import energy, magnetization
+from operators import energy, magnetic_susceptibility, magnetization
 from analytical_curves import plot_analytical_curve
 
 
@@ -409,6 +409,35 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
     plt.close()
 
 
+def magnetic_susceptibility_graph(N, dim, data_file, filename = "magnetic_susceptibility.png"):
+    '''
+    Plots the magnetic susceptibility as a function of temperature.
+    '''
+
+    print(f"Reading data from {data_file}...")
+
+    with h5py.File(data_file, "r") as file:
+        temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
+        # magnetizations = np.array(file[f"dim_{dim}_N_{N}/magnetizations"])
+        raw_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"])
+
+    print("Done.")
+
+    print(f"Raw data shape: {raw_data.shape}")
+
+    magnetizations = bake_
+
+    susc = magnetic_susceptibility(magnetizations, temperatures)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(temperatures, susc, marker='o', linestyle='solid', color=(53 / 255, 183 / 255, 121 / 255))
+    plt.xlabel('Temperature')
+    plt.ylabel('Magnetic Susceptibility')
+    plt.title(f'Magnetic Susceptibility - N = {N}, dim = {dim}')
+    plt.grid(True, which="both", ls="--", alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(filename, format='pdf', bbox_inches='tight')
+    plt.close()
 
 
 ##################################################################################################

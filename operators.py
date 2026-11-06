@@ -1,6 +1,10 @@
 import numpy as np
 from numba import njit
+from scipy.interpolate import CubicSpline
+
 from global_variables import ALLOW_NUMBA_CACHING
+
+import matplotlib.pyplot as plt
 
 #####################################################################
 # Operators that act on models configurations
@@ -132,4 +136,15 @@ def magnetization(model: np.ndarray) -> float:
     '''
 
     return abs(np.sum(model)) / model.size
+
+
+@njit(cache = ALLOW_NUMBA_CACHING)
+def magnetic_susceptibility(magnetizations: np.ndarray, temperatures: np.ndarray) -> np.ndarray:
+    '''
+    Given the magnetizations function of an Ising model compute the magnetic susceptibility.
+    '''
+
+    susc = CubicSpline(temperatures, magnetizations).derivative()
+
+    return susc(temperatures)
 
