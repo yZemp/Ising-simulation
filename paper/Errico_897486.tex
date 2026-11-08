@@ -1,0 +1,81 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+\usepackage[a4paper,margin=2.7cm]{geometry}
+\usepackage{lmodern}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{fontspec}
+\usepackage{amsmath}
+\usepackage[indent=0.5cm]{parskip}
+
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+
+\begin{document}
+
+\section*{Informazioni}
+
+\small
+\begin{itemize}[leftmargin=*,itemsep=0.15em]
+	% \item \textbf{Cognome, Nome:} Errico, Maurizio Ahmed;
+	% \item \textbf{Matricola:} 897486;
+	% \item \textbf{Titolo (ENG):} "Numerical Simulations of the Ising model through Monte Carlo Markov Chains";
+	% \item \textbf{Titolo (ITA):} "Simulazioni numeriche del modello di Ising attraverso Monte Carlo Markov Chains";
+	% \item \textbf{Relatore:} Prof. Mattia Bruno;
+	% \item \textbf{Co-relatore:} Nessuno;
+	% \item \textbf{Data prova finale:} Seconda sessione novembre 2026 (23,24,25 novembre 2026);
+	% \item \textbf{Corso di laurea:} Fisica;
+	% \item \textbf{Numero di telefono:} +39 331 703 7976;
+
+	
+	\item \textbf{COGNOME, NOME:} Errico, Maurizio Ahmed;
+	\item \textbf{MATRICOLA:} 897486;
+	\item \textbf{TITOLO (ENG):} "Numerical Simulations of the Ising model through Monte Carlo Markov Chains";
+	\item \textbf{TITOLO (ITA):} "Simulazioni numeriche del modello di Ising attraverso Monte Carlo Markov Chains";
+	\item \textbf{RELATORE:} Prof. Mattia Bruno;
+	\item \textbf{CO-RELATORE:} Nessuno;
+	\item \textbf{DATA PROVA FINALE:} Seconda sessione novembre 2026 (23,24,25 novembre 2026);
+	\item \textbf{CORSO DI LAUREA:} Fisica;
+	\item \textbf{NUMERO DI TELEFONO:} +39 331 703 7976;
+
+\end{itemize}
+\normalsize
+
+\section*{Riassunto}
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+
+\section*{Summary}
+
+The Ising model is a mathematical model of ferromagnetism in statistical mechanics that represents solids as lattices of non moving spins that only interact with their nearest neighbors. While analytical solutions exist for the one and two dimensional cases (the latter only in the absence of an external magnetic field), the three dimensional case is still unsolved, and only numerical solutions are known. This work presents a numerical study of the ferromagnetic Ising model in one, two, and three dimensions with no magnetic field in order to observe the phenomenon of phase transition and understand how it can be studied with Finite Size techniques.
+
+The most relevant observable for this study is the mean magnetization, defined as the first derivative of the free energy with respect to the external magnetic field per site, and that can be computed as the average magnitude of the spins in the lattice. A phase transition is defined by a singularity in the free energy, which implies a sudden change in the magnetization as a function of the temperature. That is, the fundamental problem to be solved is the computation of the mean magnetization of the system at a given temperature, which can only be obtained, in the ensemble mean sense, only by sampling the system at that temperature. A direct sampling is not possible because of the computational complexity of the problem, which is why a Markov Chain Monte Carlo method is used.
+
+The chosen algorithm is the Metropolis-Hastings algorithm, which generates a Markov Chain of system configurations by randomly selecting a spin and proposing a new configuration to migrate to by flipping that spin. The algorithm then accepts or rejects the proposed configuration based on the energy difference between the two configurations (which is very fast to compute), and guides the system to explore the configuration space in a way that is consistent with the Boltzmann distribution.
+
+This project was implemented using Python, and to improve the language poor performance the code was optimized using NumPy and Numba, which is a just-in-time compiler for Python that compiles Python code to machine code at runtime to drastically improve performance. The chains produced by the algorithm were stored in np.ndarray format (and were operated upon with periodic boundary conditions) in HDF5 files with lzf compression for fast i/o operations. To process the chains, the HDF5 files were read in chunks to avoid running out RAM during execution. A great effort was put into the optimization of the code to be able to be run with this scheme. The largest lattice sizes simulated were $N = 500$ for the 1D case, $N = 100$ for the 2D case, and $N = 25$ for the 3D case, where $N$ is the number of spins per side of the square lattice. Every chain was simulated for $2$ million steps before analysis.
+
+The data was then processed to determine the thermalization and the autocorrelation time, which are fundamental to extract uncorrelated samples from any Markov Chain. To estimate these numbers the integrated autocorrelation time $\tau_{\text{int}}$ was considered. As Sokal (1995) suggests, the thermalization time (defined as the time it takes for the system to forget its initial configuration), was estimated as $20 \tau_{\text{int}}$, while the space between two independent samples was estimated as $2 \tau_{\text{int}}$. To generate the chains cold starts were used (all spins aligned), because the models were simulated starting from a low temperature, and for the next temperature the last configuration of the previous chain was used as the initial configuration for the new chain. This granted a notable improvement in the thermalization time.
+
+To compute $\tau_{\text{int}}$ two techniques were explored:
+
+\begin{itemize}[leftmargin=*,itemsep=0.25em]
+	\item Sokal's method with a self-consistent windowing procedure: integrating the autocorrelation function up to a window size $M$ that is a multiple of $\tau_{\text{int}}$ itself, and iteratively increasing $M$ until convergence is reached;
+	\item Data blocking method (Flyvbjerg-Petersen): dividing the elements of the chain into blocks of increasing size and studying the variance of the mean of the magnetization as a function of the block size, and estimating $\tau_{\text{int}}$ as the block size at which the variance reaches a plateau.
+\end{itemize}
+
+Both methods were found to be in good agreement, with the sole exception being an instability in both methods close to the critical temperature. This is the expected behavior, as the autocorrelation time is known to diverge at the critical temperature, and both methods are based on the assumption that $\tau_{\text{int}}$ is finite. In practice, Sokal's method was found to be faster and more stable in actual implementation.
+
+For the 1D case the magnetization curve was found to approach zero for all temperatures at the increase of the system size. This is consistent with the analytical result that there is no phase transition at finite temperature in one dimension (but there must exist a different phase at $T = 0$). In this case, the shape of the magnetization curve was enough to demonstrate the absence of a phase transition.
+
+For the 2D and 3D cases, the magnetization curves were found to converge to well defined function, which in the 2D case was Onsager's known analytical solution. In these cases, the critical temperature was estimated by interpolating the magnetization curves (computed with the finest lattice sizes) with a cubic spline, and computing its derivative. This function is supposed to diverge at the critical temperature: the Finite Size equivalent is a global maximum, from which an estimation of $T_C$ was extracted.
+
+The values obtained were $T_C^{2D} \approx 2.390$ and $T_C^{3D} \approx 4.500$, which are in good agreement with the known analytical ($T_C^{2D} = 2.269$) and numerical ($T_C^{3D} = 4.511$) results, respectively. Moreover, a visual representation of Peierls' argument was produced for the 1D and 2D cases to show the tendency of the systems to group up clusters of aligned spins near the critical temperature.
+
+
+
+\end{document}

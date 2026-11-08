@@ -1,10 +1,10 @@
 import numpy as np
 from numba import njit
-from scipy.interpolate import CubicSpline
+import h5py
+from typing import cast
 
 from global_variables import ALLOW_NUMBA_CACHING
 
-import matplotlib.pyplot as plt
 
 #####################################################################
 # Operators that act on models configurations
@@ -138,13 +138,18 @@ def magnetization(model: np.ndarray) -> float:
     return abs(np.sum(model)) / model.size
 
 
-@njit(cache = ALLOW_NUMBA_CACHING)
-def magnetic_susceptibility(magnetizations: np.ndarray, temperatures: np.ndarray) -> np.ndarray:
-    '''
-    Given the magnetizations function of an Ising model compute the magnetic susceptibility.
-    '''
+def chi(N, dim, data_file, temperatures):
 
-    susc = CubicSpline(temperatures, magnetizations).derivative()
+    chi_values = []
 
-    return susc(temperatures)
+    for T_index, T in enumerate(temperatures):
+        with h5py.File(data_file, "r") as file:
+            length = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/filtered_lengths"])[T_index])
+            filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/filtered_data"])[T_index, :length])
+            # print(f"Filtered data shape: {filtered_data.shape}")
 
+            magns = np.array([magnetization(model) for model in filtered_data])
+            chi = (length / T) * (np.mean(magns**2) - np.mean(magns)**2)
+            chi_values.append(chi)
+
+    return np.array(chi_values)

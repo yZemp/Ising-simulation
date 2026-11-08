@@ -1,4 +1,7 @@
+from datetime import timedelta
 import os
+import time
+from datetime import timedelta
 from typing import cast
 from PIL.ImageQt import rgb
 import h5py
@@ -6,11 +9,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from iminuit import Minuit, cost
+from scipy.interpolate import CubicSpline
 
 from hdf5_utils import read_data
 from autocorrelation import tau_int_sokal, tau_int_blocking, autocorrelation
 from mcmc_utils import metropolis_ising
-from operators import energy, magnetic_susceptibility, magnetization
+from operators import energy, magnetization, chi
 from analytical_curves import plot_analytical_curve
 
 
@@ -68,10 +72,10 @@ def graph_magnetization_convergence(sources, filename = 'magnetization_convergen
                 )
 
     # Plot analytical curve
-    # with h5py.File(source, 'r') as f:
-    #     temps = np.array(f[f"{list(f.keys())[0]}/temperatures"])
-    #     t = np.linspace(temps[5], temps[-5], 100)
-    # plot_analytical_curve(dim = int(sources[0].split('_')[2]), t = t)
+    with h5py.File(source, 'r') as f:
+        temps = np.array(f[f"{list(f.keys())[0]}/temperatures"])
+        t = np.linspace(temps[6], temps[-5], 100)
+    plot_analytical_curve(dim = int(sources[0].split('_')[2]), t = t)
 
     plt.xlabel('Temperature (T)')
     plt.ylabel('Magnetization')
@@ -329,14 +333,14 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
     print(f"Autocorrelation graph saved to {filename}.")
 
 
-def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
+def tau_int_graph(N, dim, data_file, filename = "tau_int.pdf"):
     '''
     Plots the integrated autocorrelation time (tau_int) with respect to magnetization
     as a function of temperature.k
     '''
 
-    csokal = 50.0
-    cblocking = 15.0
+    csokal = 10.0
+    cblocking = 10.0
 
     temperatures, data = read_data(data_file, N, dim)
 
@@ -396,7 +400,7 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
         temperatures,
         abs(taus_sokal - taus_blocking),
         marker = ".",
-        label = r"$\tau_{int} errors$",
+        label = r"$\tau_{int} difference$",
         linestyle = "solid",
         color = 'black'
         )
@@ -409,32 +413,90 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.png"):
     plt.close()
 
 
-def magnetic_susceptibility_graph(N, dim, data_file, filename = "magnetic_susceptibility.png"):
+def tau_blocking_plateau(N, dim, data_file, filename = "tau_blocking_plateau.pdf", T_index = 30):
     '''
-    Plots the magnetic susceptibility as a function of temperature.
+    Plots the blocking method for estimating tau_int, showing the plateau.
+    '''
+
+    with h5py.File(data_file, "r") as file:
+        temperatures = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/temperatures"]))
+        raw_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/raw_data"])[T_index])
+
+    print(f"Raw data shape: {raw_data.shape}")
+
+    observables = np.array([magnetization(model) for model in raw_data])
+
+    tau_int, Nb_array, tau_int_estimates_array, burn_in = tau_int_blocking(observables, c = 10.0)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(Nb_array, tau_int_estimates_array, marker='o', label=r"$\tau_{int}$ estimates", color="#35B779")
+    plt.axhline(y=tau_int, color="#482878", linestyle='--', linewidth=1.5, label=f'Plateau value: {tau_int:.2f}')
+    plt.xlabel('Number of blocks (Nb)')
+    plt.ylabel(r"$\tau_{int}$ estimates")
+    plt.xscale('log')
+    plt.title(f'Blocking Method - N = {N}, dim = {dim}, T = {temperatures[T_index]:.2f}')
+    plt.grid(True, which="both", ls="--", alpha=0.5)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(filename, format='pdf', bbox_inches='tight')
+    plt.close()
+
+    # Dump data to a text file for further analysis
+    data_dump_filename = f"tau_blocking_plateau_data_N_{N}_dim_{dim}_T_{temperatures[T_index]:.2f}.txt"
+    np.savetxt(data_dump_filename, np.column_stack((Nb_array, tau_int_estimates_array)), header="Nb\tTau_int_estimates", comments='')
+    print(f"Data dumped to {data_dump_filename}")
+
+
+def derivative_graph(N, dim, data_file, filename = "extracting_tc.pdf"):
+    '''
+    Plots the derivative (of the magnetization) as a function of temperature.
+    This is what I'd like the magnetic susceptibility to be.
     '''
 
     print(f"Reading data from {data_file}...")
 
     with h5py.File(data_file, "r") as file:
         temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
-        # magnetizations = np.array(file[f"dim_{dim}_N_{N}/magnetizations"])
-        raw_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"])
+        magnetizations = np.array(file[f"dim_{dim}_N_{N}/magnetizations"])
+        # raw_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"])
 
     print("Done.")
 
-    print(f"Raw data shape: {raw_data.shape}")
+    # print(f"Magnetizations shape: {magnetizations.shape}")
 
-    magnetizations = bake_
+    chi_values = chi(N, dim, data_file, temperatures)
 
-    susc = magnetic_susceptibility(magnetizations, temperatures)
+    derivative_func = CubicSpline(temperatures, magnetizations).derivative()
+    derivative_values = derivative_func(temperatures)
+
+    ymin = min(-np.max(derivative_values), np.min(chi_values))
+    ymax = max(-np.min(derivative_values), np.max(chi_values))
 
     plt.figure(figsize=(10, 6))
-    plt.plot(temperatures, susc, marker='o', linestyle='solid', color=(53 / 255, 183 / 255, 121 / 255))
-    plt.xlabel('Temperature')
-    plt.ylabel('Magnetic Susceptibility')
-    plt.title(f'Magnetic Susceptibility - N = {N}, dim = {dim}')
+    plt.plot(temperatures, -derivative_values, marker='o', label='M\'', linestyle='solid', color="#482878")
+    plt.vlines(x=temperatures[np.argmin(derivative_values)], ymin=ymin, ymax=ymax, color="#482878", alpha = .8, linestyle='--', linewidth=1.5, label=f'Critical Temperature $T_c \\approx {temperatures[np.argmin(derivative_values)]:.3f}$')
+
+    plt.plot(temperatures, chi_values, marker='o', label='$\\chi$', linestyle='solid', color="#35B779")
+    plt.vlines(x=temperatures[np.argmax(chi_values)], ymin=ymin, ymax=ymax, color="#35B779", alpha = .8, linestyle='--', linewidth=1.5, label=f'Critical Temperature $T_c \\approx {temperatures[np.argmax(chi_values)]:.3f}$')
+
+    accepted_Tc = -1.0
+    if dim == 2: accepted_Tc = 2.269
+    if dim == 3: accepted_Tc = 4.5115
+    plt.vlines(
+        x=accepted_Tc,
+        ymin=ymin,
+        ymax=ymax,
+        color="#FDE725",
+        alpha=1.0,
+        linestyle='--',
+        linewidth=1.5,
+        label=f'Accepted $T_c \\approx {accepted_Tc:.3f}$'
+    )
+    plt.xlabel('Temperature (T)')
+    plt.ylabel('Derivative of Magnetization')
+    plt.title(f'$T_C$ extraction - N = {N}, dim = {dim}')
     plt.grid(True, which="both", ls="--", alpha=0.5)
+    plt.legend()
     plt.tight_layout()
     plt.savefig(filename, format='pdf', bbox_inches='tight')
     plt.close()
@@ -445,7 +507,8 @@ def magnetic_susceptibility_graph(N, dim, data_file, filename = "magnetic_suscep
 ##################################################################################################
 
 if __name__ == '__main__':
-
+    start = time.perf_counter()
+    
 
     #########################################################################################
     #########################################################################################
@@ -455,16 +518,13 @@ if __name__ == '__main__':
     # dims = [1]
 
     # Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
-    # Ns = [5, 10, 15, 16, 20, 30]
     # dims = [2]
     
     # Ns = [4, 6, 8, 10, 15, 25]
     # dims = [3]
 
-    # sources = [r"dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns for dim in dims]
-    # graph_magnetization_convergence(sources, filename = f"magnetization_convergence_{dims[0]}D.png")
-
-
+    # sources = [r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns for dim in dims]
+    # graph_magnetization_convergence(sources, filename = f"magnetization_convergence_{dims[0]}D.pdf")
 
 
     #########################################################################################
@@ -522,14 +582,42 @@ if __name__ == '__main__':
     # autocorrelation_graph(N, dim, data_file, filename = "autocorrelation_with_window.pdf", T_index = 30) 
 
 
+
+
     #########################################################################################
     #########################################################################################
     # Tau_int VISUALIZATION EXAMPLE USAGE
 
-    N = 200
-    dim = 1
+    # N = 8
+    # dim = 3
+    # data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
+    # tau_int_graph(N, dim, data_file, filename = "tau_int.pdf")
+
+
+
+
+    #########################################################################################
+    #########################################################################################
+    # Blocking VISUALIZATION EXAMPLE USAGE
+
+    N = 50
+    dim = 2
     data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
-    tau_int_graph(N, dim, data_file, filename = "tau_int.pdf")
+    tau_blocking_plateau(N, dim, data_file, filename = "tau_blocking_plateau.pdf", T_index = 50)
 
 
-    pass
+    #########################################################################################
+    #########################################################################################
+    # Derivative VISUALIZATION EXAMPLE USAGE
+
+    # N = 100
+    # dim = 2
+    # N = 25
+    # dim = 3
+    # data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
+    # derivative_graph(N, dim, data_file, filename = f"tc_extraction_{N}_{dim}.pdf")
+
+
+    
+    end = time.perf_counter()
+    print(f"Time elapsed since main.py was run = {timedelta(seconds = end - start)}")

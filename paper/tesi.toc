@@ -15,8 +15,9 @@
 \contentsline {subsubsection}{Data blocking method}{19}{section*.4}%
 \contentsline {subsection}{\numberline {2.2.3}Comparing the two methods}{24}{subsection.2.2.3}%
 \contentsline {chapter}{\numberline {3}Results}{26}{chapter.3}%
-\contentsline {section}{\numberline {3.1}1D Ising model}{26}{section.3.1}%
-\contentsline {section}{\numberline {3.2}2D Ising model}{27}{section.3.2}%
-\contentsline {section}{\numberline {3.3}3D Ising model}{28}{section.3.3}%
-\contentsline {section}{\numberline {3.4}General comments}{28}{section.3.4}%
-\contentsline {chapter}{\numberline {A}Appendix}{31}{appendix.A}%
+\contentsline {section}{\numberline {3.1}Introduction}{26}{section.3.1}%
+\contentsline {section}{\numberline {3.2}1D Ising model}{26}{section.3.2}%
+\contentsline {section}{\numberline {3.3}2D Ising model}{27}{section.3.3}%
+\contentsline {section}{\numberline {3.4}3D Ising model}{29}{section.3.4}%
+\contentsline {section}{\numberline {3.5}General comments}{31}{section.3.5}%
+\contentsline {chapter}{\numberline {A}Appendix}{33}{appendix.A}%

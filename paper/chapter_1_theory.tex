@@ -1,7 +1,7 @@
 \chapter{Theoretical background}
 \section{General overview}
 
-The fundamental assumption of the model is that a solid can be represented as a ferromagnet as an array of fixed ions that only interact with its nearest neighbours (and, optionally, an external magnetic field). Such system is described by the classical Hamiltonian
+The fundamental assumption of the model is that a solid ferromagnet can be represented as an array of fixed ions that only interact with their nearest neighbours (and, optionally, an external magnetic field). Such system is described by the classical Hamiltonian
 
 \begin{equation}
   \label{eq:ham}
@@ -27,7 +27,7 @@ This is the special case of the more general quantum Hamiltonian
 
 where $\sigma_i$ are replaced by the Pauli matrices of the i-th site.
 
-In this text only $ h_{i,z} $ will ever be assumed $\neq 0$, and since if both $ h_{i,x} $ and $ h_{i,y} $ are null then every operator commutes with each other in the canonical basis, which means equations \ref{eq:ham} and \ref{eq:qham} are the same.
+In this text only $ h_{i,z} $ will ever be assumed $\neq 0$. If both $ h_{i,x} $ and $ h_{i,y} $ are null then every operator commutes with each other in the canonical basis, which means that equations \ref{eq:ham} and \ref{eq:qham} are the same.
 
 \br
 
@@ -44,15 +44,7 @@ where $Z_{\beta}$ is the canonical partition function:
   \label{eq:partition_function}
 \end{equation}
 
-where 
-
-All the same, given an operator $\hat{O}$ its mean is intended to be
-
-\begin{equation}
-  \left< \hat{O} \right>_{\beta} = \sum_{\sigma} \hat{O} \left(\sigma\right) P_{\beta} \left(\sigma\right)
-\end{equation}
-
-which is the canonical average. In most cases the subscript $\beta$ will be dropped from the notation.
+In most cases the subscript $\beta$ will be dropped from the notation.
 
 \br
 
@@ -84,13 +76,13 @@ Formally, a phase transition is defined as a non-analyticity in the free energy 
 
 which takes the name of magnetization.
 
-This is a handy observable in the numerical approach because its average is easily obtainable by averaging the spin values of the lattice sites [TODO: prove this]:
+This is a handy observable in the numerical approach because its mean per lattice site is easily obtainable by averaging the spin values of the lattice sites. The formula can be derived using equation \ref{eq:free_energy} and the definition of the partition function \ref{eq:partition_function}:
 
 \begin{equation}
-  \left<M\right> = \frac{1}{N} \sum_{i} \sigma_i
+  \left<M\right> = \frac{1}{N} \frac{\partial}{\partial h} \left( \frac{1}{\beta} \ln{Z} \right) = \frac{1}{N} \sum_{i} \sigma_i
 \end{equation}
 
-and studying its behaviour as a function of the temperature $T$ and the external magnetic field $h$ one can identify the phase transitions.
+and studying its behaviour as a function of the temperature $T$ and the external magnetic field $h$ one can identify the phase transitions. Note that the symbol $\left< M \right>$ in this work refers to the \textit{mean value of the magnetization per lattice site}.
 
 It should be noted that these definitions formally hold even in the case of no external magnetic field. This is true only in the thermodynamic limit, where the system is infinitely large and the magnetization can be non-zero even when $h$ vanishes.
 
@@ -102,27 +94,16 @@ In a finite system the Hamiltonian is symmetric under the transformation $\sigma
 
 The solution to this problem is to consider this partial derivative in the general case, and then take the limit $h \rightarrow 0$ after the thermodynamic limit $N \rightarrow \infty$. This is equivalent to adding a small external magnetic field to the system, and then taking the limit of this field going to zero after the thermodynamic limit has been taken into account.
 
-% AI %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 Another important partial derivative is the first derivative of the magnetization with respect to the magnetic field, which defines the (isothermal) magnetic susceptibility:
 
 \begin{equation}
-\chi = \frac{\partial \langle M \rangle}{\partial h} = -\frac{\partial^2 F}{\partial h^2}
+  \chi = \frac{\partial \langle M \rangle}{\partial h} = -\frac{\partial^2 F}{\partial h^2}
+  \label{def:susceptibility}
 \end{equation}
 
-Similarly to the magnetization, the susceptibility is a fundamental observable in numerical simulations. By virtue of the fluctuation-dissipation theorem, it can be computed directly from the fluctuations of the magnetization at zero external field:
+Similarly to the magnetization, the susceptibility is a fundamental observable in numerical simulations. 
 
-\begin{equation}
-\chi = \beta N \left( \langle M^2 \rangle - \langle |M| \rangle^2 \right)
-\end{equation}
-
-where the absolute value of the magnetization is used to avoid the problem of the vanishing average magnetization in finite systems.
-
-[TODO: this has to be either removed or fixed]
-
-% In the thermodynamic limit, phase transitions are characterized by non-analyticities; for the magnetic susceptibility, this manifests as a divergence at the critical temperature $T_C$ following the power law $\chi \propto \vert{}T - T_C\vert{}^{-\gamma}$.   However, in a finite system, true non-analyticities cannot occur. Instead of diverging, the susceptibility of a finite lattice of linear size $L$ (where $N=L^d$) displays a smoothed maximum at a pseudo-critical temperature $T_C(L)$. This behavior provides a robust numerical method to extract the true critical temperature $T_C$: by simulating systems of various sizes $L$ and identifying the position and height of the susceptibility peak, one can extrapolate the critical temperature in the thermodynamic limit ($L \to \infty$) using Finite-Size Scaling (FSS) techniques.
-
-% AI %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Since in the thermodynamic limit phase transitions are characterized by non-analyticities, the behaviour of $\chi$  at the critical temperature $T_C$ is a divergence. In a finite system that can be expected to be observed as a peak in the susceptibility at a pseudo-critical temperature $T_C(L)$, which approaches the true critical temperature $T_C$ as the system size $L$ increases, and it's what was used in this work to estimate in practice the critical temperature in the 2D and 3D cases.
 
 
 \section{Known solutions}
@@ -150,8 +131,8 @@ which can be explicitly written by substituting the possible values of $\sigma_i
 And if we write the partition function (equation \ref{eq:partition_function}) as a sum over all the possible configurations of the system, we can see that it can be expressed as a product of transfer matrices (with periodic boundary conditions):
 
 \begin{equation}
-  Z = \sum_{\{\sigma\}} e^{- \beta \sum_{\left< i, j \right>} \sigma_i \sigma_j } =
-  \sum_{\{\sigma\}} \prod_{\left< i, j \right>} e^{- \beta \sigma_i \sigma_j } = 
+  Z = \sum_{\{\sigma\}} e^{\beta \sum_{\left< i, j \right>} \sigma_i \sigma_j } =
+  \sum_{\{\sigma\}} \prod_{\left< i, j \right>} e^{\beta \sigma_i \sigma_j } = 
   \sum_{\sigma_1, \sigma_2, \ldots, \sigma_N} T_{\sigma_1, \sigma_2} T_{\sigma_2, \sigma_3} \ldots T_{\sigma_N, \sigma_1}
 \end{equation}
 
@@ -200,7 +181,7 @@ And thus, going back to the free energy (equation \ref{eq:free_energy}) we can s
 \br
 
 Some assumptions can be made to understand how the magnetization function should behave in the 1D case:
-Since $F$ is analytical for every $T > 0$, the magnetization function has to be so as well. Since $F(T, h) = F(T, -h)$, using the definition \ref{def:magnetization} it follows that $M(T, h) = - M(T, -h)$, and thus $M(T, 0) = 0$ for every $T > 0$.
+Since $F$ is analytic for every $T > 0$, the magnetization function has to be so as well. Since $F(T, h) = F(T, -h)$, using the definition \ref{def:magnetization} it follows that $M(T, h) = - M(T, -h)$, and thus $M(T, 0) = 0$ for every $T > 0$.
 The last constraint is that the magnetization has to collapse to $M = \pm 1$ at exactly $T = 0$, since the system has no thermal fluctuations at absolute zero.
 
 These considerations illustrate the picture of a function which is zero everywhere except at $T = 0$, where it jumps to $|M| = 1$, and somehow smoothly connects the two values. This is consistent with the numerical results, as will be shown in chapter 3.
@@ -222,7 +203,11 @@ Which yields $T_C \approx 2.269$.
 Since the 2D case is not analytically solved with $h \neq 0$, the magnetization function cannot be inferred from the free energy the same way it can be in the 1D case. Again, the methods to solve the 2D case are beyond the scope of this text, and will not be discussed here. The magnetization function is known to be given by the following expression:
 
 \begin{equation}
-  M(T) = |1 - \sinh^{-4} \left( \frac{2}{T} \right)|^{\frac{1}{8}}
+  M(T) = 
+  \begin{cases} 
+    |1 - \sinh^{-4} \left( \frac{2}{T} \right)|^{\frac{1}{8}} & T < T_C \\ 
+    0 &  T \geq T_C 
+  \end{cases}
   \label{eq:onsager_condition}
 \end{equation}
 
@@ -238,7 +223,7 @@ As stated, the solution to the 3D case of the Ising model is still an open probl
 
 Clearly, no analytical expression for the magnetization function can be given.
 
-Some information can be assumed from physical principles ($|M| = 1$ for $T \ll T_C$ or that $M = 0$ for $T \gg T_C$), but the exact shape of the function is unknown. What can be useful to compare numerical data with is a result from the rinormalization group theory, which states that the magnetization function has to follow a power law in the vicinity of the critical temperature:
+Some information can be assumed from physical principles ($|M| = 1$ for $T \ll T_C$ or that $M = 0$ for $T \gg T_C$), but the exact shape of the function is unknown. What can be useful to compare numerical data with is a result from the renormalization group theory, which states that the magnetization function has to follow a power law in the vicinity of the critical temperature:
 
 \begin{equation}
   M(T) \sim |T - T_C|^{\beta} \quad \text{for} \; T \rightarrow T_C^{-}

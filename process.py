@@ -32,16 +32,21 @@ def magnetization_bake(N, dim, data_file = ""):
             filtered_lengths = np.full(len(temperatures), filtered_data.shape[1], dtype = np.int32)
 
     valid_models = [filtered_data[i, :filtered_lengths[i]] for i in range(len(temperatures))]
-    mean_magnetization = np.array([np.mean([magnetization(model) for model in models]) for models in valid_models])
+    mean_magnetization = np.empty(len(temperatures))
+    errors = np.empty(len(temperatures))
 
-    # FIXING ERRORS:
+    # OLD ERRORS (wrong):
     # errors = np.array([np.std([magnetization(model) for model in models]) / np.sqrt(len(models)) for models in valid_models])
 
-    # var(mu) = (1 / N) * (2 * tau_int) * C(0)
-    errors = np.array([
-        np.sqrt(np.maximum(1.0, 2 * tau_int_sokal(mags)) * np.var(mags) / len(mags)) 
-        for mags in (np.array([magnetization(model) for model in models]) for models in valid_models)
-    ])
+    for i, models in enumerate(valid_models):
+        mags = np.array([magnetization(model) for model in models])
+        mean_magnetization[i] = np.mean(mags)
+        
+        tau, _ = tau_int_sokal(mags)
+        
+        var_mu = np.maximum(1.0, 2 * tau) * np.var(mags) / len(mags)
+        errors[i] = np.sqrt(var_mu)
+
 
     with h5py.File(data_file, "r+") as file:
         group = cast(h5py.Group, file[f"dim_{dim}_N_{N}"])
@@ -183,8 +188,8 @@ def filter_data(N, dim, data_file = "", max_chunk_size = 100_000):
 
 def main():
 
-    N = 50
-    dim = 2
+    N = 100
+    dim = 1
 
     # data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
     data_file = f"dataset_copy" + ".hdf5"
@@ -212,7 +217,7 @@ def main():
     # magnetization_tfixed_graph(N, dim, Tidx, data_file = data_file, filename = "tmp_magnetization_tfixed.png")
     # tau_int_1 = autocorrelation_graph(N, dim, data_file = data_file, filename = "tmp_autocorrelation.png", T_index = Tidx)
     # tau_int_graph(N, dim, data_file = data_file, filename = "tmp_tau.png")
-    filter_data(N, dim, data_file = data_file)
+    # filter_data(N, dim, data_file = data_file)
     magnetization_bake(N, dim, data_file = data_file)
 
     #################################################################################
@@ -223,11 +228,11 @@ def main():
 
 if __name__ == "__main__":
 
-    Ns = [5]
-    dim = 2
+    # Ns = [100]
+    # dim = 1
 
-    for N in Ns:
-        filter_data(N, dim, data_file = r"dim_{dim}_N_{N}_data.hdf5".format(N = N, dim = dim))
-        magnetization_bake(N, dim, data_file = r"dim_{dim}_N_{N}_data.hdf5".format(N = N, dim = dim))
+    # for N in Ns:
+    #     # filter_data(N, dim, data_file = r"dim_{dim}_N_{N}_data.hdf5".format(N = N, dim = dim))
+    #     magnetization_bake(N, dim, data_file = r"dim_{dim}_N_{N}_data.hdf5".format(N = N, dim = dim))
 
-    # main()
+    main()

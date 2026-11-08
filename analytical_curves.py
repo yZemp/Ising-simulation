@@ -45,7 +45,7 @@ def plot_analytical_curve(dim: int, t: np.ndarray) -> None:
     if dim == 1 or dim == 2:
         plt.plot(t, f(t), color='black', linestyle='--', label='Analytical Curve')
     else:
-        plt.plot(t, f(t), color='black', linestyle='--', label='Numerical Approximation')
+        plt.plot(t, f(t), color='black', linestyle='--', label='Power Law')
 
 
 

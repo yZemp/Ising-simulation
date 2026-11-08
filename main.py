@@ -8,11 +8,12 @@ from typing import cast
 
 from ising import new_random_ising
 from mcmc_utils import metropolis_ising
-from graphics import animate
+from images_production import animate
 from datetime import timedelta
 from process import filter_data, magnetization_bake
 from generation import simulate
-from graphics import graph, graph_magnetization_convergence
+from graphics import graph
+from draw_plots import graph_magnetization_convergence
 
 def positive_int(value):
     try:
@@ -112,11 +113,11 @@ def main(N, dim, steps):
 
     start = time.perf_counter()
 
-    anim_mcmc(dim, N, LEN = 100_000, T_index = 26)
+    # anim_mcmc(dim, N, LEN = 100_000, T_index = 26)
 
     # simulate(N, dim, steps, data_file = data_file)
     # filter_data(N, dim, data_file = data_file)
-    # magnetization_bake(N, dim, data_file = data_file)
+    magnetization_bake(N, dim, data_file = data_file)
 
     # graph_magnetization_convergence_for_fixed_dim(
     #     dim,
