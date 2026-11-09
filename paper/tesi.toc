@@ -20,5 +20,6 @@
 \contentsline {section}{\numberline {3.2}1D Ising model}{29}{section.3.2}%
 \contentsline {section}{\numberline {3.3}2D Ising model}{30}{section.3.3}%
 \contentsline {section}{\numberline {3.4}3D Ising model}{32}{section.3.4}%
-\contentsline {section}{\numberline {3.5}General comments}{34}{section.3.5}%
-\contentsline {chapter}{\numberline {A}Appendix}{36}{appendix.A}%
+\contentsline {section}{\numberline {3.5}Improved estimation of the critical temperature}{34}{section.3.5}%
+\contentsline {section}{\numberline {3.6}General comments and Peierls argument}{34}{section.3.6}%
+\contentsline {chapter}{\numberline {A}Appendix}{38}{appendix.A}%

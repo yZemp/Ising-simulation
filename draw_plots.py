@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from iminuit import Minuit, cost
 from scipy.interpolate import CubicSpline
+from iminuit import Minuit, cost
 
 from hdf5_utils import read_data
 from autocorrelation import tau_int_sokal, tau_int_blocking, autocorrelation
@@ -338,7 +339,7 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
 def tau_int_graph(N, dim, data_file, filename = "tau_int.pdf"):
     '''
     Plots the integrated autocorrelation time (tau_int) with respect to magnetization
-    as a function of temperature.k
+    as a function of temperature.
     '''
 
     csokal = 10.0
@@ -352,7 +353,6 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.pdf"):
         
         steps = raw_dataset.shape[1]
         
-        # Alloca solo l'array finale degli osservabili (pochi MB)
         observables = np.zeros((len(temperatures), steps), dtype=float)
         
         print("Computing observables (single temperature at a time)...")
@@ -483,41 +483,135 @@ def derivative_graph(N, dim, data_file, filename = "extracting_tc.pdf"):
     derivative_func = CubicSpline(temperatures, magnetizations).derivative()
     derivative_values = derivative_func(temperatures)
 
-    ymin = min(-np.max(derivative_values), np.min(chi_values))
-    ymax = max(-np.min(derivative_values), np.max(chi_values))
+    fig, ax1 = plt.subplots(figsize=(10, 6))
 
-    plt.figure(figsize=(10, 6))
-    plt.plot(temperatures, -derivative_values, marker='o', label='M\'', linestyle='solid', color="#482878")
-    plt.vlines(x=temperatures[np.argmin(derivative_values)], ymin=ymin, ymax=ymax, color="#482878", alpha = .8, linestyle='--', linewidth=1.5, label=f'Critical Temperature $T_c \\approx {temperatures[np.argmin(derivative_values)]:.3f}$')
+    # Left axis: Derivative of Magnetization
+    color1 = "#482878"
+    ax1.set_xlabel('Temperature (T)')
+    ax1.set_ylabel("Derivative of Magnetization (-M')", color=color1)
+    ax1.plot(temperatures, -derivative_values, marker='o', linestyle='solid', color=color1, label="M'")
+    ax1.tick_params(axis='y', labelcolor=color1)
+    ax1.axvline(x=temperatures[np.argmin(derivative_values)], color=color1, alpha=0.8, linestyle='--', linewidth=1.5, label=f"Min M' at T = {temperatures[np.argmin(derivative_values)]:.3f}")
 
-    plt.plot(temperatures, chi_values, marker='o', label='$\\chi$', linestyle='solid', color="#35B779")
-    plt.vlines(x=temperatures[np.argmax(chi_values)], ymin=ymin, ymax=ymax, color="#35B779", alpha = .8, linestyle='--', linewidth=1.5, label=f'Critical Temperature $T_c \\approx {temperatures[np.argmax(chi_values)]:.3f}$')
+    # Right axis: Magnetic Susceptibility
+    ax2 = ax1.twinx()
+    color2 = "#35B779"
+    ax2.set_ylabel(r'Magnetic Susceptibility ($\chi$)', color=color2)
+    ax2.plot(temperatures, chi_values, marker='o', linestyle='solid', color=color2, label=r'$\chi$')
+    ax2.tick_params(axis='y', labelcolor=color2)
+    ax2.axvline(x=temperatures[np.argmax(chi_values)], color=color2, alpha=0.8, linestyle='--', linewidth=1.5, label=f"Max $\\chi$ at T = {temperatures[np.argmax(chi_values)]:.3f}")
 
-    accepted_Tc = -1.0
-    if dim == 2: accepted_Tc = 2.269
-    if dim == 3: accepted_Tc = 4.5115
-    plt.vlines(
-        x=accepted_Tc,
-        ymin=ymin,
-        ymax=ymax,
-        color="#FDE725",
-        alpha=1.0,
-        linestyle='--',
-        linewidth=1.5,
-        label=f'Accepted $T_c \\approx {accepted_Tc:.3f}$'
-    )
-    plt.xlabel('Temperature (T)')
-    plt.ylabel('Derivative of Magnetization')
+    # Accepted critical temperature lines for reference
+    accepted_Tc = 2.269 if dim == 2 else (4.5115 if dim == 3 else -1.0)
+    if accepted_Tc > 0:
+        ax1.axvline(x=accepted_Tc, color="#FDE725", linestyle='--', linewidth=2, label=f'Accepted $T_c \\approx {accepted_Tc:.3f}$')
+
     plt.title(f'$T_C$ extraction - N = {N}, dim = {dim}')
-    plt.grid(True, which="both", ls="--", alpha=0.5)
-    plt.legend()
+    fig.legend(loc="upper right", bbox_to_anchor=(0.9, 0.9))
+    plt.grid(True, alpha=0.3)
     plt.tight_layout()
+    
     plt.savefig(filename, format='pdf', bbox_inches='tight')
     plt.close()
 
 
+def true_tc_extraction(sources, dim, filename = "true_tc_extraction.pdf"):
+    '''
+    Given a list of HDF5 files with magnetization data for different Ns, 
+    computes T_C(N): the estimated critical temperature for each N.
+    Then, it plots the results for each N,
+    and fits the curve T_C(N) = T_C(inf) + a * N^(-1/nu) to extract the true critical temperature T_C(inf).
+
+    with:
+        nu = 1 for dim = 2
+        nu = 0.63 for dim = 3
+    '''
+
+    if len(sources) <= 0:
+        raise ValueError('`sources` must contain at least one file path')
+    
+    if dim == 2:
+        nu = 1.0
+    elif dim == 3:
+        nu = 0.63
+    else:
+        raise ValueError("Dimension must be 2 or 3 for T_C extraction.")
+
+    # Sorting by N
+    def get_n_from_file(filepath):
+        with h5py.File(filepath, 'r') as f:
+            group_name = list(f.keys())[0]
+            return int(group_name.split('_')[3])
+
+    sources = sorted(sources, key = get_n_from_file)
+
+    Tc_values = []
+    Ns = []
+
+    for source in sources:
+        with h5py.File(source, 'r') as f:
+            group_name = list(f.keys())[0]
+            N = int(group_name.split('_')[3])
+
+            temperatures = np.array(f[f"{group_name}/temperatures"])
+
+        print(f"Computing T_C(N) for N = {N} from source: {source}")
+
+        chi_values = chi(N, dim, source, temperatures)
+
+        Tc_estimate = temperatures[np.argmax(chi_values)]
+        Tc_values.append(Tc_estimate)
+        Ns.append(N)
+
+    print(f"Final T_C(N) values: {Tc_values}")
+    print(f"Final N values: {Ns}")
+
+    plt.figure(figsize=(10, 6))
+
+    # Fit the curve T_C(N) = T_C(inf) + a * N^(-1/nu)
+    def fit_function(N, Tc_inf, a):
+        return Tc_inf + a * N**(-1/nu)
+
+    Ns = np.array(Ns)
+    Tc_values = np.array(Tc_values)
+
+    # Using temperature discretization as error estimate
+    minimum_delta = np.min(np.diff(temperatures))
+    errors = np.full_like(Tc_values, minimum_delta)
+    least_squares = cost.LeastSquares(Ns, Tc_values, errors, fit_function)
+    m = Minuit(least_squares, Tc_inf = 2.0, a = 1.0)
+    m.migrad()
+
+    x_data = Ns**(-1/nu)
+    plt.plot(x_data, Tc_values, marker='o', linestyle='solid', color="#35B779", label=r'Estimated $T_C(N)$')
+
+    N_dense = np.logspace(np.log10(min(Ns)), np.log10(max(Ns)*1000), 200)
+    x_fit = N_dense**(-1/nu)
+    y_fit = fit_function(N_dense, m.values['Tc_inf'], m.values['a'])
+    plt.plot(
+        x_fit,
+        y_fit,
+        linestyle='--',
+        color="#482878",
+        label=f'Fit: $T_C(N) = T_C(\\infty) + a \\cdot N^{{-1/{nu}}}$'
+    )
+
+    plt.plot(x_fit[0], y_fit[0], marker='x', color="#FDE725", markersize=10, label=f'Extrapolated $T_C(\\infty) \\approx {m.values["Tc_inf"]:.3f}$')
+
+    plt.axvline(0, color='grey', linestyle=':', alpha=0.5)
+    plt.xlabel(rf'$N^{{-1/{nu}}}$')
+    plt.ylabel(r'$T_C(N)$')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+
+    plt.savefig(filename, format='pdf', bbox_inches='tight')
+    plt.close()
+
+
+
+
 ##################################################################################################
-# Main execution block for testing and demonstration purposes
+# Main execution block
 ##################################################################################################
 
 if __name__ == '__main__':
@@ -605,8 +699,8 @@ if __name__ == '__main__':
     #########################################################################################
     # Tau_int VISUALIZATION EXAMPLE USAGE
 
-    # N = 500
-    # dim = 1
+    # N = 100
+    # dim = 2
     # data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
     # tau_int_graph(N, dim, data_file, filename = "tau_int.pdf")
 
@@ -615,26 +709,42 @@ if __name__ == '__main__':
 
     #########################################################################################
     #########################################################################################
-    # Blocking VISUALIZATION EXAMPLE USAGE
+    # Blocking plateau VISUALIZATION EXAMPLE USAGE
 
     # N = 100
     # dim = 2
-    # data_file = f"E:\\simulations_data\\sweep_based_chains\\dim_{dim}_N_{N}" + "_data.hdf5"
-    # tau_blocking_plateau(N, dim, data_file, filename = "tau_blocking_plateau.pdf", T_index = 50)
+    # data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
+    # tau_blocking_plateau(N, dim, data_file, filename = f"tau_blocking_plateau_N_{N}_dim_{dim}.pdf", T_index = 50)
 
 
     #########################################################################################
     #########################################################################################
-    # Derivative VISUALIZATION EXAMPLE USAGE
+    # Simple T_C extraction VISUALIZATION EXAMPLE USAGE
 
-    N = 100
-    dim = 2
-    # N = 25
+    # N = 100
+    # dim = 2
+    # N = 30
     # dim = 3
-    data_file = f"E:\\simulations_data\\sweep_based_chains\\dim_{dim}_N_{N}" + "_data.hdf5"
-    derivative_graph(N, dim, data_file, filename = f"tc_extraction_{N}_{dim}.pdf")
+    # data_file = f"E:\\simulations_data\\sweep_based_chains\\dim_{dim}_N_{N}" + "_data.hdf5"
+    # derivative_graph(N, dim, data_file, filename = f"tc_extraction_{N}_{dim}.pdf")
 
 
+    #########################################################################################
+    #########################################################################################
+    # TRUE T_C extraction VISUALIZATION EXAMPLE USAGE
+
+    # Ns = [5, 10, 20, 30, 50, 70, 100, 150, 200, 250, 300, 500]
+    # dim = 1
+
+    # Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
+    Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100]
+    dim = 2
+    
+    # Ns = [4, 6, 8, 10, 15, 30]
+    # dim = 3
+
+    sources = [r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns]
+    true_tc_extraction(sources, dim, filename = f"true_tc_extraction_{dim}.pdf")
     
     end = time.perf_counter()
     print(f"Time elapsed since draw_plots.py was run = {timedelta(seconds = end - start)}")

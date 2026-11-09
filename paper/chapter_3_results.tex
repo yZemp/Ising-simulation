@@ -59,7 +59,7 @@ The estimation of $T_C(L)$ and is shown in figure \ref{fig:2D_chi}, where the ma
 	\label{fig:2D_chi}
 \end{figure}
 
-The (negative) peak of $M'(T)$ is the value of $T_C(L) \approx 2.390$, which is reasonable taking into consideration the expected relation $T_C(L) > T_C(\infty) \quad \forall \; L$. The peak of $\chi(T)$ is an the value of $T_C(L) \approx 2.460$. As stated, while $M'(T)$ gives a better result in this case, $\chi(T)$ provides a more robust estimate.
+The peak of $\chi(T)$ corresponds to the value of $T_C(L) \approx 2.320$, which is reasonable taking into consideration the expected relation $T_C(L) > T_C(\infty) \quad \forall \; L$. The peak of $M'(T)$ corresponds to another estimate of the value of $T_C(L) \approx 2.250$. As stated, while in this case $M'(T)$ gives a result closer to the accepted value, in general $\chi(T)$ provides a more robust estimate both theoretically and numerically.
 
 \FloatBarrier
 
@@ -74,18 +74,54 @@ Results for the 3D Ising model are similar to the 2D case. Only, this time, in f
 	\label{fig:3D_magn}
 \end{figure}
 
-Again, the estimation of $T_C(L)$ is shown in figure \ref{fig:3D_chi}. Again, the estimations for $T_C(L)$ ($\approx 4.500$ for $M'(T)$ and $\approx 4.650$ for $\chi(T)$) are reasonable ($T_C(\infty) \approx 4.5115$). Note that, differently from the 2D case, since the reference value is not analytically known, there is not a formal reason to expect this estimate to approach the true value from above.
+The analysis is equivalent to the 2D case. The accepted value for the critical temperature of the 3D Ising model is $T_C \approx 4.5115$, while the extracted value from the simulation is $T_C(L) \approx 4.500$ using both methods.
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=1.\textwidth]{../pics_and_anims/tc_extraction_25_3.pdf}
+	\includegraphics[width=1.\textwidth]{../pics_and_anims/tc_extraction_30_3.pdf}
 	\caption{Estimation of the critical temperature (3D case).}
 	\label{fig:3D_chi}
 \end{figure}
 
 \FloatBarrier
 
-\section{General comments}
+
+\section{Improved estimation of the critical temperature}
+
+For how fine the lattice can be the estimation of the critical temperature through the methods described in the previous sections will always be affected by finite-size effects. In order to obtain a more accurate estimate of the critical temperature, it is necessary to perform a finite-size scaling analysis that accounts for the size of the lattice and produces an estimate of the critical temperature which does not depend on the size of the lattice.
+
+The idea is to extract the value of $T_C(N)$ for different lattice sizes $N$, and then fit the data to a function of the form:
+
+$$T_C(N) = T_C(\infty) + a N^{- \frac{1}{\nu}}$$
+
+[TODO: Source for this formula may be Fisher, M. E. (1971). The theory of critical point singularities. In Critical Phenomena (pp. 1-99). Springer, Berlin, Heidelberg. Or other works by Fisher]
+
+where $T_C(\infty)$ is the critical temperature in the thermodynamic limit, $a$ is a constant, and $\nu$ is the critical exponent.
+
+The parameter $\nu$ is known to be $\nu = 1$ for the 2D Ising model (found by Onsager) and is estimated to be $\nu \approx 0.63$ for the 3D Ising model in the renormalization group theory.
+
+The results of this analysis are shown in figure \ref{fig:2D_fss} for the 2D case and in figure \ref{fig:3D_fss} for the 3D case.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=1.\textwidth]{../pics_and_anims/true_tc_extraction_2D.pdf}
+	\caption{Estimation of the critical temperature (2D case) with proper finite-size scaling analysis.}
+	\label{fig:2D_fss}
+\end{figure}
+
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=1.\textwidth]{../pics_and_anims/true_tc_extraction_3D.pdf}
+	\caption{Estimation of the critical temperature (3D case) with proper finite-size scaling analysis.}
+	\label{fig:3D_fss}
+\end{figure}
+
+This finer scheme of analysis allows to obtain a more accurate estimate of the critical temperature, which is $T_C(\infty) \approx TODO$ for the 2D case and $T_C(\infty) \approx TODO$ for the 3D case, in (better) with the accepted values.
+
+A comment should be made regarding the discretization of the results along the y-axis. The values of $T_C(N)$ are extracted from the data with a precision that depends on how fine the temperature grid is. In order to obtain a more accurate estimate of $T_C(N)$, it would be necessary to sample the magnetization curve with higher resolution. This is probably the biggest source of error in the estimation of $T_C(\infty)$, and it is expected that with a finer temperature grid the results would be even closer to the accepted values.
+
+\section{General comments and Peierls argument}
 
 [
 The difference between the 1D and 2D Ising model is that in the 1D case a single spin flip is enough to break a streak of aligned spins, that is, a single spin flip can change significantly the contribution to the magnetiziation of a section of the lattice. The equivalent of a streak of aligned spins in 2D is a cluster of aligned spins, and the equivalent of a single spin flip to break the streak is the flipping of the spins on the border of the cluster. The energy needed to flip a single spin is still independent of the size of the system, but the size of the perimeter of a cluster is not, and this introduces a size dependence in the probability of having a cluster of aligned spins, which is what leads to a threshold behavior.]

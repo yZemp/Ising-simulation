@@ -11,71 +11,104 @@
 \usepackage{amsmath}
 \usepackage[indent=0.5cm]{parskip}
 
+\newcommand{\br}{
+  \par\vspace{0.4em}
+  \noindent\makebox[\linewidth]{\rule{0.5\linewidth}{0.2pt}}
+  \par\vspace{0.4em}
+}
+
 \usepackage{fontspec}
 \setmainfont{Times New Roman}
 
 \begin{document}
 
 \section*{Informazioni}
+\vspace{0.4em}
 
 \small
-\begin{itemize}[leftmargin=*,itemsep=0.15em]
-	% \item \textbf{Cognome, Nome:} Errico, Maurizio Ahmed;
-	% \item \textbf{Matricola:} 897486;
-	% \item \textbf{Titolo (ENG):} "Numerical Simulations of the Ising model through Monte Carlo Markov Chains";
-	% \item \textbf{Titolo (ITA):} "Simulazioni numeriche del modello di Ising attraverso Monte Carlo Markov Chains";
-	% \item \textbf{Relatore:} Prof. Mattia Bruno;
-	% \item \textbf{Co-relatore:} Nessuno;
-	% \item \textbf{Data prova finale:} Seconda sessione novembre 2026 (23,24,25 novembre 2026);
-	% \item \textbf{Corso di laurea:} Fisica;
-	% \item \textbf{Numero di telefono:} +39 331 703 7976;
+{\fontspec{Trebuchet MS}
+	\begin{itemize}[leftmargin=*,itemsep=0.15em]
+		% \item \textbf{Cognome, Nome:} Errico, Maurizio Ahmed;
+		% \item \textbf{Matricola:} 897486;
+		% \item \textbf{Titolo (ENG):} "Numerical Simulations of the Ising model through Monte Carlo Markov Chains";
+		% \item \textbf{Titolo (ITA):} "Simulazioni numeriche del modello di Ising attraverso Monte Carlo Markov Chains";
+		% \item \textbf{Relatore:} Prof. Mattia Bruno;
+		% \item \textbf{Co-relatore:} Nessuno;
+		% \item \textbf{Data prova finale:} Seconda sessione novembre 2026 (23,24,25 novembre 2026);
+		% \item \textbf{Corso di laurea:} Fisica;
+		% \item \textbf{Numero di telefono:} +39 331 703 7976;
 
-	
-	\item \textbf{COGNOME, NOME:} Errico, Maurizio Ahmed;
-	\item \textbf{MATRICOLA:} 897486;
-	\item \textbf{TITOLO (ENG):} "Numerical Simulations of the Ising model through Monte Carlo Markov Chains";
-	\item \textbf{TITOLO (ITA):} "Simulazioni numeriche del modello di Ising attraverso Monte Carlo Markov Chains";
-	\item \textbf{RELATORE:} Prof. Mattia Bruno;
-	\item \textbf{CO-RELATORE:} Nessuno;
-	\item \textbf{DATA PROVA FINALE:} Seconda sessione novembre 2026 (23,24,25 novembre 2026);
-	\item \textbf{CORSO DI LAUREA:} Fisica;
-	\item \textbf{NUMERO DI TELEFONO:} +39 331 703 7976;
+		
+		\item \textbf{COGNOME, NOME:} Errico, Maurizio Ahmed;
+		\item \textbf{MATRICOLA:} 897486;
+		\item \textbf{TITOLO (ENG):} "Numerical Simulations of the Ising model through Monte Carlo Markov Chains";
+		\item \textbf{TITOLO (ITA):} "Simulazioni numeriche del modello di Ising attraverso Monte Carlo Markov Chains";
+		\item \textbf{RELATORE:} Prof. Mattia Bruno;
+		\item \textbf{CO-RELATORE:} Nessuno;
+		\item \textbf{DATA PROVA FINALE:} Seconda sessione novembre 2026 (23,24,25 novembre 2026);
+		\item \textbf{CORSO DI LAUREA:} Fisica;
+		\item \textbf{NUMERO DI TELEFONO:} +39 331 703 7976;
 
-\end{itemize}
+	\end{itemize}
+}
 \normalsize
+
+\br
 
 \section*{Riassunto}
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+Il modello di Ising è un modello matematico del campo della meccanica statistica per ferromagneti. L'idea è rappresentare un solido come un reticolo di spin non mobili che interagiscono solo con i loro nearest neighbours. Mentre soluzioni analitiche per i casi 1D e 2D (quest'ultimo solo in assenza di un campo magnetico esterno) sono note, non esiste una soluzione analitica per il caso 3D, e sono note solo soluzioni numeriche. Questo lavoro presenta uno studio numerico del modello di Ising ferromagnetico in una, due e tre dimensioni senza campo magnetico al fine di osservare il fenomeno della transizione di fase e comprendere come può essere studiato con tecniche di Finite Size Scaling.
+
+L'osservabile più rilevante per questo studio è la magnetizzazione media, definita come la prima derivata dell'energia libera rispetto al campo magnetico esterno per sito, e che può essere calcolata come la media del modulo degli spin nel reticolo. Una transizione di fase è definita da una singolarità nell'energia libera, che implica un cambiamento improvviso nella magnetizzazione in funzione della temperatura. Il problema fondamentale da risolvere è il calcolo della magnetizzazione media del sistema a una data temperatura, che può essere ottenuta nel senso di media d'ensemble solo campionando il sistema a quella temperatura. Un campionamento diretto delle configurazioni non è possibile a causa della complessità computazionale del problema, motivo per cui viene utilizzato un metodo Markov Chain Monte Carlo.
+
+L'algoritmo scelto è l'algoritmo di Metropolis-Hastings, che genera una Markov Chain di configurazioni del sistema selezionando casualmente uno spin e proponendo una nuova configurazione a cui migrare tramite il flip di quello spin. L'algoritmo accetta o rifiuta la configurazione proposta in base alla differenza di energia tra le due configurazioni (il cui calcolo è computazionalmente ottimale), e guida il sistema a esplorare lo spazio delle configurazioni in modo coerente con la distribuzione di Boltzmann. Questo studio ha inizialmente implementato una versione dell'algoritmo di Metropolis-Hastings che aggiunge una configurazione alla catena dopo ogni singolo flip di spin proposto. Un'altra opzione esplorata nelle fasi successive del progetto è quella di aggiungere una configurazione alla catena solo dopo ogni sweep, dove uno sweep è definito come l'applicazione di un possibile spin flip a una configurazione $N^d$ volte, dove $N$ è il numero di spin per lato del reticolo quadrato. Ciò garantisce una minore correlazione tra le configurazioni successive nella catena, e quindi un tempo di autocorrelazione integrato $\tau_{\text{int}}$ più basso; sebbene questa sia una scelta arbitraria, è una pratica ampiamente adoperata in letteratura.
+
+Lo studio è stato condotto utilizzando Python, e per migliorare le scarse prestazioni di questo linguaggio il codice è stato ottimizzato utilizzando NumPy e Numba, un compilatore just-in-time che compila gli script in codice macchina e li salva in cache durante il runtime per migliorare drasticamente le prestazioni. Le catene prodotte dall'algoritmo sono state memorizzate in formato np.ndarray (e sono state gestite con condizioni periodiche al contorno) in file HDF5 con compressione lzf, che è ottimizzato per la velocità delle operazioni i/o. Per elaborare le catene i file HDF5 sono stati letti a blocchi per evitare di esaurire la RAM durante l'esecuzione. È stata impiegata una grande attenzione nell'ottimizzare il codice per poter essere eseguito con questo schema. Le dimensioni dei reticoli più grandi simulate in questo progetto sono state $N = 500$ per il caso 1D, $N = 100$ per il caso 2D e $N = 30$ per il caso 3D, dove $N$ è il numero di spin per lato del reticolo quadrato. Ogni catena è stata simulata per un numero di passi dell'ordine del milione prima dell'analisi.
+
+Le catene sono state dunque elaborate per rimuoverne la fase di termalizzazione e decorrelarle. Per stimare il tempo di termalizzazione e il numero di step da rimuovere si è considerato il tempo di autocorrelazione integrato $\tau_{\text{int}}$. Come suggerito da Sokal (1995) il tempo di termalizzazione (definito come il tempo necessario al sistema per dimenticare la sua configurazione iniziale) è stato stimato come $20 \tau_{\text{int}}$, mentre lo spazio tra due campioni indipendenti è stato stimato come $2 \tau_{\text{int}}$. Per generare le catene sono stati utilizzati cold starts (tutti gli spin allineati), poiché i modelli sono stati simulati a partire da una temperatura bassa, e per la temperatura successiva l'ultima configurazione della catena precedente è stata utilizzata come configurazione iniziale per la nuova catena. Ciò ha garantito un notevole miglioramento nel tempo di termalizzazione.
+
+Per la stima di $\tau_{\text{int}}$ sono state esplorate due tecniche:
+
+\begin{itemize}[leftmargin=*,itemsep=0.25em]
+	\item Il metodo di Sokal con una procedura di windowing auto-consistente: calcolare $\tau_{\text{int}}$ integrando la funzione di autocorrelazione fino a un tempo limite definito da una finestra $M$, dove si definisce $M$ come un multiplo di $\tau_{\text{int}}$ che si aggiorna iterativamente durante l'esecuzione fino a raggiungere la convergenza;
+	\item Il data blocking method (Flyvbjerg-Petersen): dividere gli elementi della catena in blocchi di dimensione crescente e studiare la varianza della media della magnetizzazione in funzione della dimensione del blocco, stimando $\tau_{\text{int}}$ come la dimensione del blocco a cui la varianza raggiunge un plateau.
+\end{itemize}
+
+Si è trovato un buon accordo tra i due metodi, con l'unica eccezione di una instabilità vicino alla temperatura critica. Questo è il comportamento atteso, poiché il tempo di autocorrelazione è noto per divergere alla temperatura critica, e entrambi i metodi si basano sull'assunzione che $\tau_{\text{int}}$ sia finito. Gli errori calcolati su $\tau_{\text{int}}$ però, sono risultati piuttosto grandi, nello specifico per il metodo del data blocking. Per cercare di ottenere risultati migliori l'algoritmo di Metropolis-Hastings è stato migliorato con il campionamento basato sugli sweep discusso in precedenza, e questo ha risolto il problema.
+
+Per il caso 1D la curva di magnetizzazione è risultata tendere a zero per tutte le temperature al crescere della dimensione del sistema. Questo è coerente con il risultato analitico dell'assenza di una transizione di fase a temperatura finita in una dimensione (ma deve esistere una fase diversa a $T = 0$). In questo caso, la forma della curva di magnetizzazione è stata sufficiente a dimostrare l'assenza di una transizione di fase. Una rappresentazione visiva dei reticoli è stata prodotta per i casi 1D e 2D, per apprezzare la spiegazione di Peierls per questo comportamento.
+
+Per i casi 2D e 3D, le curve di magnetizzazione sono risultate convergere a una funzione ben definita, che nel caso 2D è la nota soluzione analitica di Onsager. In questi casi, la temperatura critica è stata stimata in un processo composto di due step: prima, per ogni dimensione del reticolo è stata ottenuta una stima della temperatura critica $T_C(N)$ calcolando il massimo della suscettività magnetica $\chi$ in funzione della temperatura (che diverge per $N \to \infty$); dopo, i dati $(N, T_C(N))$ sono stati fittati a una funzione della forma $T_C(N) = T_C(\infty) + aN^{-\frac{1}{\nu}}$, che è un noto risultato della teoria del Finite Size Scaling, per ottenere una stima della temperatura critica nel limite termodinamico $T_C(\infty)$.
+
+I valori ottenuti sono stati $T_C^{2D} \approx 2.275$ e $T_C^{3D} \approx 4.533$, che sono in buon accordo con i noti risultati analitici ($T_C^{2D} = 2.269$) e numerici ($T_C^{3D} = 4.511$), rispettivamente. Durante questo processo si è trovato che la più grande fonte d'errore per l'analisi fosse la risoluzione della temperatura delle simulazioni, che è risultata piuttosto bassa, causando una discretizzazione nella stima di $T_C(N)$. Questo non è stato sufficiente a influenzare significativamente i risultati finali, ma si è notato che una maggiore risoluzione della temperatura avrebbe migliorato sensibilmente le stime.
+
 
 
 \section*{Summary}
 
-The Ising model is a mathematical model of ferromagnetism in statistical mechanics that represents solids as lattices of non moving spins that only interact with their nearest neighbors. While analytical solutions exist for the one and two dimensional cases (the latter only in the absence of an external magnetic field), the three dimensional case is still unsolved, and only numerical solutions are known. This work presents a numerical study of the ferromagnetic Ising model in one, two, and three dimensions with no magnetic field in order to observe the phenomenon of phase transition and understand how it can be studied with Finite Size techniques.
+The Ising model is a mathematical model of ferromagnetism in statistical mechanics that represents solids as lattices of non moving spins that only interact with their nearest neighbours. While analytical solutions exist for the one and two dimensional cases (the latter only in the absence of an external magnetic field), the three dimensional case is still unsolved, and only numerical solutions are known. This work presents a numerical study of the ferromagnetic Ising model in one, two, and three dimensions with no magnetic field in order to observe the phenomenon of phase transition and understand how it can be studied with Finite Size techniques.
 
-The most relevant observable for this study is the mean magnetization, defined as the first derivative of the free energy with respect to the external magnetic field per site, and that can be computed as the average magnitude of the spins in the lattice. A phase transition is defined by a singularity in the free energy, which implies a sudden change in the magnetization as a function of the temperature. That is, the fundamental problem to be solved is the computation of the mean magnetization of the system at a given temperature, which can only be obtained, in the ensemble mean sense, only by sampling the system at that temperature. A direct sampling is not possible because of the computational complexity of the problem, which is why a Markov Chain Monte Carlo method is used.
+The most relevant observable for this study is the mean magnetization, defined as the first derivative of the free energy with respect to the external magnetic field per site, and that can be computed as the average magnitude of the spins in the lattice. A phase transition is defined by a singularity in the free energy, which implies a sudden change in the magnetization as a function of the temperature. That is, the fundamental problem to be solved is the computation of the mean magnetization of the system at a given temperature, which can be obtained, in the ensemble mean sense, only by sampling the system at that temperature. A direct sampling of the configurations is not possible because of the computational complexity of the problem, which is why a Markov Chain Monte Carlo method is used.
 
-The chosen algorithm is the Metropolis-Hastings algorithm, which generates a Markov Chain of system configurations by randomly selecting a spin and proposing a new configuration to migrate to by flipping that spin. The algorithm then accepts or rejects the proposed configuration based on the energy difference between the two configurations (which is very fast to compute), and guides the system to explore the configuration space in a way that is consistent with the Boltzmann distribution. This study implemented a version of the Metropolis-Hastings algorithm that adds a configuration to the chain after every single proposed spin flip. Another option (that will be explored, if time allows) is to add a configuration to the chain only after every sweep, which is defined as applying a possible spin flip to a configuration $N^d$ times, where $N$ is the number of spins per side of the square lattice. This ensures a lower correlation between successive configurations in the chain, and so a lower integrated autocorrelation time $\tau_{\text{int}}$; while it is an arbitrary choice it is also widely used in literature.
+The chosen algorithm is the Metropolis-Hastings algorithm, which generates a Markov Chain of system configurations by randomly selecting a spin and proposing a new configuration to migrate to by flipping that spin. The algorithm then accepts or rejects the proposed configuration based on the energy difference between the two configurations (which is very fast to compute), and guides the system to explore the configuration space in a way that is consistent with the Boltzmann distribution. This study implemented at first a version of the Metropolis-Hastings algorithm that adds a configuration to the chain after every single proposed spin flip. Another option that was explored in later stages of the project is to add a configuration to the chain only after every sweep, which is defined as applying a possible spin flip to a configuration $N^d$ times, where $N$ is the number of spins per side of the square lattice. This ensures a lower correlation between successive configurations in the chain, and so a lower integrated autocorrelation time $\tau_{\text{int}}$; while it is an arbitrary choice it is also widely used in literature.
 
-This project was implemented using Python, and to improve the language poor performance the code was optimized using NumPy and Numba, which is a just-in-time compiler for Python that compiles Python code to machine code at runtime to drastically improve performance. The chains produced by the algorithm were stored in np.ndarray format (and were operated upon with periodic boundary conditions) in HDF5 files with lzf compression for fast i/o operations. To process the chains, the HDF5 files were read in chunks to avoid running out RAM during execution. A great effort was put into the optimization of the code to be able to be run with this scheme. The largest lattice sizes simulated were $N = 500$ for the 1D case, $N = 100$ for the 2D case, and $N = 25$ for the 3D case, where $N$ is the number of spins per side of the square lattice. Every chain was simulated for a number of steps of the order of the million before analysis.
+This project was implemented using Python, and to improve this language's poor performance the code was optimized using NumPy and Numba, which is a just-in-time compiler that compiles the scripts to machine code at runtime and caches them to drastically improve performance. The chains produced by the algorithm were stored in np.ndarray format (and were operated upon with periodic boundary conditions) in HDF5 files with lzf compression for fast i/o operations. To process the chains, the HDF5 files were read in chunks to avoid running out of RAM during execution. A great effort was put into the optimization of the code to be able to be run with this scheme. The largest lattice sizes simulated were $N = 500$ for the 1D case, $N = 100$ for the 2D case, and $N = 30$ for the 3D case, where $N$ is the number of spins per side of the square lattice. Every chain was simulated for a number of steps of the order of the million before analysis.
 
 The data was then processed to determine the thermalization and the autocorrelation time, which are fundamental to extract uncorrelated samples from any Markov Chain. To estimate these numbers the integrated autocorrelation time $\tau_{\text{int}}$ was considered. As Sokal (1995) suggests, the thermalization time (defined as the time it takes for the system to forget its initial configuration), was estimated as $20 \tau_{\text{int}}$, while the space between two independent samples was estimated as $2 \tau_{\text{int}}$. To generate the chains cold starts were used (all spins aligned), because the models were simulated starting from a low temperature, and for the next temperature the last configuration of the previous chain was used as the initial configuration for the new chain. This granted a notable improvement in the thermalization time.
 
 To compute $\tau_{\text{int}}$ two techniques were explored:
 
 \begin{itemize}[leftmargin=*,itemsep=0.25em]
-	\item Sokal's method with a self-consistent windowing procedure: integrating the autocorrelation function up to a window size $M$ that is a multiple of $\tau_{\text{int}}$ itself, and iteratively increasing $M$ until convergence is reached;
+	\item Sokal's method with a self-consistent windowing procedure: computing $\tau_{\text{int}}$ by integrating the autocorrelation function up to a window size $M$ that is a multiple of $\tau_{\text{int}}$ itself, and iteratively increasing $M$ until convergence is reached;
 	\item Data blocking method (Flyvbjerg-Petersen): dividing the elements of the chain into blocks of increasing size and studying the variance of the mean of the magnetization as a function of the block size, and estimating $\tau_{\text{int}}$ as the block size at which the variance reaches a plateau.
 \end{itemize}
 
-Both methods were found to be in good agreement, with the sole exception being an instability in both methods close to the critical temperature. This is the expected behavior, as the autocorrelation time is known to diverge at the critical temperature, and both methods are based on the assumption that $\tau_{\text{int}}$ is finite. In practice, Sokal's method was found to be faster and more stable in actual implementation.
+Both methods were found to be in good agreement, with the sole exception being an instability close to the critical temperature. This is the expected behavior, as the autocorrelation time is known to diverge at the critical temperature, and both methods are based on the assumption that $\tau_{\text{int}}$ is finite. The errors calculated on the $\tau_{\text{int}}$ though, were found to be quite big, specifically for the data blocking method. To obtain better results the Metropolis-Hastings algorithm was improved with the sweep based sampling discussed above, and that fixed the problem.
 
-For the 1D case the magnetization curve was found to approach zero for all temperatures at the increase of the system size. This is consistent with the analytical result that there is no phase transition at finite temperature in one dimension (but there must exist a different phase at $T = 0$). In this case, the shape of the magnetization curve was enough to demonstrate the absence of a phase transition.
+For the 1D case the magnetization curve was found to approach zero for all temperatures at the increase of the system size. This is consistent with the analytical result that there is no phase transition at finite temperature in one dimension (but there must exist a different phase at $T = 0$). In this case, the shape of the magnetization curve was enough to demonstrate the absence of a phase transition. A visual representation of the lattices was produced for the 1D and 2D cases to appreciate Peierls' argument for this behaviour.
 
-For the 2D and 3D cases, the magnetization curves were found to converge to well defined function, which in the 2D case was Onsager's known analytical solution. In these cases, the critical temperature was estimated by interpolating the magnetization curves (computed with the finest lattice sizes) with a cubic spline, and computing its derivative. This function is supposed to diverge at the critical temperature: the Finite Size equivalent is a global maximum, from which an estimation of $T_C$ was extracted.
+For the 2D and 3D cases, the magnetization curves were found to converge to well defined functions, which in the 2D case was Onsager's known analytical solution. In these cases, the critical temperature was estimated in a two-step process: first, an estimate of the critical temperature for a specific lattice size was obtained for every lattice size $T_C(N)$ by computing the maximum of the magnetic susceptibility $\chi$ as a function of the temperature (which diverges for $N \to \infty$); second, the data $(N, T_C(N))$ was fitted to a function of the form $T_C(N) = T_C(\infty) + aN^{-\frac{1}{\nu}}$, which is a well known result of the Finite Size Scaling theory, to obtain an estimate of the critical temperature in the thermodynamic limit $T_C(\infty)$.
 
-The values obtained were $T_C^{2D} \approx 2.390$ and $T_C^{3D} \approx 4.500$, which are in good agreement with the known analytical ($T_C^{2D} = 2.269$) and numerical ($T_C^{3D} = 4.511$) results, respectively. Moreover, a visual representation of Peierls' argument was produced for the 1D and 2D cases to show the tendency of the systems to group up clusters of aligned spins near the critical temperature.
-
-
+The values obtained were $T_C^{2D} \approx 2.275$ and $T_C^{3D} \approx 4.533$, which are in good agreement with the known analytical ($T_C^{2D} = 2.269$) and numerical ($T_C^{3D} = 4.511$) results, respectively. During this process, the primary source of error was found to be the low temperature resolution of the simulations, which caused a discretization in the $T_C(N)$ estimates. While this did not significantly affect the final extrapolations, a finer temperature grid would improve the accuracy of the analysis.
 
 \end{document}

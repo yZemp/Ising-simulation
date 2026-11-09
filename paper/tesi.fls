@@ -234,8 +234,12 @@ INPUT ../pics_and_anims/tc_extraction_100_2.pdf
 INPUT ../pics_and_anims/tc_extraction_100_2.pdf
 INPUT ../pics_and_anims/magn_graphs/magnetization_convergence_3D.pdf
 INPUT ../pics_and_anims/magn_graphs/magnetization_convergence_3D.pdf
-INPUT ../pics_and_anims/tc_extraction_25_3.pdf
-INPUT ../pics_and_anims/tc_extraction_25_3.pdf
+INPUT ../pics_and_anims/tc_extraction_30_3.pdf
+INPUT ../pics_and_anims/tc_extraction_30_3.pdf
+INPUT ../pics_and_anims/true_tc_extraction_2D.pdf
+INPUT ../pics_and_anims/true_tc_extraction_2D.pdf
+INPUT ../pics_and_anims/true_tc_extraction_3D.pdf
+INPUT ../pics_and_anims/true_tc_extraction_3D.pdf
 INPUT ../pics_and_anims/ising_1D_N5_final.pdf
 INPUT ../pics_and_anims/ising_1D_N5_final.pdf
 INPUT ../pics_and_anims/ising_1D_N50_final.pdf

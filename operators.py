@@ -139,16 +139,37 @@ def magnetization(model: np.ndarray) -> float:
 
 
 def chi(N, dim, data_file, temperatures):
+    '''
+    Compute the magnetic susceptibility for a given dimension and system size.
+    '''
 
     chi_values = []
-
-    for T_index, T in enumerate(temperatures):
-        with h5py.File(data_file, "r") as file:
-            filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/filtered_data"])[T_index])
-            # print(f"Filtered data shape: {filtered_data.shape}")
-
-            magns = np.array([magnetization(model) for model in filtered_data])
-            chi = (N / T) * (np.mean(magns**2) - np.mean(np.abs(magns))**2)
+    
+    with h5py.File(data_file, "r") as file:
+        for T_index, T in enumerate(temperatures):
+            filtered_data = np.array(file[f"dim_{dim}_N_{N}/filtered_data"][T_index])
+            
+            # Filtra le matrici di zero-padding (mantiene solo le matrici con almeno un elemento non nullo)
+            valid_idx = np.any(filtered_data, axis=(1, 2))
+            valid_data = filtered_data[valid_idx]
+            
+            if len(valid_data) == 0:
+                chi_values.append(0.0)
+                continue
+                
+            magns = np.array([magnetization(model) for model in valid_data])
+            chi = ((N ** dim) / T) * (np.mean(magns**2) - np.mean(np.abs(magns))**2)
             chi_values.append(chi)
-
+            
     return np.array(chi_values)
+
+    # for T_index, T in enumerate(temperatures):
+    #     with h5py.File(data_file, "r") as file:
+    #         filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/filtered_data"])[T_index])
+    #         # print(f"Filtered data shape: {filtered_data.shape}")
+
+    #         magns = np.array([magnetization(model) for model in filtered_data])
+    #         chi = ((N ** dim) / T) * (np.mean(magns**2) - np.mean(np.abs(magns))**2)
+    #         chi_values.append(chi)
+
+    # return np.array(chi_values)
