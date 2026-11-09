@@ -1,5 +1,5 @@
 # Fdb version 4
-["lualatex"] 1794260770.48284 "c:/Users/yZempX/Documents/Ising-simulation/paper/tesi.tex" "tesi.pdf" "tesi" 1794260776.40036 0
+["lualatex"] 1794262097.24918 "c:/Users/yZempX/Documents/Ising-simulation/paper/tesi.tex" "tesi.pdf" "tesi" 1794262102.84784 0
   "../pics_and_anims/ED_(15, 15)_6.26.pdf" 1793376495 49790 418ecee57f321692fe8d73509ca65210 ""
   "../pics_and_anims/ED_(20, 20)_3.26.pdf" 1793376857 61120 cdf2488e90d4cc76c7b10340eca79617 ""
   "../pics_and_anims/autocorrelation_plot.pdf" 1793294853 18468 2e51f689e400ae240db6852e9c7f8dd2 ""
@@ -214,17 +214,17 @@
   "c:/texlive/2026/texmf-dist/tex/luatex/luaotfload/luaotfload.lua" 1787002410 13566 16df94dd2de231b2bca0aaa0190941fe ""
   "c:/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1787005181 5619558 f7c53e6c46e0e6db5b3d42ef6e06a9ef ""
   "c:/texlive/2026/texmf-var/web2c/luahbtex/lualatex.fmt" 1787005274 6748278 c9cc3a750c3b9db6ba55143d4f593684 ""
-  "chapter_1_theory.aux" 1794260772 2711 f41f6cfb7ef85f0ffc3bb25a260fff81 "lualatex"
+  "chapter_1_theory.aux" 1794262099 2711 f41f6cfb7ef85f0ffc3bb25a260fff81 "lualatex"
   "chapter_1_theory.tex" 1794099722 12609 78e2b1016bd0399dd66d5a1fd0d35a9f ""
-  "chapter_2_methods.aux" 1794260776 5004 ad3516d1597f51f57f4c33cc6e400ead "lualatex"
+  "chapter_2_methods.aux" 1794262102 5004 ad3516d1597f51f57f4c33cc6e400ead "lualatex"
   "chapter_2_methods.tex" 1794245987 31786 40cb5d990b99890c36372ce1e561ffc5 ""
-  "chapter_3_results.aux" 1794260776 4916 d8d6d4401084f4c5420097a3e9721802 "lualatex"
-  "chapter_3_results.tex" 1794259238 12282 a1a06cdbc5fc0b6513a5510e0fdd475c ""
+  "chapter_3_results.aux" 1794262102 4916 d8d6d4401084f4c5420097a3e9721802 "lualatex"
+  "chapter_3_results.tex" 1794262096 12289 fac8575760d1cb8cdb1ffe96547f9ea2 ""
   "images/logo_unimib.png" 1787005996 220985 58bdeb398caca040af8eb74d907cc409 ""
-  "tesi.aux" 1794260776 766 c124c44b1bb089aaaada0759a1a4387c "lualatex"
-  "tesi.out" 1794260776 4008 da2f3879c8770e52a7c30b4919cbd805 "lualatex"
+  "tesi.aux" 1794262102 766 c124c44b1bb089aaaada0759a1a4387c "lualatex"
+  "tesi.out" 1794262102 4008 da2f3879c8770e52a7c30b4919cbd805 "lualatex"
   "tesi.tex" 1794260769 4372 e2a6be4ef9369bff864df1e642316ec7 ""
-  "tesi.toc" 1794260776 2026 59223c9226e0f891c34d6440921ef658 "lualatex"
+  "tesi.toc" 1794262102 2026 59223c9226e0f891c34d6440921ef658 "lualatex"
   (generated)
   "chapter_1_theory.aux"
   "chapter_2_methods.aux"
