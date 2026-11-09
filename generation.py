@@ -6,7 +6,7 @@ from typing import cast
 from ising import new_random_ising
 from mcmc_utils import metropolis_ising
 
-def mcmc_sampling(N = 20, dim = 2, T = 1.0, steps = 1000, initial_model = None, seed = 0):
+def mcmc_sampling(N = 20, dim = 2, T = 1.0, steps = 1000, initial_model = None, seed = 0, sweep_sampling = False):
     '''
     Samples N-dimensional Ising states using MCMC with the Metropolis algorithm.
     Parameters:
@@ -24,12 +24,12 @@ def mcmc_sampling(N = 20, dim = 2, T = 1.0, steps = 1000, initial_model = None, 
     else:
         m = np.array(initial_model, copy = True)
 
-    models = metropolis_ising(m, T = T, steps = steps, seed = seed)
+    models = metropolis_ising(m, T = T, steps = steps, seed = seed, sweep_sampling = sweep_sampling)
 
     return models
 
 
-def simulate(N, dim, steps, data_file = "tmp.hdf5"):
+def simulate(N, dim, steps, data_file = "tmp.hdf5", sweep_sampling = False):
     '''
     Computes the simulation of the Ising model varying the temperature and stores the results in an HDF5 file.
     
@@ -58,7 +58,6 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
     raw_data_shape = (len(temps), steps) + model_shape
     group_name = f"dim_{dim}_N_{N}"
 
-    # TODO: Possibly switch to packedbits model
     with h5py.File(data_file, "a") as f:
 
         # Extending an existing simulation
@@ -68,6 +67,7 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
             tmp_group = cast(h5py.Group, f[group_name])
             temps = cast(h5py.Dataset, tmp_group['temperatures'])[:]
             raw_data = cast(h5py.Dataset, tmp_group['raw_data'])
+            sweep_sampling = bool(tmp_group.attrs.get('sweep_sampling', False))
             
             current_steps = raw_data.shape[1]
             new_steps_total = current_steps + steps
@@ -85,6 +85,7 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
                     T = t,
                     steps = steps,
                     initial_model = current_model,
+                    sweep_sampling = sweep_sampling
                 )
                 
                 # Append new models to the existing data
@@ -98,14 +99,17 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
 
             tmp_group = f.create_group(group_name)
             tmp_group.create_dataset('temperatures', data = temps)
+            tmp_group.attrs['sweep_sampling'] = sweep_sampling
             raw_data = cast(h5py.Dataset, tmp_group.create_dataset(
-            "raw_data", 
-            shape = raw_data_shape, 
-            maxshape = max_shape,
-            dtype = np.int8,
-            compression = "lzf",
-            chunks = True
+                "raw_data", 
+                shape = raw_data_shape, 
+                maxshape = max_shape,
+                dtype = np.int8,
+                compression = "lzf",
+                chunks = True
             ))
+
+            raw_data.attrs['sweep_sampling'] = sweep_sampling
             
             for i, t in enumerate(temps):
                 print(f"Computing MCMC for T = {t:.2f}... ({i * 100 / len(temps):.1f}%)")
@@ -116,6 +120,7 @@ def simulate(N, dim, steps, data_file = "tmp.hdf5"):
                     T = t,
                     steps = steps,
                     initial_model = current_model,
+                    sweep_sampling = sweep_sampling
                 )
                 current_model = models[-1]
 

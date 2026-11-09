@@ -18,13 +18,13 @@ def maxwell_boltzmann_statistics(epsilon, beta = 1.):
 
 
 @njit(cache = ALLOW_NUMBA_CACHING)
-def _metropolis_ising_1d(model: np.ndarray, T: float, steps: int):
+def _metropolis_ising_1d(model: np.ndarray, T: float, steps: int, sweep_sampling: bool = False):
     '''1D version of Metropolis-Hastings for Ising model (Numba-compiled).'''
     curr_model = np.copy(model)
     models_samples = np.empty((steps,) + curr_model.shape, dtype = curr_model.dtype)
     N = curr_model.shape[0]
     
-    for i in range(steps):
+    for i in range(steps * N if sweep_sampling else steps):
         idx0 = np.random.randint(0, N)
         spin = curr_model[idx0]
         forward = (idx0 + 1) % N
@@ -34,20 +34,24 @@ def _metropolis_ising_1d(model: np.ndarray, T: float, steps: int):
         accept_probability = np.minimum(1.0, maxwell_boltzmann_statistics(deltaE, beta=1.0 / T))
         if np.random.random() <= accept_probability:
             curr_model[idx0] = -curr_model[idx0]
-        
-        models_samples[i] = curr_model
+
+        if not sweep_sampling:
+            models_samples[i] = curr_model
+        else:
+            if i % N == 0:
+                models_samples[i // N] = curr_model
     
     return models_samples
 
 
 @njit(cache = ALLOW_NUMBA_CACHING)
-def _metropolis_ising_2d(model: np.ndarray, T: float, steps: int):
+def _metropolis_ising_2d(model: np.ndarray, T: float, steps: int, sweep_sampling: bool = False):
     '''2D version of Metropolis-Hastings for Ising model (Numba-compiled).'''
     curr_model = np.copy(model)
     models_samples = np.empty((steps,) + curr_model.shape, dtype=curr_model.dtype)
     N1, N2 = curr_model.shape[0], curr_model.shape[1]
     
-    for i in range(steps):
+    for i in range(steps * N1 * N2 if sweep_sampling else steps):
         idx0 = np.random.randint(0, N1)
         idx1 = np.random.randint(0, N2)
         spin = curr_model[idx0, idx1]
@@ -63,19 +67,23 @@ def _metropolis_ising_2d(model: np.ndarray, T: float, steps: int):
         if np.random.random() <= accept_probability:
             curr_model[idx0, idx1] = -curr_model[idx0, idx1]
         
-        models_samples[i] = curr_model
-    
+        if not sweep_sampling:
+            models_samples[i] = curr_model
+        else:
+            if i % (N1 * N2) == 0:
+                models_samples[i // (N1 * N2)] = curr_model
+
     return models_samples
 
 
 @njit(cache = ALLOW_NUMBA_CACHING)
-def _metropolis_ising_3d(model: np.ndarray, T: float, steps: int):
+def _metropolis_ising_3d(model: np.ndarray, T: float, steps: int, sweep_sampling: bool = False):
     '''3D version of Metropolis-Hastings for Ising model (Numba-compiled).'''
     curr_model = np.copy(model)
     models_samples = np.empty((steps,) + curr_model.shape, dtype=curr_model.dtype)
     N1, N2, N3 = curr_model.shape[0], curr_model.shape[1], curr_model.shape[2]
     
-    for i in range(steps):
+    for i in range(steps * N1 * N2 * N3 if sweep_sampling else steps):
         idx0 = np.random.randint(0, N1)
         idx1 = np.random.randint(0, N2)
         idx2 = np.random.randint(0, N3)
@@ -96,12 +104,16 @@ def _metropolis_ising_3d(model: np.ndarray, T: float, steps: int):
         if np.random.random() <= accept_probability:
             curr_model[idx0, idx1, idx2] = -curr_model[idx0, idx1, idx2]
         
-        models_samples[i] = curr_model
-    
+        if not sweep_sampling:
+            models_samples[i] = curr_model
+        else:
+            if i % (N1 * N2 * N3) == 0:
+                models_samples[i // (N1 * N2 * N3)] = curr_model
+
     return models_samples
 
 
-def metropolis_ising(model: np.ndarray, T: float, steps: int, seed: int | None = None):
+def metropolis_ising(model: np.ndarray, T: float, steps: int, seed: int | None = None, sweep_sampling: bool = False):
     '''
     Given:
         Target probability distribution function
@@ -121,11 +133,11 @@ def metropolis_ising(model: np.ndarray, T: float, steps: int, seed: int | None =
         _set_numba_seed(seed)
 
     if model.ndim == 1:
-        return _metropolis_ising_1d(model, T, steps)
+        return _metropolis_ising_1d(model, T, steps, sweep_sampling = sweep_sampling)
     elif model.ndim == 2:
-        return _metropolis_ising_2d(model, T, steps)
+        return _metropolis_ising_2d(model, T, steps, sweep_sampling = sweep_sampling)
     elif model.ndim == 3:
-        return _metropolis_ising_3d(model, T, steps)
+        return _metropolis_ising_3d(model, T, steps, sweep_sampling = sweep_sampling)
     else:
         raise ValueError("metropolis_ising supports 1D, 2D, and 3D models only")
 

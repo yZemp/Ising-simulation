@@ -144,12 +144,11 @@ def chi(N, dim, data_file, temperatures):
 
     for T_index, T in enumerate(temperatures):
         with h5py.File(data_file, "r") as file:
-            length = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/filtered_lengths"])[T_index])
-            filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/filtered_data"])[T_index, :length])
+            filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/filtered_data"])[T_index])
             # print(f"Filtered data shape: {filtered_data.shape}")
 
             magns = np.array([magnetization(model) for model in filtered_data])
-            chi = (length / T) * (np.mean(magns**2) - np.mean(magns)**2)
+            chi = (N / T) * (np.mean(magns**2) - np.mean(np.abs(magns))**2)
             chi_values.append(chi)
 
     return np.array(chi_values)

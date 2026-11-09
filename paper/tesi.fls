@@ -218,6 +218,12 @@ INPUT ../pics_and_anims/tau_int_2D.pdf
 INPUT ../pics_and_anims/tau_int_2D.pdf
 INPUT ../pics_and_anims/tau_int_3D.pdf
 INPUT ../pics_and_anims/tau_int_3D.pdf
+INPUT ../pics_and_anims/tau_int_1D_sweeps.pdf
+INPUT ../pics_and_anims/tau_int_1D_sweeps.pdf
+INPUT ../pics_and_anims/tau_int_2D_sweeps.pdf
+INPUT ../pics_and_anims/tau_int_2D_sweeps.pdf
+INPUT ../pics_and_anims/tau_int_3D_sweeps.pdf
+INPUT ../pics_and_anims/tau_int_3D_sweeps.pdf
 OUTPUT chapter_3_results.aux
 INPUT ./chapter_3_results.tex
 INPUT ../pics_and_anims/magn_graphs/magnetization_convergence_1D.pdf

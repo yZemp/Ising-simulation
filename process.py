@@ -19,45 +19,60 @@ def magnetization_bake(N, dim, data_file = ""):
     (Prepares the data for plotting)
     '''
 
+    print(f"Baking magnetization for N = {N}, dim = {dim}...")
+
     if data_file is None or data_file == "":
         data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
 
-    with h5py.File(data_file, "r") as file:
-        group = cast(h5py.Group, file[f"dim_{dim}_N_{N}"])
-        temperatures = np.array(cast(h5py.Dataset, group["temperatures"]))
-        filtered_data = np.array(cast(h5py.Dataset, group["filtered_data"]))
-        if f"dim_{dim}_N_{N}/filtered_lengths" in file:
-            filtered_lengths = np.array(cast(h5py.Dataset, group["filtered_lengths"]))
-        else:
-            filtered_lengths = np.full(len(temperatures), filtered_data.shape[1], dtype = np.int32)
+    with h5py.File(data_file, "a") as file:
+        group_key = f"dim_{dim}_N_{N}"
+        if group_key not in file:
+            print(f"Data for N = {N}, dim = {dim} not found in {data_file}. Please run simulate() first.")
+            return
 
-    valid_models = [filtered_data[i, :filtered_lengths[i]] for i in range(len(temperatures))]
-    mean_magnetization = np.empty(len(temperatures))
-    errors = np.empty(len(temperatures))
+        group = cast(h5py.Group, file[group_key])
 
-    # OLD ERRORS (wrong):
-    # errors = np.array([np.std([magnetization(model) for model in models]) / np.sqrt(len(models)) for models in valid_models])
+        if "filtered_lengths" not in group or "filtered_data" not in group:
+            print(f"Filtered data not found in {data_file}. Please run filter_data() first.")
+            return
 
-    for i, models in enumerate(valid_models):
-        mags = np.array([magnetization(model) for model in models])
-        mean_magnetization[i] = np.mean(mags)
+        temperatures = cast(h5py.Dataset, group["temperatures"])[:]
+        n_temps = len(temperatures)
         
-        tau, _ = tau_int_sokal(mags)
+        ds_lengths = cast(h5py.Dataset, group["filtered_lengths"])
+        filtered_lengths = ds_lengths[:n_temps]
+
+        # Load filtered data into memory (only the relevant part)
+        ds_data = cast(h5py.Dataset, group["filtered_data"])
         
-        var_mu = np.maximum(1.0, 2 * tau) * np.var(mags) / len(mags)
-        errors[i] = np.sqrt(var_mu)
+        mean_magnetization = np.empty(n_temps)
+        errors = np.empty(n_temps)
 
+        # Lazy loading of the data in memory
+        for i in range(n_temps):
+            length = int(filtered_lengths[i])
+            
+            models = ds_data[i, :length] 
 
-    with h5py.File(data_file, "r+") as file:
-        group = cast(h5py.Group, file[f"dim_{dim}_N_{N}"])
+            # Compute magnetization
+            mags = np.array([magnetization(model) for model in models])
+            mean_magnetization[i] = np.mean(mags)
+            
+            # Compute error
+            tau, _ = tau_int_sokal(mags)
+            var_mu = np.maximum(1.0, 2 * tau) * np.var(mags) / len(mags)
+            errors[i] = np.sqrt(var_mu)
+
+        # Store results in the HDF5 file
         if "magnetizations" in group:
             del group["magnetizations"]
         if "magnetization_errors" in group:
             del group["magnetization_errors"]
-        group.create_dataset("magnetizations", data = mean_magnetization)
-        group.create_dataset("magnetization_errors", data = errors)
+            
+        group.create_dataset("magnetizations", data=mean_magnetization)
+        group.create_dataset("magnetization_errors", data=errors)
 
-
+    print(f"Baked magnetization values for N = {N}, dim = {dim}.")
 
 ###################################################################################
 # Data filtering
@@ -127,10 +142,12 @@ def filter_data(N, dim, data_file = "", max_chunk_size = 100_000):
             # Iterates over the filtered samples for a given temperature index, yielding chunks of filtered samples
             for chunk_start in range(burn_in, steps, max_chunk_size):
                 chunk_end = min(chunk_start + max_chunk_size, steps)
-                first_sample = chunk_start + ((thinning - ((chunk_start - burn_in) % thinning)) % thinning)
+                
+                data_chunk = raw_dataset[temperature_index, chunk_start:chunk_end]
 
-                if first_sample < chunk_end:
-                    yield np.array(raw_dataset[temperature_index, first_sample:chunk_end:thinning])
+                offset = (thinning - ((chunk_start - burn_in) % thinning)) % thinning
+                if offset < data_chunk.shape[0]:
+                    yield data_chunk[offset::thinning]
 
         pilot_length = min(max_chunk_size, steps)
 
@@ -139,9 +156,10 @@ def filter_data(N, dim, data_file = "", max_chunk_size = 100_000):
             print("----------------------------------------------------------------------")
             print(f"Estimating filtering window for T = {T:.2f} ({i / len(temperatures) * 100:.1f}%)")
 
-            pilot_data = np.array(raw_dataset[i, :pilot_length])
-            observables = np.array([magnetization(model) for model in pilot_data])
-            tau_int = tau_int_sokal(observables, c = 20.0)
+            pilot_data = raw_dataset[i, :pilot_length]
+            axes_to_reduce = tuple(range(1, pilot_data.ndim))
+            observables = np.abs(np.mean(pilot_data, axis=axes_to_reduce))
+            tau_int, _ = tau_int_sokal(observables, c = 10.0)
 
             if tau_int > 0:
                 burn_in = min(int(20 * tau_int), max(steps - 1, 0))
@@ -155,13 +173,17 @@ def filter_data(N, dim, data_file = "", max_chunk_size = 100_000):
             thinnings[i] = thinning
             filtered_lengths[i] = count_filtered_samples(burn_in, thinning)
 
-        max_length = int(np.max(filtered_lengths))
+        max_length = max(1, int(np.max(filtered_lengths)))
+        bytes_per_model = int(np.prod(model_shape) * raw_dtype.itemsize)
+        target_chunk_bytes = 1024 * 1024
+        chunk_time_size = max(1, target_chunk_bytes // bytes_per_model)
+        chunk_time_size = int(max(1, min(max_length, chunk_time_size)))
         filtered_dataset = file.create_dataset(
             filtered_data_path,
-            shape = (len(temperatures), max_length) + model_shape,
-            dtype = raw_dtype,
-            compression = "lzf",
-            chunks = True,
+            shape=(len(temperatures), max_length) + model_shape,
+            dtype=raw_dtype,
+            compression="lzf",
+            chunks=(1, chunk_time_size) + model_shape
         )
         file.create_dataset(
             filtered_lengths_path,
@@ -181,9 +203,11 @@ def filter_data(N, dim, data_file = "", max_chunk_size = 100_000):
                 write_pos += chunk_length
 
             if write_pos == 0:
-                filtered_dataset[i, 0] = np.array(raw_dataset[i, steps - 1])
+                filtered_dataset[i, 0] = raw_dataset[i, steps - 1]
 
         filtered_dataset.attrs["lengths_dataset"] = "filtered_lengths"
+
+        print("Filtering completed for N = {N}, dim = {dim}.")
 
 
 def main():
@@ -228,11 +252,20 @@ def main():
 
 if __name__ == "__main__":
 
-    # Ns = [100]
-    # dim = 1
+    Ns = [30]
+    dim = 3
 
-    # for N in Ns:
-    #     # filter_data(N, dim, data_file = r"dim_{dim}_N_{N}_data.hdf5".format(N = N, dim = dim))
-    #     magnetization_bake(N, dim, data_file = r"dim_{dim}_N_{N}_data.hdf5".format(N = N, dim = dim))
 
-    main()
+    for N in Ns:
+        data_file = r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(N = N, dim = dim)
+        # filter_data(N, dim, data_file = data_file)
+        magnetization_bake(N, dim, data_file = data_file)
+
+    # N = 4
+    # dim = 2
+    # data_file = f"E:\\simulations_data\\sweep_based_chains\\dim_{dim}_N_{N}" + "_data.hdf5".format(N = N, dim = dim)
+    # with h5py.File(data_file, "r") as file:
+    #     sweep_sampling = bool(file[f"dim_{dim}_N_{N}"].attrs.get('sweep_sampling', False))
+    #     print(f"sweep_sampling = {sweep_sampling}")
+
+    # main()

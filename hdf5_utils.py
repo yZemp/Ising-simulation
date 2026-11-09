@@ -1,6 +1,7 @@
 import h5py
 import numpy as np
 import os
+from typing import cast
 
 # This is barely (if ever) used for performance reasons
 # Stored as reference more than anything else
@@ -82,17 +83,30 @@ def print_hdf5_tree(file_path):
         print(f"Error reading file (corrupted or non-existent): {e}")
 
 
+def show_length(file_path: str, N: int, dim: int) -> None:
+    with h5py.File(file_path, "r") as f:
+        dataset = cast(h5py.Dataset, f[f"dim_{dim}_N_{N}/raw_data"])
+        
+        # Accessing the shape of the dataset to get its length
+        # Without loading the entire dataset into memory
+        length = dataset.shape[1]
+        
+        print(f"Length of raw_data for dim={dim}, N={N}: {length}")
 
 if __name__ == "__main__":
 
-    N = 15
-    dim = 3
+    # N = 15
+    # dim = 3
 
-    data_file = r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N)
+    for N in [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100]:
+    # for N in [4, 6, 8, 10]:
+        for dim in [2]:
+            data_file = r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N)
 
-    verify_hdf5_integrity(data_file)
-    print_hdf5_tree(data_file)
-
+            # verify_hdf5_integrity(data_file)
+            print_hdf5_tree(data_file)
+            # show_length(data_file, N, dim)
+    
 
 
 # NOTE: These functions are mostly useless

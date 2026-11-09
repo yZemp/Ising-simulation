@@ -33,6 +33,7 @@ Partially because of this choice, but more in general to allow for efficient i/o
 \section{Monte Carlo Markov Chains}
 
 \subsection{Generation}
+\label{subsection:generation}
 
 To study a system at a given temperature it is necessary to be able to generate a random configuration of said system. These random configurations are distributed as a function of their energy: as discussed the probability of a system of being in a state with energy $E$ in the canonical ensemble is given by:
 
@@ -423,10 +424,40 @@ Now that both methods have been described, they can be compared. Clearly, their 
 	\label{figure:tau_int_3D_comparison}
 \end{figure}
 
-The correlation between the two metzs is clear, and it can be noted that both methods struggle close to $T_C$ where this behavior is, of course, expected. This phenomenon is the very well known Critical Slowing Down, and it is a consequence of the fact that the correlation length $\xi$, that is, the typical distance over which spins are correlated, diverges at $T_C$.
+The correlation between the two methods is clear, and it can be noted that both methods struggle close to $T_C$ where this behavior is, of course, expected. This phenomenon is the very well known Critical Slowing Down, and it is a consequence of the fact that the correlation length $\xi$, that is, the typical distance over which spins are correlated, diverges at $T_C$.
 
 Since $\tau_\text{int} \propto \xi^z$ and $\xi \to \infty$ at $T_C$, it is expected that $\tau_\text{int} \to \infty$ as well, and that is why these methods struggle near the critical temperature.
 
-[TODO: is the difference between the two methods significant? Is the error magnitude acceptable?]
+\FloatBarrier
+
+\subsection{Improvement to the MCMC algorithm: sweeps}
+
+It is true that the two methods are shown to be quite compatible with each other, with produced estimations of $\tau_{\text{int}}$ that are generally in good agreement. The errors, on the other hand, are quite big, specifically close but not at $T_C$. This is specifically true for the data blocking method. Since the errors given by this method scale as $\sqrt{2 / (N_b - 1)}$ where $N_b$ is the number of blocks, the only way to reduce them is to increase the length of the chain.
+
+This option was not viable. To try to fix the problem, another approach was explored, that is, to change the way of building the chain. Let's define a "sweep" as the process of applying steps 2-5 of the Metropolis-Hastings algorithm (explained in Section \ref{subsection:generation}) to a configuration $N^d$ times. This is an arbitrary choice, with the rationale that a sweep is the amount of steps needed to give every spin in the lattice a chance to flip. The idea is to build the chain by adding a configuration to it only after every sweep: this ensures a lower correlation between successive configurations in the chain, and so a lower $\tau_{\text{int}}$. This is a pretty standard approach in the literature, and is used in many implementations of the Metropolis-Hastings algorithm.
+
+This new approach allows for much shorter chains to be used in theory, which means that more accurate results can be obtained with less computational effort. All of the production and analysis of the chains was redone with this new approach with chains with length of one less order of magnitude than before.
+
+The results are shown in figures \ref{figure:tau_int_1D_comparison_sweeps}, \ref{figure:tau_int_2D_comparison_sweeps} and \ref{figure:tau_int_3D_comparison_sweeps}. The correlation between the two methods is still clear, and the errors are significantly smaller than before. The only point where both methods fail is at the critical temperature, where, again, this is the expected behavior as the correlation length diverges and so does $\tau_{\text{int}}$.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_1D_sweeps.pdf}
+	\label{figure:tau_int_1D_comparison_sweeps}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_2D_sweeps.pdf}
+	\label{figure:tau_int_2D_comparison_sweeps}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_3D_sweeps.pdf}
+	\label{figure:tau_int_3D_comparison_sweeps}
+\end{figure}
+
+Every result shown in this paper from now on will be obtained with this new approach.
 
 \clearpage

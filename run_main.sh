@@ -30,10 +30,13 @@ source "$ACTIVATE_SCRIPT"
 # DIM_VALUES=(2)
 
 # dim = 3
-N_VALUES=(4 6 8 10 15 25)
+# N_VALUES=(4 6 8 10 15 25)
+# DIM_VALUES=(3)
+
+N_VALUES=(15 15 20 20 30)
 DIM_VALUES=(3)
 
-STEPS=200_000
+STEPS=100_000
 
 echo "Starting many simulations:"
 echo "N_VALUES: ${N_VALUES[*]}"

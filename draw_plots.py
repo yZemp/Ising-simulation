@@ -18,7 +18,7 @@ from operators import energy, magnetization, chi
 from analytical_curves import plot_analytical_curve
 
 
-def graph_magnetization_convergence(sources, filename = 'magnetization_convergence.png'):
+def graph_magnetization_convergence(sources, dim, filename = 'magnetization_convergence.png'):
     '''
     Plots magnetizations functions of T for different Ns and saves the image.
     A convergence should be observed as N increases (for dim = 1 this doesn't mathematically converge, but for dim = 2 and 3 it should).
@@ -47,6 +47,8 @@ def graph_magnetization_convergence(sources, filename = 'magnetization_convergen
     plt.figure(figsize = (12, 7))
 
     for i, source in enumerate(sources):
+        print(f"Plotting magnetization for source: {source}")
+
         with h5py.File(source, 'r') as f:
             # Extract dim and N from the group name
             group_name = list(f.keys())[0]
@@ -75,7 +77,7 @@ def graph_magnetization_convergence(sources, filename = 'magnetization_convergen
     with h5py.File(source, 'r') as f:
         temps = np.array(f[f"{list(f.keys())[0]}/temperatures"])
         t = np.linspace(temps[6], temps[-5], 100)
-    plot_analytical_curve(dim = int(sources[0].split('_')[2]), t = t)
+    plot_analytical_curve(dim = dim, t = t)
 
     plt.xlabel('Temperature (T)')
     plt.ylabel('Magnetization')
@@ -342,15 +344,27 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.pdf"):
     csokal = 10.0
     cblocking = 10.0
 
-    temperatures, data = read_data(data_file, N, dim)
+    group_name = f"dim_{dim}_N_{N}"
+    
+    with h5py.File(data_file, "r") as file:
+        raw_dataset = file[f"{group_name}/raw_data"]
+        temperatures = np.array(file[f"{group_name}/temperatures"])
+        
+        steps = raw_dataset.shape[1]
+        
+        # Alloca solo l'array finale degli osservabili (pochi MB)
+        observables = np.zeros((len(temperatures), steps), dtype=float)
+        
+        print("Computing observables (single temperature at a time)...")
+        for i in range(len(temperatures)):
+            data_T = raw_dataset[i, ...] 
+            axes_to_reduce = tuple(range(1, data_T.ndim))
+            observables[i] = np.abs(np.mean(data_T, axis=axes_to_reduce))
 
-    print(f"Filtered data shape: {data.shape}")
-
-    observables = np.array([[magnetization(model) for model in models_at_T] for models_at_T in data])
-    taus_sokal = np.zeros_like(temperatures)
-    taus_sokal_errors = np.zeros_like(temperatures)
-    taus_blocking = np.zeros_like(temperatures)
-    taus_blocking_errors = np.zeros_like(temperatures)
+    taus_sokal = np.zeros(len(temperatures), dtype=float)
+    taus_sokal_errors = np.zeros(len(temperatures), dtype=float)
+    taus_blocking = np.zeros(len(temperatures), dtype=float)
+    taus_blocking_errors = np.zeros(len(temperatures), dtype=float)
 
     for i, T in enumerate(temperatures):
         print(f"Temperature: {T:.2f}")
@@ -508,6 +522,8 @@ def derivative_graph(N, dim, data_file, filename = "extracting_tc.pdf"):
 
 if __name__ == '__main__':
     start = time.perf_counter()
+    print("Starting draw_plots.py...")
+    print(f"The time is: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
     
 
     #########################################################################################
@@ -515,16 +531,17 @@ if __name__ == '__main__':
     # MAGNETIZATION VISUALIZATION EXAMPLE USAGE
 
     # Ns = [5, 10, 20, 30, 50, 70, 100, 150, 200, 250, 300, 500]
-    # dims = [1]
+    # dim = 1
 
     # Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
-    # dims = [2]
+    # Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100]
+    # dim = 2
     
-    # Ns = [4, 6, 8, 10, 15, 25]
-    # dims = [3]
+    # Ns = [4, 6, 8, 10, 15, 30]
+    # dim = 3
 
-    # sources = [r"E:\simulations_data\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns for dim in dims]
-    # graph_magnetization_convergence(sources, filename = f"magnetization_convergence_{dims[0]}D.pdf")
+    # sources = [r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns]
+    # graph_magnetization_convergence(sources, dim, filename = f"magnetization_convergence_{dim}D.pdf")
 
 
     #########################################################################################
@@ -588,8 +605,8 @@ if __name__ == '__main__':
     #########################################################################################
     # Tau_int VISUALIZATION EXAMPLE USAGE
 
-    # N = 8
-    # dim = 3
+    # N = 500
+    # dim = 1
     # data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
     # tau_int_graph(N, dim, data_file, filename = "tau_int.pdf")
 
@@ -600,24 +617,24 @@ if __name__ == '__main__':
     #########################################################################################
     # Blocking VISUALIZATION EXAMPLE USAGE
 
-    N = 50
-    dim = 2
-    data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
-    tau_blocking_plateau(N, dim, data_file, filename = "tau_blocking_plateau.pdf", T_index = 50)
+    # N = 100
+    # dim = 2
+    # data_file = f"E:\\simulations_data\\sweep_based_chains\\dim_{dim}_N_{N}" + "_data.hdf5"
+    # tau_blocking_plateau(N, dim, data_file, filename = "tau_blocking_plateau.pdf", T_index = 50)
 
 
     #########################################################################################
     #########################################################################################
     # Derivative VISUALIZATION EXAMPLE USAGE
 
-    # N = 100
-    # dim = 2
+    N = 100
+    dim = 2
     # N = 25
     # dim = 3
-    # data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
-    # derivative_graph(N, dim, data_file, filename = f"tc_extraction_{N}_{dim}.pdf")
+    data_file = f"E:\\simulations_data\\sweep_based_chains\\dim_{dim}_N_{N}" + "_data.hdf5"
+    derivative_graph(N, dim, data_file, filename = f"tc_extraction_{N}_{dim}.pdf")
 
 
     
     end = time.perf_counter()
-    print(f"Time elapsed since main.py was run = {timedelta(seconds = end - start)}")
+    print(f"Time elapsed since draw_plots.py was run = {timedelta(seconds = end - start)}")
