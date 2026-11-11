@@ -12,8 +12,8 @@
 \contentsline {subsection}{\numberline {2.2.1}Generation}{10}{subsection.2.2.1}%
 \contentsline {subsection}{\numberline {2.2.2}Analysis}{15}{subsection.2.2.2}%
 \contentsline {subsubsection}{Sokal's method}{17}{section*.3}%
-\contentsline {subsubsection}{Data blocking method}{19}{section*.4}%
-\contentsline {subsection}{\numberline {2.2.3}Comparing the two methods}{24}{subsection.2.2.3}%
+\contentsline {subsubsection}{Data blocking method}{20}{section*.4}%
+\contentsline {subsection}{\numberline {2.2.3}Comparing the two methods}{23}{subsection.2.2.3}%
 \contentsline {subsection}{\numberline {2.2.4}Improvement to the MCMC algorithm: sweeps}{26}{subsection.2.2.4}%
 \contentsline {chapter}{\numberline {3}Results}{29}{chapter.3}%
 \contentsline {section}{\numberline {3.1}Introduction}{29}{section.3.1}%

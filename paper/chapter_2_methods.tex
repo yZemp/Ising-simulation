@@ -157,7 +157,15 @@ The plot in figure \ref{figure:autocorrelation_plot} shows the autocorrelation f
 
 where $\mathbb{E}$ denotes the expected value and $X$ are the observable values measured on the configurations. 
 
-The following is the code used to estimate $\rho$ from the Markov Chain:
+An estimator for the autocorrelation function is given by:
+
+\begin{equation}
+    \hat{\rho}(t) = \frac{\frac{1}{N} \sum_{i=1}^{N-t} (x_i - \bar{x})(x_{i+t} - \bar{x})}{\sigma^2_x}
+\end{equation}
+
+where $x_i$ are the observable values, $\bar{x}$ is the mean of the observable values, and $\sigma^2_x$ is the variance of the observable values.
+
+The implementation is shown below:
 
 \begin{minted}[linenos, frame=lines, breaklines]{python}
 
@@ -184,15 +192,13 @@ def autocorrelation(t, observables: np.ndarray):
 
 \end{minted}
 
-and it's computed with the alternative formula shown in the code snippet for performance's sake.
-
 The function $\rho$ quantifies the similarity between observations of a random variable (energy, in this case) at different points in time, which can be used to develop methods to extract uncorrelated samples. Specifically, we see that $\rho$ needs a transient time to reach a state of close-to-zero values and after this time it remains close to zero.
 
 Two parameters can be defined from the autocorrelation function:
 
 \begin{itemize}
 	\item The exponential autocorrelation time $\tau_{\text{exp}}$, which is the time it takes for the autocorrelation function to decay into the equilibrium region.
-	\item The integrated autocorrelation time $\tau_{\text{int}}$, which is the sum of the autocorrelation function over all time lags, which is a measure of the overall correlation in the data. It's defined as $$\tau_{\text{int}} = \frac{1}{2} + \sum_{t=1}^{\infty} \rho(t)$$.
+	\item The integrated autocorrelation time $\tau_{\text{int}}$, which is the sum of the autocorrelation function over all time lags, which is a measure of the overall correlation in the data. It can be defined as $$\tau_{\text{int}} = \frac{1}{2} + \sum_{t=1}^{\infty} \rho(t)$$.
 \end{itemize}
 
 To sample uncorrelated data from the Markov Chain two numbers are needed: 
@@ -215,13 +221,13 @@ A. Sokal describes a method to estimate the integrated autocorrelation time $\ta
 The natural estimator of $\tau_{\text{int}}$ would seem to be
 
 \begin{equation}
-    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} + \sum_{t=1}^{n} \widehat{\rho}(t)
+    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} + \sum_{t=1}^{N} \widehat{\rho}(t)
 \end{equation}
 
-but this is not really the case, because this estimator has a variance that does not go to zero as the sample size $n$ goes to infinity, so it cannot be a good estimator of $\tau_{\text{int}}$. Qualitatively speaking, this happens because the sample autocorrelations $\widehat{\rho}(t)$ for big $t$ contain much noise but little signal, and there are so many of them (order $n$) that the noise adds up to a total variance of order 1. The solution is to cut off the sum using a window $\lambda(t)$ which is $\approx 1$ for small $t$ but $\approx 0$ for large $t$:
+but this is not really the case, because this estimator has a variance that does not go to zero as the sample size $N$ goes to infinity, so it cannot be a good estimator of $\tau_{\text{int}}$. Qualitatively speaking, this happens because the sample autocorrelations $\widehat{\rho}(t)$ for big $t$ contain much noise but little signal, and there are so many of them (order $N$) that the noise adds up to a total variance of order 1. The solution is to cut off the sum using a window $\lambda(t)$ which is $\approx 1$ for small $t$ but $\approx 0$ for large $t$:
 
 \begin{equation}
-    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} + \sum_{t=1}^{n} \lambda(t) \widehat{\rho}(t).
+    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} + \sum_{t=1}^{N} \lambda(t) \widehat{\rho}(t).
 \end{equation}
 
 This retains most of the signal but discards most of the noise. A good choice is the rectangular window
@@ -239,20 +245,23 @@ The method implemented in the code is a self-consistent windowing method, where 
 
 \begin{minted}[linenos, frame=lines, breaklines]{python}
 
-def tau_int_sokal(observables, c = 15.0):
+def tau_int_sokal(observables, c = 10.0):
     '''
     Computes the integrated autocorrelation time using a self-consistent windowing method.
-    c: The windowing parameter. The bigger c, the longer the window.
+        c: The windowing parameter. The bigger c, the longer the window.
         longer window: tau has less bias
         shorter window: tau has less variance
     NOTE: higher c values yield more accurate results but require more computation time.
+    Returns:
+        tau : float, the integrated autocorrelation time
+        M   : int, the windowing parameter calculated self-consistently
     '''
 
     N = len(observables)
     var = np.var(observables)
     
     if var == 0.0:
-        return 0.0
+        return 0.0, 0
 
     centered = observables - np.mean(observables)
     tau = 0.5
@@ -262,9 +271,9 @@ def tau_int_sokal(observables, c = 15.0):
         tau += autocov_t / var
 
         if t >= c * tau:
-            return tau
+            return tau, t
 
-    return tau
+    return tau, N - 1
 
 \end{minted}
 
@@ -277,15 +286,34 @@ The method is called self-consistent because the window size $M$ is determined b
 	\label{figure:autocorrelation_with_window}
 \end{figure}
 
-\FloatBarrier
+It should be noted that a cutoff introduces a bias in the estimate of $\tau_{\text{int}}$. Since the bias and the variance of the estimator are (by Sokal):
 
-\br
+\begin{equation}
+    \mathrm{bias}(\widehat{\tau}_{\mathrm{int}}) = -\frac{1}{2} \sum_{|t|>M} \rho(t) + o\left(\frac{1}{N}\right)
+\end{equation}
+
+\begin{equation}
+    \label{def:sokal_variance}
+    \mathrm{var}(\widehat{\tau}_{\mathrm{int}}) \approx \frac{2(2M + 1)}{N} \tau_{\mathrm{int}}^2
+\end{equation}
+
+Where equation \ref{def:sokal_variance} is valid in the limit $\tau \ll M$.
+
+Ergo, the choice of $M$ is a tradeoff between bias and variance. Moreover, the variance in equation \ref{def:sokal_variance} can be used to build an estimator for the error on $\hat{\tau}_{\text{int}}$:
+
+\begin{equation}
+    \sigma_{\hat{\tau}_{\text{int}}} = \sqrt{\mathrm{var}(\widehat{\tau}_{\mathrm{int}})} = \sqrt{2}\sqrt{\frac{(2M + 1)}{N}} \tau_{\mathrm{int}}
+\end{equation}
+
+\FloatBarrier
 
 \subsubsection{Data blocking method}
 
 While Sokal's method is based on summing over the autocorrelation function in a particular way, the data blocking method presented in the work "Error estimates on averages of correlated data" by H. Flyvbjerg and H. G. Petersen operates in a fundamentally different way.
 
 Let's consider a Markov Chain of length $N$ of configurations ${x_i}$ with variance $\sigma^2$ and an observable $O$ measured on each configuration. Now suppose we simplify this Chain by averaging the values of the observable $O$ of every consecutive $k$ elements. This will produce a new chain of length $N_b = N / k$ of block averages $\bar{O}_i$ that are less correlated than the original chain. One can then take advantage of the law:
+
+[TODO: METTERE IN ORDINE STA ROBA]
 
 \begin{equation}
 	\label{eq:vk}

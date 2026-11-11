@@ -380,7 +380,8 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.pdf"):
             taus_blocking[i] = np.nan
             taus_blocking_errors[i] = np.nan
 
-    fig, (ax_up, ax_down) = plt.subplots(2, 1, figsize = (9, 9), sharex = True, gridspec_kw = {'height_ratios': [1, 1]})
+    # fig, (ax_up, ax_down) = plt.subplots(2, 1, figsize = (9, 9), sharex = True, gridspec_kw = {'height_ratios': [1, 1]})
+    fig, (ax_up) = plt.subplots(1, 1, figsize = (9, 9))
     
     ax_up.errorbar(
         temperatures,
@@ -406,22 +407,23 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.pdf"):
         )
     ax_up.set_xlabel('Temperature')
     ax_up.set_ylabel(r"$\tau_{int}$")
+    ax_up.set_yscale('log')
     ax_up.grid(True, which="both", ls="--")
     ax_up.set_title(r"$\tau_{int}$" + f" - N = {N}, dim = {dim}, c_sokal = {csokal}, c_blocking = {cblocking}")
     ax_up.legend()
 
-    ax_down.plot(
-        temperatures,
-        abs(taus_sokal - taus_blocking),
-        marker = ".",
-        label = r"$\tau_{int} difference$",
-        linestyle = "solid",
-        color = 'black'
-        )
-    ax_down.set_xlabel('Temperature')
-    ax_down.set_ylabel(r"Difference")
-    ax_down.grid(True, which="both", ls="--")
-    ax_down.legend()
+    # ax_down.plot(
+    #     temperatures,
+    #     abs(taus_sokal - taus_blocking),
+    #     marker = ".",
+    #     label = r"$\tau_{int} difference$",
+    #     linestyle = "solid",
+    #     color = 'black'
+    #     )
+    # ax_down.set_xlabel('Temperature')
+    # ax_down.set_ylabel(r"Difference")
+    # ax_down.grid(True, which="both", ls="--")
+    # ax_down.legend()
 
     plt.savefig(filename, format='pdf', bbox_inches = 'tight')
     plt.close()
@@ -479,32 +481,41 @@ def derivative_graph(N, dim, data_file, filename = "extracting_tc.pdf"):
     # print(f"Magnetizations shape: {magnetizations.shape}")
 
     chi_values = chi(N, dim, data_file, temperatures)
-
-    derivative_func = CubicSpline(temperatures, magnetizations).derivative()
-    derivative_values = derivative_func(temperatures)
+    chi_interpolation = CubicSpline(temperatures, chi_values)
+    chi_derivative = chi_interpolation.derivative()
 
     fig, ax1 = plt.subplots(figsize=(10, 6))
 
-    # Left axis: Derivative of Magnetization
-    color1 = "#482878"
+    # Left axis: chi
+    color1 = "#35B779"
     ax1.set_xlabel('Temperature (T)')
-    ax1.set_ylabel("Derivative of Magnetization (-M')", color=color1)
-    ax1.plot(temperatures, -derivative_values, marker='o', linestyle='solid', color=color1, label="M'")
+    ax1.set_ylabel(r'Magnetic Susceptibility ($\chi$)', color=color1)
+    ax1.plot(temperatures, chi_values, marker='o', linestyle='solid', color=color1, label=r'$\\chi data$')
     ax1.tick_params(axis='y', labelcolor=color1)
-    ax1.axvline(x=temperatures[np.argmin(derivative_values)], color=color1, alpha=0.8, linestyle='--', linewidth=1.5, label=f"Min M' at T = {temperatures[np.argmin(derivative_values)]:.3f}")
 
-    # Right axis: Magnetic Susceptibility
+    # Plot the interpolation of chi
+    ax1.plot(temperatures, chi_interpolation(temperatures), linestyle='dashed', color=color1, label=r'$\\chi interpolation$')
+
+    # Right axis: Derivative of chi
+    color2 = "#482878"
     ax2 = ax1.twinx()
-    color2 = "#35B779"
-    ax2.set_ylabel(r'Magnetic Susceptibility ($\chi$)', color=color2)
-    ax2.plot(temperatures, chi_values, marker='o', linestyle='solid', color=color2, label=r'$\chi$')
+    ax2.set_ylabel("\\chi'(T)", color=color2)
+    ax2.plot(temperatures, chi_derivative(temperatures), linestyle='dashed', color=color2, label="\\chi'(T)")
     ax2.tick_params(axis='y', labelcolor=color2)
-    ax2.axvline(x=temperatures[np.argmax(chi_values)], color=color2, alpha=0.8, linestyle='--', linewidth=1.5, label=f"Max $\\chi$ at T = {temperatures[np.argmax(chi_values)]:.3f}")
 
+    # Mark the minimum of the derivative
+    tc_index = np.where(chi_derivative(temperatures) == 0)[0]
+    dense_temperatures = np.linspace(temperatures.min(), temperatures.max(), 10_000)
+    ax2.axvline(x=tc, color=color2, alpha=0.8, linestyle='--', linewidth=1.5, label=f"Min \\chi' at T = {temperatures[np.argmin(derivative_values)]:.3f}")
+    
     # Accepted critical temperature lines for reference
     accepted_Tc = 2.269 if dim == 2 else (4.5115 if dim == 3 else -1.0)
     if accepted_Tc > 0:
         ax1.axvline(x=accepted_Tc, color="#FDE725", linestyle='--', linewidth=2, label=f'Accepted $T_c \\approx {accepted_Tc:.3f}$')
+
+    xmin, xmax = temperatures.min(), temperatures.max()
+    ax1.set_xlim(xmin, xmax)
+    ax2.set_xlim(xmin, xmax)
 
     plt.title(f'$T_C$ extraction - N = {N}, dim = {dim}')
     fig.legend(loc="upper right", bbox_to_anchor=(0.9, 0.9))

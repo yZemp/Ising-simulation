@@ -39,3 +39,24 @@ jackknife (per blocking) B Efron
 DIO BONO NON HO MAI CONSIDERATO DI SAMPLARE OGNI SWEEP INVECE CHE OGNI STEP
 
 capire cos'è esattamente la benedetta lunghezza di correlazione
+
+
+----------------------------------------------------------------------------------
+
+Non c'e formula per errori tau_int. Forse e` sbagliata
+
+log y sui tau_int, levare differenza
+
+Sistemare discussione tau_int dal punto di vista formale
+
+eguagliando gli errori: 2M = k
+
+aggiungere descrizione errori su magnetizzazione: var_mu = np.maximum(1.0, 2 * tau) * np.var(mags) / len(mags)
+
+separare tutti i grafici i 2D, 3D.
+
+plot varianza x numero blocchi (varianza parte sottostimata e si deve stabilizzare)
+
+taglia lateralmente grafici di estrazione semplice di estrazione semplice di T_C
+
+aggiungere errori a chi, interpolare e trovare il massimo con la derivata dell'interpolazione
