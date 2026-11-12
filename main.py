@@ -13,7 +13,7 @@ from datetime import timedelta
 from process import filter_data, magnetization_bake
 from generation import simulate
 from graphics import graph
-from draw_plots import graph_magnetization_convergence
+from draw_plots import graph_magnetization_convergence, tau_int_graph
 
 def positive_int(value):
     try:
@@ -126,6 +126,8 @@ def main(N, dim, steps):
     #     path = "E:\\simulations_data\\",
     #     filename = f"magnetization_convergence_{dim}D.png"
     #     )
+
+    # tau_int_graph(N, dim, data_file, filename = f"tau_int_better_N_{N}_dim_{dim}.pdf", read_observables_from_file = False)
 
     end = time.perf_counter()
     print(f"Time elapsed since main.py was run = {timedelta(seconds = end - start)}")

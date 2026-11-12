@@ -15,7 +15,7 @@ from iminuit import Minuit, cost
 from hdf5_utils import read_data
 from autocorrelation import tau_int_sokal, tau_int_blocking, autocorrelation
 from mcmc_utils import metropolis_ising
-from operators import energy, magnetization, compute_chi
+from operators import energy, extract_tc_from_chi, magnetization, compute_chi
 from analytical_curves import plot_analytical_curve
 
 
@@ -511,6 +511,31 @@ def chi_graph(N, dim, data_file, filename = "extracting_tc.pdf"):
     chi_interpolation = CubicSpline(interp_temps, chi_values[max_chi_index - points_before:max_chi_index + points_after + 1])
     chi_derivative = chi_interpolation.derivative()
 
+    # Find the maximum of chi(T) by finding the roots of the derivative
+    all_roots = chi_derivative.roots()
+    
+    # Filter roots to be within the interpolation range
+    t_min, t_max = interp_temps[0], interp_temps[-1]
+    valid_roots = [r for r in all_roots if t_min <= r <= t_max]
+    
+    t_max_discrete = temperatures[max_chi_index]
+    
+    if valid_roots:
+        # Select the root closest to the discrete maximum temperature
+        tc = min(valid_roots, key=lambda r: abs(r - t_max_discrete))
+    else:
+        print("Warning: No valid roots found within the interpolation range. Using discrete maximum temperature.")
+        tc = t_max_discrete
+
+    chi_second_derivative = chi_interpolation.derivative(nu=2)
+    curvature = abs(chi_second_derivative(tc))
+    err_chi_max = chi_errors[max_chi_index]
+    tc_error = np.sqrt(2 * err_chi_max / curvature) if curvature > 0 else 0.0
+    
+    # Max error is half the temperature discretization step
+    dT = temperatures[max_chi_index] - temperatures[max_chi_index - 1]
+    tc_error = max(tc_error, dT / 2)
+    
     fig, ax1 = plt.subplots(figsize=(10, 6))
 
     # Left axis: chi
@@ -548,18 +573,17 @@ def chi_graph(N, dim, data_file, filename = "extracting_tc.pdf"):
 
     color2 = "#35B779"
 
-    # Mark the minimum of the derivative
-    tc = chi_derivative.roots()[0]
-    ax1.axvline(x=tc, color=color2, alpha=1, linestyle='--', linewidth=1.5, label=f"Min $\\chi'$ at $T = {tc:.3f}$")
-    
+    ax1.axvline(x=tc, color=color2, alpha=1, linestyle='--', linewidth=1.5)
+    ax1.axvspan(x=tc, xmin=tc - tc_error, xmax=tc + tc_error, color=color2, alpha=.4, linestyle='none', label=f"Max $\\chi$ at $T_c = {tc:.3f} \\pm {tc_error:.3f}$")
+   
     # Accepted critical temperature lines for reference
     accepted_Tc = 2.269 if dim == 2 else (4.5115 if dim == 3 else -1.0)
     if accepted_Tc > 0:
         ax1.axvline(x=accepted_Tc, color="#FDE725", linestyle='--', linewidth=2, label=f'Accepted $T_c \\approx {accepted_Tc:.3f}$')
 
     if dim == 2:
-        xmin = 1.7
-        xmax = 2.9
+        xmin = 2.0
+        xmax = 2.6
     elif dim == 3:
         xmin = 4.0
         xmax = 5.0
@@ -606,25 +630,31 @@ def true_tc_extraction(sources, dim, filename = "true_tc_extraction.pdf"):
     sources = sorted(sources, key = get_n_from_file)
 
     Tc_values = []
+    Tc_errors = []
     Ns = []
 
-    for source in sources:
-        with h5py.File(source, 'r') as f:
-            group_name = list(f.keys())[0]
-            N = int(group_name.split('_')[3])
+    for i, source in enumerate(sources):
+        print(f"Reading data from {source}...")
 
-            temperatures = np.array(f[f"{group_name}/temperatures"])
+        N = source.split('_')[6] # Extract N from filename
+        print(N)
+        with h5py.File(source, "r") as file:
+            temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
+            chi_values = np.array(file[f"dim_{dim}_N_{N}/chi_values"])
+            chi_errors = np.array(file[f"dim_{dim}_N_{N}/chi_errors"])
 
-        print(f"Computing T_C(N) for N = {N} from source: {source}")
+        print("Done.")
 
-        chi_values = chi(N, dim, source, temperatures)
+        print(f"Computing T_C(N) for N = {N} from source: {source} ({i + 1}/{len(sources)})")
 
-        Tc_estimate = temperatures[np.argmax(chi_values)]
-        Tc_values.append(Tc_estimate)
-        Ns.append(N)
+        tc, tc_error = extract_tc_from_chi(chi_values, chi_errors, temperatures, points_before = 1, points_after = 1)
+        Tc_values.append(tc)
+        Tc_errors.append(tc_error)
+        Ns.append(int(N))
 
     print(f"Final T_C(N) values: {Tc_values}")
-    print(f"Final N values: {Ns}")
+    print(f"Final T_C(N) errors: {Tc_errors}")
+    print(f"Final Ns: {Ns}")
 
     plt.figure(figsize=(10, 6))
 
@@ -634,16 +664,26 @@ def true_tc_extraction(sources, dim, filename = "true_tc_extraction.pdf"):
 
     Ns = np.array(Ns)
     Tc_values = np.array(Tc_values)
+    Tc_errors = np.array(Tc_errors)
 
-    # Using temperature discretization as error estimate
-    minimum_delta = np.min(np.diff(temperatures))
-    errors = np.full_like(Tc_values, minimum_delta)
-    least_squares = cost.LeastSquares(Ns, Tc_values, errors, fit_function)
+    least_squares = cost.LeastSquares(Ns, Tc_values, Tc_errors, fit_function)
     m = Minuit(least_squares, Tc_inf = 2.0, a = 1.0)
     m.migrad()
+    m.hesse()
 
     x_data = Ns**(-1/nu)
-    plt.plot(x_data, Tc_values, marker='o', linestyle='solid', color="#35B779", label=r'Estimated $T_C(N)$')
+    plt.errorbar(
+        x_data,
+        Tc_values,
+        yerr=Tc_errors, 
+        marker='o',
+        linestyle='solid',
+        alpha=0.7,
+        color="#482878",
+        # color="#FDE725",
+        capsize=3,
+        label=r'Estimated $T_C(N)$'
+    )
 
     N_dense = np.logspace(np.log10(min(Ns)), np.log10(max(Ns)*1000), 200)
     x_fit = N_dense**(-1/nu)
@@ -651,14 +691,29 @@ def true_tc_extraction(sources, dim, filename = "true_tc_extraction.pdf"):
     plt.plot(
         x_fit,
         y_fit,
-        linestyle='--',
-        color="#482878",
-        label=f'Fit: $T_C(N) = T_C(\\infty) + a \\cdot N^{{-1/{nu}}}$'
+        linestyle='solid',
+        color="#35B779",
+        linewidth=2,
+        label=f'Fit: $T_C(N) = T_C(\\infty) + a \\cdot N^{{-1/{nu}}}$',
+        zorder=100
     )
 
-    plt.plot(x_fit[0], y_fit[0], marker='x', color="#FDE725", markersize=10, label=f'Extrapolated $T_C(\\infty) \\approx {m.values["Tc_inf"]:.3f}$')
+    tc_inf_val = m.values['Tc_inf']
+    tc_inf_err = m.errors['Tc_inf']
+    plt.errorbar(
+        x_fit[-1],
+        tc_inf_val,
+        tc_inf_err,
+        marker='o',
+        color="#FDE725", 
+        markersize=8,
+        linestyle='None',
+        capsize=5,
+        label=f'Extrapolated $T_C(\\infty) \\approx {tc_inf_val:.3f} \\pm {tc_inf_err:.3f}$',
+        zorder=101
+    )
 
-    plt.axvline(0, color='grey', linestyle=':', alpha=0.5)
+    # plt.axvline(0, color='grey', linestyle=':', alpha=0.5)
     plt.xlabel(rf'$N^{{-1/{nu}}}$')
     plt.ylabel(r'$T_C(N)$')
     plt.legend()
@@ -759,10 +814,10 @@ if __name__ == '__main__':
     #########################################################################################
     # Tau_int VISUALIZATION EXAMPLE USAGE
 
-    # N = 50
+    # N = 500
     # dim = 1
-    # data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
-    # tau_int_graph(N, dim, data_file, filename = f"tau_int_better_N_{N}_dim_{dim}.pdf", read_observables_from_file = False)
+    # data_file = f"E:\\simulations_data\\sweep_based_chains\\dim_{dim}_N_{N}" + "_data.hdf5"
+    # tau_int_graph(N, dim, data_file, filename = f"tau_int__sweeps_better_N_{N}_dim_{dim}.pdf", read_observables_from_file = False)
 
 
 
@@ -781,12 +836,12 @@ if __name__ == '__main__':
     #########################################################################################
     # Simple T_C extraction VISUALIZATION EXAMPLE USAGE
 
-    N = 100
-    dim = 2
+    # N = 100
+    # dim = 2
     # N = 30
     # dim = 3
-    data_file = f"E:\\simulations_data\\sweep_based_chains\\dim_{dim}_N_{N}" + "_data.hdf5"
-    chi_graph(N, dim, data_file, filename = f"tc_extraction_{N}_{dim}.pdf")
+    # data_file = f"E:\\simulations_data\\sweep_based_chains\\dim_{dim}_N_{N}" + "_data.hdf5"
+    # chi_graph(N, dim, data_file, filename = f"tc_extraction_{N}_{dim}.pdf")
 
 
     #########################################################################################
@@ -800,11 +855,11 @@ if __name__ == '__main__':
     # Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100]
     # dim = 2
     
-    # Ns = [4, 6, 8, 10, 15, 30]
-    # dim = 3
+    Ns = [4, 6, 8, 10, 15, 30]
+    dim = 3
 
-    # sources = [r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns]
-    # true_tc_extraction(sources, dim, filename = f"true_tc_extraction_{dim}.pdf")
+    sources = [r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns]
+    true_tc_extraction(sources, dim, filename = f"true_tc_extraction_{dim}D.pdf")
     
     end = time.perf_counter()
     print(f"Time elapsed since draw_plots.py was run = {timedelta(seconds = end - start)}")

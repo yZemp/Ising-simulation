@@ -457,23 +457,25 @@ The effect of this algorithm of the progressive smoothing of the chain can be ap
 
 Now that both methods have been described, they can be compared. Clearly, their estimates of $\tau_{\text{int}}$ should be roughly similar. In images \ref{figure:tau_int_1D_comparison}, \ref{figure:tau_int_2D_comparison} and \ref{figure:tau_int_3D_comparison} the estimates of $\tau_{\text{int}}$ for the two methods are compared for different dimensions.
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_1D.pdf}
-	\label{figure:tau_int_1D_comparison}
-\end{figure}
+[TODO: FIX THIS FOR THE LOVE OF GOD]
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_2D.pdf}
-	\label{figure:tau_int_2D_comparison}
-\end{figure}
+% \begin{figure}[htbp]
+% 	\centering
+% 	\includegraphics[height=0.45\textheight]{../pics_and_anims/todo.pdf}
+% 	\label{figure:tau_int_1D_comparison}
+% \end{figure}
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_3D.pdf}
-	\label{figure:tau_int_3D_comparison}
-\end{figure}
+% \begin{figure}[htbp]
+% 	\centering
+% 	\includegraphics[height=0.45\textheight]{../pics_and_anims/todo.pdf}
+% 	\label{figure:tau_int_2D_comparison}
+% \end{figure}
+
+% \begin{figure}[htbp]
+% 	\centering
+% 	\includegraphics[height=0.45\textheight]{../pics_and_anims/todo.pdf}
+% 	\label{figure:tau_int_3D_comparison}
+% \end{figure}
 
 The correlation between the two methods is clear, and it can be noted that both methods struggle close to $T_C$ where this behavior is, of course, expected. This phenomenon is the very well known Critical Slowing Down, and it is a consequence of the fact that the correlation length $\xi$, that is, the typical distance over which spins are correlated, diverges at $T_C$.
 
@@ -483,7 +485,7 @@ Since $\tau_\text{int} \propto \xi^z$ and $\xi \to \infty$ at $T_C$, it is expec
 
 \subsection{Improvement to the MCMC algorithm: sweeps}
 
-It is true that the two methods are shown to be quite compatible with each other, with produced estimations of $\tau_{\text{int}}$ that are generally in good agreement. The errors, on the other hand, are quite big, specifically close but not at $T_C$. This is specifically true for the data blocking method. Since the errors given by this method scale as $\sqrt{2 / (N_b - 1)}$ where $N_b$ is the number of blocks, the only way to reduce them is to increase the length of the chain.
+It is true that the two methods are shown to be quite compatible with each other, with produced estimations of $\tau_{\text{int}}$ that are generally in good agreement. [LENTO COME LA MORTEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAAAAAAAAAA] The errors, on the other hand, are quite big, specifically close but not at $T_C$. This is specifically true for the data blocking method. Since the errors given by this method scale as $\sqrt{2 / (N_b - 1)}$ where $N_b$ is the number of blocks, the only way to reduce them is to increase the length of the chain.
 
 This option was not viable. To try to fix the problem, another approach was explored, that is, to change the way of building the chain. Let's define a "sweep" as the process of applying steps 2-5 of the Metropolis-Hastings algorithm (explained in Section \ref{subsection:generation}) to a configuration $N^d$ times. This is an arbitrary choice, with the rationale that a sweep is the amount of steps needed to give every spin in the lattice a chance to flip. The idea is to build the chain by adding a configuration to it only after every sweep: this ensures a lower correlation between successive configurations in the chain, and so a lower $\tau_{\text{int}}$. This is a pretty standard approach in the literature, and is used in many implementations of the Metropolis-Hastings algorithm.
 
@@ -493,19 +495,19 @@ The results are shown in figures \ref{figure:tau_int_1D_comparison_sweeps}, \ref
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_1D_sweeps.pdf}
+	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_sweeps_better_N_500_dim_1.pdf}
 	\label{figure:tau_int_1D_comparison_sweeps}
 \end{figure}
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_2D_sweeps.pdf}
+	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_sweeps_better_N_100_dim_2.pdf}
 	\label{figure:tau_int_2D_comparison_sweeps}
 \end{figure}
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_3D_sweeps.pdf}
+	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_sweeps_better_N_30_dim_3.pdf}
 	\label{figure:tau_int_3D_comparison_sweeps}
 \end{figure}
 

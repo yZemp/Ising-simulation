@@ -2,6 +2,7 @@ import numpy as np
 from numba import njit
 import h5py
 from typing import cast
+from scipy.interpolate import CubicSpline
 
 from global_variables import ALLOW_NUMBA_CACHING
 
@@ -189,3 +190,51 @@ def compute_chi(N, dim, data_file, temperatures):
             chi_errors.append(sigma_chi)
             
     return np.array(chi_values), np.array(chi_errors)
+
+
+def extract_tc_from_chi(chi_values, chi_errors, temperatures, points_before = 1, points_after = 1):
+    '''
+    Extract the critical temperature T_C from the magnetic susceptibility data.
+
+    Parameters:
+    chi_values (array): The magnetic susceptibility values.
+    temperatures (array): The corresponding temperatures.
+    chi_errors (array): The errors in the magnetic susceptibility values.
+    points_before (int): The number of points before the maximum to include in the interpolation.
+    points_after (int): The number of points after the maximum to include in the interpolation.
+
+    Returns:
+    tuple: The estimated critical temperature and its error.
+    '''
+    
+    max_chi_index = np.argmax(chi_values)
+    interp_temps = temperatures[max_chi_index - points_before:max_chi_index + points_after + 1]
+    chi_interpolation = CubicSpline(interp_temps, chi_values[max_chi_index - points_before:max_chi_index + points_after + 1])
+    chi_derivative = chi_interpolation.derivative()
+
+    # Find maximum of chi by finding roots of the derivative
+    all_roots = chi_derivative.roots()
+        
+    # Filter roots to be within the interpolation range
+    t_min, t_max = interp_temps[0], interp_temps[-1]
+    valid_roots = [r for r in all_roots if t_min <= r <= t_max]
+    
+    t_max_discrete = temperatures[max_chi_index]
+    
+    if valid_roots:
+        # Select the root closest to the discrete maximum temperature
+        tc = min(valid_roots, key=lambda r: abs(r - t_max_discrete))
+    else:
+        print("Warning: No valid roots found within the interpolation range. Using discrete maximum temperature.")
+        tc = t_max_discrete
+
+    chi_second_derivative = chi_interpolation.derivative(nu=2)
+    curvature = abs(chi_second_derivative(tc))
+    err_chi_max = chi_errors[max_chi_index]
+    tc_error = np.sqrt(2 * err_chi_max / curvature) if curvature > 0 else 0.0
+    
+    # Max error is half the temperature discretization step
+    dT = temperatures[max_chi_index] - temperatures[max_chi_index - 1]
+    tc_error = max(tc_error, dT / 2)
+
+    return tc, tc_error

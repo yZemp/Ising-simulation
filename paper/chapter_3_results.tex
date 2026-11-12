@@ -24,7 +24,15 @@ where $n$ is the number of data points, $\chi_i$ is the value of $\chi$ computed
 
 Given the discrete nature of the data in the temperature space, in order to better estimate the maximum of $\chi$ its maximum sampled value and the two nearest data points will be interpolated with a cubic spline. The maximum of the interpolated function will be taken as the estimate of the critical temperature $T_C$.
 
-[TODO: discutere l'errore su T_C]
+For a quick estimation of the error on $\hat{T_C}$ a simple method is to use the simple rule:
+
+\begin{equation}
+	\hat{\sigma}_{\hat{T_C}} = \sqrt{\frac{2 \hat{\sigma}_{\hat{\chi}}(\hat{T}_\text{max})}{| \chi''(\hat{T}_C) |} }
+\end{equation}
+
+that can be derived by the Taylor expansion of $\chi(T)$ around the maximum point $\hat{T}_\text{max}$.
+
+As a common sense rule, this error is capped at half the temperature discretization step. The logic behind this decision is that the estimator $\hat{T_C}$ is very dependent on the position of the maximum sampled value, but the maximum sampled value can be at most one step away from the true maximum, which means that the error on $\hat{T_C}$ cannot be greater than half the step size. This is in practice rarely (if ever) used, as the error computed with the formula above is usually smaller than half the step size, and it exist just as a safety net to avoid problems with the code.
 
 \br
 
@@ -76,13 +84,11 @@ The estimation of $T_C(L)$ and is shown in figure \ref{fig:2D_chi} for a 100x100
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=1.\textwidth]{../pics_and_anims/tc_extraction_100_2.pdf}
-	\caption{Estimation of the critical temperature (2D case with 100x100 lattice).}
+	\caption{Example estimation of the critical temperature (2D case with 100x100 lattice).}
 	\label{fig:2D_chi}
 \end{figure}
 
-The peak of $\chi(T)$ corresponds to the value of $T_C(L) \approx 2.313$, which is reasonable taking into consideration the expected relation $T_C(L) > T_C(\infty) \quad \forall \; L$.
-
-[TODO: aggiungere errore]
+The peak of $\chi(T)$ corresponds to the value of $T_C(L) = 2.31 \pm 0.04$, which is reasonable. More specifically, it is slightly higher than the accepted value, which is consistent with the expected relation $T_C(L) > T_C(\infty) \quad \forall \; L$.
 
 As discussed in the introduction, a better estimate of the critical temperature can be obtained by performing a finite-size scaling analysis. The results of this analysis are shown in figure \ref{fig:2D_fss}.
 
@@ -93,6 +99,7 @@ As discussed in the introduction, a better estimate of the critical temperature 
 	\label{fig:2D_fss}
 \end{figure}
 
+The extrapolated value for the critical temperature in the thermodynamic limit is $T_C(\infty) = 2.283 \pm 0.015$, which is agreement with the accepted value $T_C \approx 2.269$ within one standard deviation.
 
 \FloatBarrier
 
@@ -107,16 +114,14 @@ Results for the 3D Ising model are similar to the 2D case. Only, this time, in f
 	\label{fig:3D_magn}
 \end{figure}
 
-The analysis is equivalent to the 2D case. The accepted value for the critical temperature of the 3D Ising model is $T_C \approx 4.5115$, while the extracted value from the simulation is $T_C(L) \approx 4.500$, as shown in figure \ref{fig:3D_chi}. [TODO: aggiungere errore]
+The analysis is equivalent to the 2D case. The accepted value for the critical temperature of the 3D Ising model is $T_C \approx 4.5115$, while the extracted value from the simulation is $T_C(L) = 4.50 \pm 0.08$, as shown in figure \ref{fig:3D_chi}.
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=1.\textwidth]{../pics_and_anims/tc_extraction_30_3.pdf}
-	\caption{Estimation of the critical temperature (3D case with 30x30x30 lattice).}
+	\caption{Example estimation of the critical temperature (3D case with 30x30x30 lattice).}
 	\label{fig:3D_chi}
 \end{figure}
-
-Again, the finer method of analysis is to perform a finite-size scaling analysis, which is shown in figure \ref{fig:3D_fss}, yielding the estimate $T_C(\infty) \approx TODO$.
 
 \begin{figure}[htbp]
 	\centering
@@ -125,9 +130,13 @@ Again, the finer method of analysis is to perform a finite-size scaling analysis
 	\label{fig:3D_fss}
 \end{figure}
 
+Again, the finer method of analysis is to perform a finite-size scaling analysis, which is shown in figure \ref{fig:3D_fss}, yielding the estimate $T_C(\infty) = 4.5115 \pm 0.05$. This is also in agreement with the accepted value $T_C \approx 4.5115$ within one standard deviation.
+
+It is however worth noting that the error in the 3D case is significantly higher than in the 2D case. This is a direct consequence of the fact that the (jackknife) error on $\chi$ described in the introduction scales like $\frac{1}{\sqrt{n_{\text{ind}}}}$ where $n_{\text{ind}}$ is the number of (independent) samples in the chain after decorrelation. In the context of these simulations $n_{\text{ind}}$ is not equal for the 2D and 3D cases, but it depends on $\tau_{\text{int}}$, which in turns depends on the size $N$ of the system (a system with a larger number of sites requires more steps to forget the initial configuration).
+
+Since the computational cost of simulating the 3D Ising model is much higher than the 2D case, the biggest lattice size that can be simulated is smaller ($N_{\text{max}}^{\text{2D}} = 100$ and $N_{\text{max}}^{\text{3D}} = 30$ in this project), which means that the number of independent samples is lower, which means that the error on the estimate of $T_C$ is higher.
+
 \FloatBarrier
-
-
 
 \section{General comments and Peierls argument}
 
