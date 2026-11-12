@@ -138,38 +138,54 @@ def magnetization(model: np.ndarray) -> float:
     return abs(np.sum(model)) / model.size
 
 
-def chi(N, dim, data_file, temperatures):
+def compute_chi(N, dim, data_file, temperatures):
     '''
-    Compute the magnetic susceptibility for a given dimension and system size.
+    Compute the magnetic susceptibility for a given dimension and system size and the relative error.
+
+    NOTE: This function assumes decorrelated data.
+
+    chi = (N^dim / T) * ( <M^2> - <|M|>^2 )
+
+    sigma_chi is computed using the jackknife technique
     '''
 
     chi_values = []
+    chi_errors = []
     
     with h5py.File(data_file, "r") as file:
         for T_index, T in enumerate(temperatures):
+            print(f"Computing chi for T={T:.2f} ({((T_index + 1) / len(temperatures)) * 100 :.2f}%)")
+
             filtered_data = np.array(file[f"dim_{dim}_N_{N}/filtered_data"][T_index])
-            
-            # Filtra le matrici di zero-padding (mantiene solo le matrici con almeno un elemento non nullo)
+
+            # Remove trailing empty models (all spins zero)
             valid_idx = np.any(filtered_data, axis=(1, 2))
             valid_data = filtered_data[valid_idx]
             
-            if len(valid_data) == 0:
+            n = len(valid_data)
+            if n <= 1:
                 chi_values.append(0.0)
+                chi_errors.append(0.0)
                 continue
                 
             magns = np.array([magnetization(model) for model in valid_data])
-            chi = ((N ** dim) / T) * (np.mean(magns**2) - np.mean(np.abs(magns))**2)
-            chi_values.append(chi)
+            factor = (N ** dim) / T
+
+            # Chi value
+            chi_standard = factor * (np.mean(magns**2) - np.mean(np.abs(magns))**2)
+            chi_values.append(chi_standard)
+
+            # Jackknife error
+            sum_m2 = np.sum(magns**2)
+            sum_abs_m = np.sum(np.abs(magns))
+
+            mean_m2_jack = (sum_m2 - magns**2) / (n - 1)
+            mean_abs_m_jack = (sum_abs_m - np.abs(magns)) / (n - 1)
+
+            chi_jack = factor * (mean_m2_jack - mean_abs_m_jack**2)
             
-    return np.array(chi_values)
-
-    # for T_index, T in enumerate(temperatures):
-    #     with h5py.File(data_file, "r") as file:
-    #         filtered_data = np.array(cast(h5py.Dataset, file[f"dim_{dim}_N_{N}/filtered_data"])[T_index])
-    #         # print(f"Filtered data shape: {filtered_data.shape}")
-
-    #         magns = np.array([magnetization(model) for model in filtered_data])
-    #         chi = ((N ** dim) / T) * (np.mean(magns**2) - np.mean(np.abs(magns))**2)
-    #         chi_values.append(chi)
-
-    # return np.array(chi_values)
+            chi_mean = np.mean(chi_jack)
+            sigma_chi = np.sqrt((n - 1) * np.mean((chi_jack - chi_mean)**2))
+            chi_errors.append(sigma_chi)
+            
+    return np.array(chi_values), np.array(chi_errors)

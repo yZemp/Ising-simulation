@@ -15,7 +15,7 @@ from iminuit import Minuit, cost
 from hdf5_utils import read_data
 from autocorrelation import tau_int_sokal, tau_int_blocking, autocorrelation
 from mcmc_utils import metropolis_ising
-from operators import energy, magnetization, chi
+from operators import energy, magnetization, compute_chi
 from analytical_curves import plot_analytical_curve
 
 
@@ -336,7 +336,7 @@ def autocorrelation_graph(N, dim, data_file = "tmp.hdf5", filename = "autocorrel
     print(f"Autocorrelation graph saved to {filename}.")
 
 
-def tau_int_graph(N, dim, data_file, filename = "tau_int.pdf"):
+def tau_int_graph(N, dim, data_file, filename = "tau_int.pdf", read_observables_from_file = False):
     '''
     Plots the integrated autocorrelation time (tau_int) with respect to magnetization
     as a function of temperature.
@@ -344,22 +344,43 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.pdf"):
 
     csokal = 10.0
     cblocking = 10.0
+    MAX_LENGTH = 1_000_000
+    TESTING = False
 
     group_name = f"dim_{dim}_N_{N}"
-    
-    with h5py.File(data_file, "r") as file:
-        raw_dataset = file[f"{group_name}/raw_data"]
-        temperatures = np.array(file[f"{group_name}/temperatures"])
-        
-        steps = raw_dataset.shape[1]
-        
-        observables = np.zeros((len(temperatures), steps), dtype=float)
-        
-        print("Computing observables (single temperature at a time)...")
-        for i in range(len(temperatures)):
-            data_T = raw_dataset[i, ...] 
-            axes_to_reduce = tuple(range(1, data_T.ndim))
-            observables[i] = np.abs(np.mean(data_T, axis=axes_to_reduce))
+
+    if read_observables_from_file:
+        print("Reading observables from file...")
+        observables_filename = f"observables_N_{N}_dim_{dim}.txt"
+        with open(observables_filename, 'r') as f:
+            header = f.readline()
+            temperatures = np.array([float(x.split("=")[1]) for x in header.strip().split() if "T=" in x])
+        observables = np.loadtxt(observables_filename, delimiter=" ")
+    else:
+        with h5py.File(data_file, "r") as file:
+            raw_dataset = file[f"{group_name}/raw_data"]
+            temperatures = np.array(cast(h5py.Dataset, file[f"{group_name}/temperatures"]))
+
+            steps = min(raw_dataset.shape[1], MAX_LENGTH)
+            
+            observables = np.zeros((len(temperatures), steps), dtype=float)
+            
+            print("Computing observables (single temperature at a time)...")
+            for i in range(len(temperatures)):
+                print(f"Processing temperature {temperatures[i]:.2f} ({i + 1}/{len(temperatures)})...")
+                print(f"Time is: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
+                if TESTING and i > 5: continue  # Testing
+                # Slicing: loading only the necessary data for the current temperature to save memory
+                data_T = raw_dataset[i, :steps, ...] 
+                
+                for step in range(steps):
+                    observables[i, step] = magnetization(data_T[step, ...])
+                # observables[i, :] = np.abs(np.mean(data_T, axis=(1, 2)))
+
+            # Dump observables to a text file for further analysis
+            observables_dump_filename = f"observables_N_{N}_dim_{dim}.txt"
+            np.savetxt(observables_dump_filename, observables, delimiter=" ", header=" ".join([f"T={T:.2f}" for T in temperatures]))
+            print(f"Observables dumped to {observables_dump_filename}")
 
     taus_sokal = np.zeros(len(temperatures), dtype=float)
     taus_sokal_errors = np.zeros(len(temperatures), dtype=float)
@@ -367,12 +388,14 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.pdf"):
     taus_blocking_errors = np.zeros(len(temperatures), dtype=float)
 
     for i, T in enumerate(temperatures):
+        if (i < 5 or i > 8) and TESTING: continue  # Testing
         print(f"Temperature: {T:.2f}")
+        print(f"Time is: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
         try:
             taus_sokal[i], M = tau_int_sokal(observables[i], c = csokal)
             taus_sokal_errors[i] = taus_sokal[i] * np.sqrt((4 * M + 2) / len(observables[i])) if M > 0 else np.nan
-            taus_blocking[i], Nb_arr, _, _ = tau_int_blocking(observables[i], c = cblocking)
-            taus_blocking_errors[i] = (taus_blocking[i] + 0.5) * np.sqrt(2.0 / (Nb_arr[-1] - 1))
+            taus_blocking[i], err, Nb_arr, _, _ = tau_int_blocking(observables[i], c = cblocking)
+            taus_blocking_errors[i] = err
         except Exception as e:
             print(f"Warning: failed at T = {T:.2f}: {type(e).__name__}: {e}")
             taus_sokal[i] = np.nan
@@ -395,7 +418,7 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.pdf"):
         label = r"$\tau_{int}-sokal$"
         )
     ax_up.errorbar(
-        temperatures + 0.02, # small offset for better visibility
+        temperatures + 0.01, # small offset for better visibility
         taus_blocking,
         yerr = taus_blocking_errors,
         marker = "o",
@@ -463,59 +486,85 @@ def tau_blocking_plateau(N, dim, data_file, filename = "tau_blocking_plateau.pdf
     print(f"Data dumped to {data_dump_filename}")
 
 
-def derivative_graph(N, dim, data_file, filename = "extracting_tc.pdf"):
+def chi_graph(N, dim, data_file, filename = "extracting_tc.pdf"):
     '''
-    Plots the derivative (of the magnetization) as a function of temperature.
-    This is what I'd like the magnetic susceptibility to be.
+    Interpolates and plots chi(T),
+    extracts the critical temperature T_C from the minimum of the derivative of chi(T),
+    and saves the image to a PDF file.
     '''
 
     print(f"Reading data from {data_file}...")
 
     with h5py.File(data_file, "r") as file:
         temperatures = np.array(file[f"dim_{dim}_N_{N}/temperatures"])
-        magnetizations = np.array(file[f"dim_{dim}_N_{N}/magnetizations"])
-        # raw_data = np.array(file[f"dim_{dim}_N_{N}/raw_data"])
+        chi_values = np.array(file[f"dim_{dim}_N_{N}/chi_values"])
+        chi_errors = np.array(file[f"dim_{dim}_N_{N}/chi_errors"])
 
     print("Done.")
 
-    # print(f"Magnetizations shape: {magnetizations.shape}")
+    # Selecting points around the maximum of chi for interpolation 
+    points_before = 1
+    points_after = 1
 
-    chi_values = chi(N, dim, data_file, temperatures)
-    chi_interpolation = CubicSpline(temperatures, chi_values)
+    max_chi_index = np.argmax(chi_values)
+    interp_temps = temperatures[max_chi_index - points_before:max_chi_index + points_after + 1]
+    chi_interpolation = CubicSpline(interp_temps, chi_values[max_chi_index - points_before:max_chi_index + points_after + 1])
     chi_derivative = chi_interpolation.derivative()
 
     fig, ax1 = plt.subplots(figsize=(10, 6))
 
     # Left axis: chi
-    color1 = "#35B779"
+    color1 = "#482878"
     ax1.set_xlabel('Temperature (T)')
-    ax1.set_ylabel(r'Magnetic Susceptibility ($\chi$)', color=color1)
-    ax1.plot(temperatures, chi_values, marker='o', linestyle='solid', color=color1, label=r'$\\chi data$')
-    ax1.tick_params(axis='y', labelcolor=color1)
+    ax1.set_ylabel(r'Magnetic Susceptibility ($\chi$)')
+    ax1.errorbar(
+        temperatures,
+        chi_values,
+        yerr=chi_errors,
+        marker='o',
+        markersize=4,
+        linestyle='solid',
+        capsize = 3,
+        linewidth=.5,
+        color=color1,
+        alpha=0.5,
+        label=r'$\chi$ data'
+    )
+    ax1.errorbar(
+        temperatures[max_chi_index - points_before:max_chi_index + points_after + 1],
+        chi_values[max_chi_index - points_before:max_chi_index + points_after + 1],
+        yerr=chi_errors[max_chi_index - points_before:max_chi_index + points_after + 1],
+        marker='o',
+        markersize=6,
+        linestyle='None',
+        capsize = 3,
+        color=color1,
+        label=r'$\chi$ data used for interpolation'
+    )
 
     # Plot the interpolation of chi
-    ax1.plot(temperatures, chi_interpolation(temperatures), linestyle='dashed', color=color1, label=r'$\\chi interpolation$')
+    fine_temps = np.linspace(interp_temps[0], interp_temps[-1], 500)
+    ax1.plot(fine_temps, chi_interpolation(fine_temps), linestyle='solid', color=color1, label=r'$\chi$ interpolation')
 
-    # Right axis: Derivative of chi
-    color2 = "#482878"
-    ax2 = ax1.twinx()
-    ax2.set_ylabel("\\chi'(T)", color=color2)
-    ax2.plot(temperatures, chi_derivative(temperatures), linestyle='dashed', color=color2, label="\\chi'(T)")
-    ax2.tick_params(axis='y', labelcolor=color2)
+    color2 = "#35B779"
 
     # Mark the minimum of the derivative
-    tc_index = np.where(chi_derivative(temperatures) == 0)[0]
-    dense_temperatures = np.linspace(temperatures.min(), temperatures.max(), 10_000)
-    ax2.axvline(x=tc, color=color2, alpha=0.8, linestyle='--', linewidth=1.5, label=f"Min \\chi' at T = {temperatures[np.argmin(derivative_values)]:.3f}")
+    tc = chi_derivative.roots()[0]
+    ax1.axvline(x=tc, color=color2, alpha=1, linestyle='--', linewidth=1.5, label=f"Min $\\chi'$ at $T = {tc:.3f}$")
     
     # Accepted critical temperature lines for reference
     accepted_Tc = 2.269 if dim == 2 else (4.5115 if dim == 3 else -1.0)
     if accepted_Tc > 0:
         ax1.axvline(x=accepted_Tc, color="#FDE725", linestyle='--', linewidth=2, label=f'Accepted $T_c \\approx {accepted_Tc:.3f}$')
 
-    xmin, xmax = temperatures.min(), temperatures.max()
+    if dim == 2:
+        xmin = 1.7
+        xmax = 2.9
+    elif dim == 3:
+        xmin = 4.0
+        xmax = 5.0
+
     ax1.set_xlim(xmin, xmax)
-    ax2.set_xlim(xmin, xmax)
 
     plt.title(f'$T_C$ extraction - N = {N}, dim = {dim}')
     fig.legend(loc="upper right", bbox_to_anchor=(0.9, 0.9))
@@ -710,10 +759,10 @@ if __name__ == '__main__':
     #########################################################################################
     # Tau_int VISUALIZATION EXAMPLE USAGE
 
-    # N = 100
-    # dim = 2
+    # N = 50
+    # dim = 1
     # data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
-    # tau_int_graph(N, dim, data_file, filename = "tau_int.pdf")
+    # tau_int_graph(N, dim, data_file, filename = f"tau_int_better_N_{N}_dim_{dim}.pdf", read_observables_from_file = False)
 
 
 
@@ -732,12 +781,12 @@ if __name__ == '__main__':
     #########################################################################################
     # Simple T_C extraction VISUALIZATION EXAMPLE USAGE
 
-    # N = 100
-    # dim = 2
+    N = 100
+    dim = 2
     # N = 30
     # dim = 3
-    # data_file = f"E:\\simulations_data\\sweep_based_chains\\dim_{dim}_N_{N}" + "_data.hdf5"
-    # derivative_graph(N, dim, data_file, filename = f"tc_extraction_{N}_{dim}.pdf")
+    data_file = f"E:\\simulations_data\\sweep_based_chains\\dim_{dim}_N_{N}" + "_data.hdf5"
+    chi_graph(N, dim, data_file, filename = f"tc_extraction_{N}_{dim}.pdf")
 
 
     #########################################################################################
@@ -748,14 +797,14 @@ if __name__ == '__main__':
     # dim = 1
 
     # Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
-    Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100]
-    dim = 2
+    # Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100]
+    # dim = 2
     
     # Ns = [4, 6, 8, 10, 15, 30]
     # dim = 3
 
-    sources = [r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns]
-    true_tc_extraction(sources, dim, filename = f"true_tc_extraction_{dim}.pdf")
+    # sources = [r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns]
+    # true_tc_extraction(sources, dim, filename = f"true_tc_extraction_{dim}.pdf")
     
     end = time.perf_counter()
     print(f"Time elapsed since draw_plots.py was run = {timedelta(seconds = end - start)}")

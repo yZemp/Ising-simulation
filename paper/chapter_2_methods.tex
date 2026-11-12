@@ -198,7 +198,11 @@ Two parameters can be defined from the autocorrelation function:
 
 \begin{itemize}
 	\item The exponential autocorrelation time $\tau_{\text{exp}}$, which is the time it takes for the autocorrelation function to decay into the equilibrium region.
-	\item The integrated autocorrelation time $\tau_{\text{int}}$, which is the sum of the autocorrelation function over all time lags, which is a measure of the overall correlation in the data. It can be defined as $$\tau_{\text{int}} = \frac{1}{2} + \sum_{t=1}^{\infty} \rho(t)$$.
+	\item The integrated autocorrelation time $\tau_{\text{int}}$, which is the sum of the autocorrelation function over all time lags, which is a measure of the overall correlation in the data. It can be defined as 
+    \begin{equation}
+        \label{def:tau_int}
+        \tau_{\text{int}} = \frac{1}{2} + \sum_{t=1}^{\infty} \rho(t)
+    \end{equation}
 \end{itemize}
 
 To sample uncorrelated data from the Markov Chain two numbers are needed: 
@@ -216,7 +220,7 @@ Note that theoretically speaking $\tau_{\text{exp}}$ can be neglected if the cha
 
 \subsubsection{Sokal's method}
 
-A. Sokal describes a method to estimate the integrated autocorrelation time $\tau_{\text{int}}$ in his lecture notes "Monte Carlo Methods in Statistical Mechanics: Foundations and New Algorithms" (1996). The following section discusses the method and its implementation in this project.
+A. Sokal describes\cite{sokal} a method to estimate the integrated autocorrelation time $\tau_{\text{int}}$. The following section discusses the method and its implementation in this project.
 
 The natural estimator of $\tau_{\text{int}}$ would seem to be
 
@@ -289,12 +293,12 @@ The method is called self-consistent because the window size $M$ is determined b
 It should be noted that a cutoff introduces a bias in the estimate of $\tau_{\text{int}}$. Since the bias and the variance of the estimator are (by Sokal):
 
 \begin{equation}
-    \mathrm{bias}(\widehat{\tau}_{\mathrm{int}}) = -\frac{1}{2} \sum_{|t|>M} \rho(t) + o\left(\frac{1}{N}\right)
+    \mathrm{bias}(\widehat{\tau}_{\mathrm{int}}) = -\frac{1}{2} \sum_{|t|>M} \hat{\rho}(t) + o\left(\frac{1}{N}\right)
 \end{equation}
 
 \begin{equation}
     \label{def:sokal_variance}
-    \mathrm{var}(\widehat{\tau}_{\mathrm{int}}) \approx \frac{2(2M + 1)}{N} \tau_{\mathrm{int}}^2
+    \mathrm{var}(\widehat{\tau}_{\mathrm{int}}) \approx \frac{2(2M + 1)}{N} \hat{\tau}_{\mathrm{int}}^2
 \end{equation}
 
 Where equation \ref{def:sokal_variance} is valid in the limit $\tau \ll M$.
@@ -302,41 +306,60 @@ Where equation \ref{def:sokal_variance} is valid in the limit $\tau \ll M$.
 Ergo, the choice of $M$ is a tradeoff between bias and variance. Moreover, the variance in equation \ref{def:sokal_variance} can be used to build an estimator for the error on $\hat{\tau}_{\text{int}}$:
 
 \begin{equation}
-    \sigma_{\hat{\tau}_{\text{int}}} = \sqrt{\mathrm{var}(\widehat{\tau}_{\mathrm{int}})} = \sqrt{2}\sqrt{\frac{(2M + 1)}{N}} \tau_{\mathrm{int}}
+    \label{def:tau_sokal_error}
+    \hat{\sigma}_{\hat{\tau}_{\text{int}}} = \sqrt{\mathrm{var}(\widehat{\tau}_{\mathrm{int}})} = \sqrt{2}\sqrt{\frac{(2M + 1)}{N}} \hat{\tau}_{\mathrm{int}}
 \end{equation}
 
 \FloatBarrier
 
 \subsubsection{Data blocking method}
 
-While Sokal's method is based on summing over the autocorrelation function in a particular way, the data blocking method presented in the work "Error estimates on averages of correlated data" by H. Flyvbjerg and H. G. Petersen operates in a fundamentally different way.
+While Sokal's method is based on summing over the autocorrelation function in a particular way, there exists a different approach known as the data blocking method, by H. Flyvbjerg and H. G. Petersen \cite{flyv-peter}.
 
-Let's consider a Markov Chain of length $N$ of configurations ${x_i}$ with variance $\sigma^2$ and an observable $O$ measured on each configuration. Now suppose we simplify this Chain by averaging the values of the observable $O$ of every consecutive $k$ elements. This will produce a new chain of length $N_b = N / k$ of block averages $\bar{O}_i$ that are less correlated than the original chain. One can then take advantage of the law:
+Let's consider a Markov Chain of length $N$ of configurations ${x_i}$ with variance $\sigma^2$ and an observable $O$ measured on each configuration. Now suppose we simplify this Chain by averaging the values of the observable $O$ of every consecutive $k$ elements. This will produce a new chain of length $N_b = N / k$ of block averages $\bar{O}_i$ that are less correlated than the original chain.
 
-[TODO: METTERE IN ORDINE STA ROBA]
-
-\begin{equation}
-	\label{eq:vk}
-	V_k = \frac{\sigma^2}{k} (1 + 2 \tau_{\text{int}})
-\end{equation}
-
-to build an estimator of $\tau_{\text{int}}$:
-
-\begin{equation}
-	\tau_{\text{int}}(k) = k \frac{V_k}{2 \sigma^2}
-\end{equation}
-
-where the $-\frac{1}{2}$ term was dropped in accordance with Sokal's alternative definition of $\tau_{\text{int}}$ (even though its a negligible correction).
-
-Note that \ref{eq:vk} is intended to be a correction to the variance of the mean $V_k$ for a chain of truly uncorrelated data:
+For a perfectly uncorrelated chain, the mean variance of the averages in every block of size $k$ is given by:
 
 \begin{equation}
 	\label{eq:vks}
-	V_k = \frac{1}{N_b - 1} \sum_{i = 1}^{N_b} (\bar{O}_i - \bar{O})^2 = \frac{\sigma^2}{k}
+	V_k = \mathrm{Var}\left(\frac{1}{k} \sum_{i=1}^k O_i\right) = \frac{\sigma^2}{k}
+    % \frac{1}{N_b - 1} \sum_{i = 1}^{N_b} (\bar{O}_i - \bar{O})^2 =
 \end{equation}
 
-and the correction factor can be written as a function of $\tau_{\text{int}}$ only in the limit $N \gg \tau_{\text{int}}$.
-To verify that these laws are consistent with each other, one can see that for truly uncorrelated data $\tau_{\text{int}} \to 0$, and so equation \ref{eq:vk} reduces to equation \ref{eq:vks} for $N = k$ (or $N_b = 1$ or $N \gg \tau_{\text{int}}$). 
+where $\bar{O} = \frac{1}{k} \sum_{i=1}^{k} O_i$ is the mean of the values of the observable $O$ of the block averages.
+
+For non zero correlation, this quantity has to be corrected by a factor that depends on the integrated autocorrelation time $\tau_{\text{int}}$:
+
+\begin{equation}
+	\label{eq:vk}
+	V_k = \frac{\sigma^2}{k} (1 + 2 \sum_{t = 1}^{k - 1} (1 - \frac{t}{k}) \rho(t)) = \frac{\sigma^2}{k} 2 \tau_{\text{int}}(k)
+\end{equation}
+
+which can be rearranged to build an estimator of $\tau_{\text{int}}$:
+
+\begin{equation}
+    \label{eq:tau_blocking}
+	\hat{\tau}_{\text{int}}(k) = k \frac{V_k}{2 \sigma^2}
+\end{equation}
+
+Equation \ref{eq:vk} can be also derived like \ref{eq:vks} with some algebra.
+
+Note that the correction factor can be written as a function of $\tau_{\text{int}}$ only in the limit $N \gg \tau_{\text{int}}$.
+To verify that these laws are consistent with each other, one can see that for truly uncorrelated data $\tau_{\text{int}} \to \frac{1}{2}$ (with definition \ref{def:tau_int}), and so equation \ref{eq:vk} reduces to equation \ref{eq:vks} for $N = k$ (or $N_b = 1$ or $N \gg \tau_{\text{int}}$). 
+
+Because of CLT, when $k \gg \tau_{\text{int}}$ (that is, when the blocking is sufficiently coarse) the mean averages are normally distributed. Ergo, one can show (with some more algebra) that:
+
+\begin{equation}
+    \label{eq:vk_error}
+    \sigma_{V_k} = \sqrt{\mathrm{Var}(V_k)} = \sqrt{{\left\langle V_k \right\rangle}^2 \frac{2}{N_b - 1}}
+\end{equation}
+
+and since the relationship between $V_k$ and $\tau_{\text{int}}$ is linear, the error of $\tau_{\text{int}}$ can be estimated as:
+
+\begin{equation}
+    \label{eq:tau_blocking_error}
+    \hat{\sigma}_{\hat{\tau}_{\text{int}}(k)} = \sqrt{\frac{2}{N_b - 1}} \hat{\tau}_{\text{int}}(k)
+\end{equation}
 
 \br
 
@@ -349,14 +372,14 @@ For every $k$ the procedure is as follows:
 \begin{enumerate}
 	\item Divide the chain into $N_b$ blocks of size $k$. The number of blocks is then $N_b = N / k$ and compute the average of the observable $O$ in each block. This is equivalent to averaging the observables of every two consecutive blocks of the previous iteration.
 	\item Compute the variance of the new set of block averages.
-	\item Compute $\tau_{\text{int}}(k)$ as $\tau_{\text{int}}(k) = \frac{1}{2}(k \frac{V_k}{\sigma^2} - 1)$.
+	\item Compute $\hat{\tau}_{\text{int}}(k)$ with \eqref{eq:tau_blocking}.
 \end{enumerate}
 
-The estimate $\tau_{\text{int}}(k)$ will converge to the true value of $\tau_{\text{int}}$ as $k$ increases.
+The estimate $\hat{\tau}_{\text{int}}(k)$ will converge to the true value of $\tau_{\text{int}}$ as $k$ increases.
 
-After a certain value of $k$ the limit $k \gg \tau_{\text{int}}$ will be reached (in a numerical sense) and the estimate for $\tau_{\text{int}}$ will converge to a plateau (because $V_k$ will be stable). The value of the plateau is then taken as the final estimate of $\tau_{\text{int}}$.
+After a certain value of $k$ the limit $k \gg \tau_{\text{int}}$ will be reached (in a numerical sense) and the estimator will converge to a plateau (because $V_k$ will be stable). The value of the plateau is then taken as the final estimate of $\tau_{\text{int}}$.
 
-It's important to note that this method can be used on a chain that has reached the stationary distribution, from the beginning. So, in the actual implementation, the thermalisation time is computed as $20 \tau_{\text{int}}^{\text{Sokal}}$ estimated with Sokal's method, and then the data blocking method is applied to the chain after discarding the first $20 \tau_{\text{int}}^{\text{Sokal}}$ steps. 
+It's important to note that this method can be used on a chain that has reached the stationary distribution from the beginning. So, in the actual implementation, the thermalisation time is computed as $20 \tau_{\text{int}}$ estimated with Sokal's method, and then the data blocking method is applied to the chain after discarding the first $20 \tau_{\text{int}}^{\text{Sokal}}$ steps. 
 
 The implementation is shown in the following code:
 

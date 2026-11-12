@@ -25,16 +25,26 @@ def tau_int_sokal(observables, c = 10.0):
     '''
 
     N = len(observables)
+
+    mean = np.mean(observables)
     var = np.var(observables)
     
     if var == 0.0:
         return 0.0, 0
 
-    centered = observables - np.mean(observables)
+    centered = np.empty(N, dtype = np.float64)
+    for i in range(N):
+        centered[i] = observables[i] - mean
+
     tau = 0.5
 
     for t in range(1, N):
-        autocov_t = np.sum(centered[:N-t] * centered[t:]) / N
+       
+        sum_autocov = 0.0
+        for i in range(N - t):
+            sum_autocov += centered[i] * centered[i + t]
+            
+        autocov_t = sum_autocov / N
         tau += autocov_t / var
 
         if t >= c * tau:
@@ -54,8 +64,10 @@ def tau_int_blocking(observables, burn_in = None, c = 10.0):
     '''
 
     N = len(observables)
+    
     if N < 2:
-        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
+        b_in_early = 0 if burn_in is None else int(burn_in)
+        return 0.0, 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), b_in_early
 
     if burn_in is None:
         tau0, _ = tau_int_sokal(observables, c = c)
@@ -71,13 +83,13 @@ def tau_int_blocking(observables, burn_in = None, c = 10.0):
     observables = observables[burn_in:]
     N = len(observables)
     if N < 2:
-        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
+        return 0.0, 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
 
     # Return 0 if the number of samples is too small to compute tau_int
     var = np.var(observables)
     if not np.isfinite(var) or var <= 0.0:
         print(f"Warning: variance is non-positive ({var}) for the observable values after burn-in. Returning zeros.")
-        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
+        return 0.0, 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
 
     current_blocks = observables.copy()
     tau_estimates = []
@@ -89,10 +101,10 @@ def tau_int_blocking(observables, burn_in = None, c = 10.0):
         # Estimation
         mean_blocks = np.mean(current_blocks)
         var_blocks = np.sum(np.power(current_blocks - mean_blocks, 2)) / (Nb - 1)
-        tau_estimate = .5 * (block_size * (var_blocks / var) - 1)
+        tau_estimate = .5 * block_size * (var_blocks / var)
         if not np.isfinite(tau_estimate):
             print(f"Warning: tau_estimate is not finite ({tau_estimate}) for the observable values after burn-in.")
-            return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
+            return 0.0, 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
         tau_estimates.append(tau_estimate)
         Nb_array.append(Nb)
 
@@ -106,21 +118,22 @@ def tau_int_blocking(observables, burn_in = None, c = 10.0):
 
 
     if len(tau_estimates) == 0:
-        return 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
+        return 0.0, 0.0, np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.float64), burn_in
 
     # Finding plateau in tau_estimates
     for i in range(len(tau_estimates) - 1):
+        err = tau_estimates[i] * np.sqrt(2.0 / (Nb_array[i] - 1))
+        
         if Nb_array[i] < 30:
-            return float(tau_estimates[i]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64), burn_in
+            return float(tau_estimates[i]), err, np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64), burn_in
 
         diff = abs(tau_estimates[i + 1] - tau_estimates[i])
-        err = (tau_estimates[i] + 0.5) * np.sqrt(2.0 / (Nb_array[i] - 1)) 
         
         if diff < err:
-            return float(tau_estimates[i]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64), burn_in
+            return float(tau_estimates[i]), err, np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64), burn_in
 
-    return float(tau_estimates[-1]), np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64), burn_in
-
+    err_last = tau_estimates[-1] * np.sqrt(2.0 / (Nb_array[-1] - 1))
+    return float(tau_estimates[-1]), err_last, np.array(Nb_array, dtype=np.int64), np.array(tau_estimates, dtype=np.float64), burn_in
 
 
 ##################################################################################################

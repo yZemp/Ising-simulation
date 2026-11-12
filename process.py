@@ -5,7 +5,50 @@ import time
 from datetime import timedelta
 from typing import cast
 from autocorrelation import tau_int_sokal, tau_int_blocking
-from operators import magnetization
+from operators import compute_chi, magnetization
+
+###############################################################################
+# Magnetization study
+
+def chi_bake(N, dim, data_file = ""):
+    '''
+    Bakes the mean magnetic susceptibility (chi) and relative error
+    of an Ising model with N spins per side and dimensionality dim and stores the results in an HDF5 file.
+    '''
+
+    print(f"Baking chi (mean magnetic susceptibility) and errors for N = {N}, dim = {dim}...")
+
+    if data_file is None or data_file == "":
+        print(f"Warning: no data file specified. Using default: dim_{dim}_N_{N}_data.hdf5")
+        data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
+
+    with h5py.File(data_file, "a") as file:
+        group_key = f"dim_{dim}_N_{N}"
+        if group_key not in file:
+            print(f"Data for N = {N}, dim = {dim} not found in {data_file}. Please run simulate() first.")
+            return
+
+        group = cast(h5py.Group, file[group_key])
+
+        if "filtered_lengths" not in group or "filtered_data" not in group:
+            print(f"Filtered data not found in {data_file}. Please run filter_data() first.")
+            return
+
+        temperatures = cast(h5py.Dataset, group["temperatures"])[:]
+        
+        chi_values, chi_errors = compute_chi(N, dim, data_file, temperatures)
+
+        # Store results in the HDF5 file
+        if "chi_values" in group:
+            del group["chi_values"]
+        if "chi_errors" in group:
+            del group["chi_errors"]
+            
+        group.create_dataset("chi_values", data=chi_values)
+        group.create_dataset("chi_errors", data=chi_errors)
+
+    print(f"Baked chi values and errors for N = {N}, dim = {dim}.")
+
 
 ###############################################################################
 # Magnetization study
@@ -22,6 +65,7 @@ def magnetization_bake(N, dim, data_file = ""):
     print(f"Baking magnetization for N = {N}, dim = {dim}...")
 
     if data_file is None or data_file == "":
+        print(f"Warning: no data file specified. Using default: dim_{dim}_N_{N}_data.hdf5")
         data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
 
     with h5py.File(data_file, "a") as file:
@@ -95,6 +139,7 @@ def filter_data(N, dim, data_file = "", max_chunk_size = 100_000):
     '''
     
     if data_file is None or data_file == "":
+        print(f"Warning: no data file specified. Using default: dim_{dim}_N_{N}_data.hdf5")
         data_file = f"dim_{dim}_N_{N}_data.hdf5"
     group_name = f"dim_{dim}_N_{N}"
     filtered_data_path = f"{group_name}/filtered_data"
@@ -252,14 +297,15 @@ def main():
 
 if __name__ == "__main__":
 
-    Ns = [30]
+    Ns = [4, 6, 8, 10, 15, 30]
     dim = 3
 
 
     for N in Ns:
         data_file = r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(N = N, dim = dim)
         # filter_data(N, dim, data_file = data_file)
-        magnetization_bake(N, dim, data_file = data_file)
+        # magnetization_bake(N, dim, data_file = data_file)
+        chi_bake(N, dim, data_file = data_file)
 
     # N = 4
     # dim = 2

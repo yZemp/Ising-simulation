@@ -60,3 +60,9 @@ plot varianza x numero blocchi (varianza parte sottostimata e si deve stabilizza
 taglia lateralmente grafici di estrazione semplice di estrazione semplice di T_C
 
 aggiungere errori a chi, interpolare e trovare il massimo con la derivata dell'interpolazione
+
+Scripts da ri-lanciare:
+    tau_int grafici (3 volte una per dim);
+    sistemare plateau detection;
+    simple tc extraction (2 volte);
+    tc con fss

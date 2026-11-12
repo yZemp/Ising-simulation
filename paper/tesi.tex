@@ -12,6 +12,7 @@
 \usepackage{placeins} % \FloatBarrier
 \usepackage{parskip} % Indentation
 \usepackage[hidelinks]{hyperref} % Remove colored boxes around links
+\usepackage{xurl}
 \geometry{left=3cm,right=2.5cm,top=3cm,bottom=3cm}
 
 \setcounter{tocdepth}{3} % Set the depth of the table of contents to include subsubsections
@@ -24,6 +25,8 @@
 \newcommand{\me}{m_{\mathrm{e}}}       % e- mass
 
 \newcommand{\bigO}{\mathcal{O}} % Big O notation
+
+\usepackage[super,sort&compress]{natbib}
 
 \newcommand{\br}{%
   \par\vspace{1em}
@@ -92,7 +95,17 @@ The Ising model has been widely studied in physics, mathematics, and computer sc
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
 \begin{thebibliography}{9}
-\bibitem{ref1} Author, Title, Journal/Book, Year.
+
+  \bibitem{sokal} A. Sokal, \textit{Monte Carlo Methods in Statistical Mechanics: Foundations and New Algorithms} (1997). \url{https://doi.org/10.1007/978-1-4899-0319-8_6}
+
+  \bibitem{flyv-peter} H. Flyvbjerg and H. G. Petersen,  \textit{Error estimates on averages of correlated data}, J. Chem. Phys. \textbf{91}, 461 (1989). \url{https://doi.org/10.1063/1.457480}
+
+  \bibitem{jackknife-resampling} H. Friedl and E. Stampfer,  \textit{Jackknife Resampling} (2001). \url{https://doi.org/10.1002/9780470057339.vaj001}
+  
+  \bibitem{efron1982} B. Efron, \textit{The Jackknife, the Bootstrap and Other Resampling Plans} (Society for Industrial and Applied Mathematics, 1982). \url{https://doi.org/10.1137/1.9781611970319}
+
+  \bibitem{fisher1972} M. E. Fisher and M. N. Barber, \textit{Scaling Theory for Finite-Size Effects in the Critical Region}, Phys. Rev. Lett. \textbf{28}, 1516 (1972). \url{https://doi.org/10.1103/PhysRevLett.28.1516}
+
 \end{thebibliography}
 
 \end{document}
