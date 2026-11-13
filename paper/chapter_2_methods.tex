@@ -19,7 +19,7 @@ Note that the data type that the numpy array contains is np.int8. In order to mi
 
 Every array representing a single Ising model configuration is generated and stored in another numpy array of arbitrary length that represents the Markov Chain. This is done for a number of temperatures around the expected critical temperature, and is repeated for every lattice size under scrutiny and for every dimension. Ultimately, this data is stored in a hdf5 file for efficient i/o operations and in order to contextually add metadata and processed data (e.g.: autocorrelation time, thermalisation time, etc.) to the raw chain.
 
-For every combination of dimension and lattice size, the generated raw data is stored in a numpy array of shape ($N_{temps}$, $N_{steps}$, [$N_{dim}$] \times \: $d$).
+For every combination of dimension and lattice size, the generated raw data is stored in a numpy array of shape ($N_{\text{temps}}$, $N_{\text{steps}}$, [$N_{\text{dim}}$] \times \, $d$).
 It's worth mentioning that for every lattice in every dimension periodic boundary conditions are used, which means that the first and last spins of the lattice are considered to be neighbours. This is obviously done to avoid edge effects as much as to simplify the handling of the data, as it allows using the same code for every spin in the lattice without having to consider special cases for the spins on the edges.
 
 \br
@@ -28,7 +28,7 @@ A problem that arose during the development of the code was that the amount of d
 
 This allowed to process datasets of arbitrary size without running out of memory with negligible computation time overhead.
 
-Partially because of this choice, but more in general to allow for efficient i/o operations, the compression algorithm chosen for the hdf5 files was lzf, which is a lossless compression algorithm that is very fast and has a good compression ratio.
+Partially because of this choice, but more in general to allow for efficient i/o operations, the compression algorithm chosen for the hdf5 files was lzf, which is a lossless compression algorithm that sacrifices some compression ratio for a better speed of reading and writing operations .
 
 \section{Monte Carlo Markov Chains}
 
@@ -45,7 +45,7 @@ Now, it would be ideal to write this probability analytically to be able to comp
 
 \br
 
-The solution to this problem is a Markov Chain Monte Carlo method, that is a method for generating a sequence of independent samples from a desired distribution without knowing the normalization constant. One algorithm that produces such a chain is the Metropolis-Hastings algorithm. This algorithm can draw samples from any probability distribution with probability density $P(x)$, provided that we know another function proportional to the density $P$ that we're able to compute analytically (in this case $e^{-\beta E}$) so that we can write $P(E) \propto e^{-\beta E}$.
+The solution to this problem is a Markov Chain Monte Carlo method, that is a method for generating a sequence of independent samples from a desired distribution without knowing its normalization constant. One algorithm that produces such a chain is the Metropolis-Hastings algorithm. This algorithm can draw samples from any probability distribution $P(x)$ provided that another function $f$ proportional to $P$ is known, where $f$ can be computed analytically (in this case $f = e^{-\beta E}$) so that we can write $P(E) \propto e^{-\beta E}$.
 
 The algorithm's idea is to start from a random configuration of the system and then to move to another configuration of the system with a set probability which is determined by the energy distribution.
 
@@ -307,7 +307,7 @@ Ergo, the choice of $M$ is a tradeoff between bias and variance. Moreover, the v
 
 \begin{equation}
     \label{def:tau_sokal_error}
-    \hat{\sigma}_{\hat{\tau}_{\text{int}}} = \sqrt{\mathrm{var}(\widehat{\tau}_{\mathrm{int}})} = \sqrt{2}\sqrt{\frac{(2M + 1)}{N}} \hat{\tau}_{\mathrm{int}}
+    \hat{\sigma}_{\hat{\tau}_{\text{int}}} = \sqrt{\mathrm{var}(\widehat{\tau}_{\mathrm{int}})} = \sqrt{\frac{2(2M + 1)}{N}} \hat{\tau}_{\mathrm{int}}
 \end{equation}
 
 \FloatBarrier
@@ -328,7 +328,7 @@ For a perfectly uncorrelated chain, the mean variance of the averages in every b
 
 where $\bar{O} = \frac{1}{k} \sum_{i=1}^{k} O_i$ is the mean of the values of the observable $O$ of the block averages.
 
-For non zero correlation, this quantity has to be corrected by a factor that depends on the integrated autocorrelation time $\tau_{\text{int}}$:
+For non zero correlation, this quantity has to be corrected\footnote{Equation \ref{eq:vk} can be also derived like \ref{eq:vks} with some algebra} by a factor that depends on the integrated autocorrelation time $\tau_{\text{int}}$:
 
 \begin{equation}
 	\label{eq:vk}
@@ -339,10 +339,14 @@ which can be rearranged to build an estimator of $\tau_{\text{int}}$:
 
 \begin{equation}
     \label{eq:tau_blocking}
-	\hat{\tau}_{\text{int}}(k) = k \frac{V_k}{2 \sigma^2}
+	\hat{\tau}_{\text{int}}(k) = k \frac{\hat{V}_k}{2 \sigma^2}
 \end{equation}
 
-Equation \ref{eq:vk} can be also derived like \ref{eq:vks} with some algebra.
+where $\hat{V}_k$ is the estimator for the variance of the block averages:
+
+\begin{equation}
+    \hat{V}_k = \frac{1}{N_b - 1} \sum_{i=1}^{N_b} (\bar{O}_i - \bar{O}_{tot})^2
+\end{equation}
 
 Note that the correction factor can be written as a function of $\tau_{\text{int}}$ only in the limit $N \gg \tau_{\text{int}}$.
 To verify that these laws are consistent with each other, one can see that for truly uncorrelated data $\tau_{\text{int}} \to \frac{1}{2}$ (with definition \ref{def:tau_int}), and so equation \ref{eq:vk} reduces to equation \ref{eq:vks} for $N = k$ (or $N_b = 1$ or $N \gg \tau_{\text{int}}$). 
@@ -440,58 +444,67 @@ def tau_int_blocking(observables, burn_in = None, c_blocking = 15.0):
 
 \end{minted}
 
-The effect of this algorithm of the progressive smoothing of the chain can be appreciated in figure \ref{figure:data_blocking_partial_visualization}. The last plot is the one corresponding to the plateau, and the value of $\tau_{\text{int}}$ is taken from it. The other plots are just for visualization purposes, and show how the chain is progressively smoothed out by averaging every two consecutive blocks of the previous iteration.
+The iterative calculation of $\hat{\tau}_{\text{int}}(k)$ is shown in figure \ref{figure:tau_blocking_plateau}, where it can be seen that the estimate stabilizes at a certain point, before the noise starts to dominate.
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=1.\textwidth]{../pics_and_anims/data_blocking_partial_visualization.pdf}
+	\includegraphics[width=1.\textwidth]{../pics_and_anims/tau_blocking_plateau_N_25_dim_2.pdf}
 	\caption{Example visualization of the data blocking method.}
-	\label{figure:data_blocking_partial_visualization}
+	\label{figure:tau_blocking_plateau}
 \end{figure}
 
-[TODO: Add plateu detection visualization]
+The effect of this algorithm of the progressive smoothing of the chain can be appreciated in figure \ref{figure:data_blocking_partial_visualization}. The last plot is the one corresponding to the plateau, and the value of $\tau_{\text{int}}$ is taken from it. The other plots are just for visualization purposes, and show how the chain is progressively smoothed out by averaging every two consecutive blocks of the previous iteration.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1.\textwidth]{../pics_and_anims/data_blocking_partial_visualization.pdf}
+    \caption{Example visualization of the data blocking method.}
+    \label{figure:data_blocking_partial_visualization}
+\end{figure}
 
 \FloatBarrier
 
 \subsection{Comparing the two methods}
 
-Now that both methods have been described, they can be compared. Clearly, their estimates of $\tau_{\text{int}}$ should be roughly similar. In images \ref{figure:tau_int_1D_comparison}, \ref{figure:tau_int_2D_comparison} and \ref{figure:tau_int_3D_comparison} the estimates of $\tau_{\text{int}}$ for the two methods are compared for different dimensions.
+[TODO: finish this section]
 
-[TODO: FIX THIS FOR THE LOVE OF GOD]
+% Now that both methods have been described, they can be compared. Clearly, their estimates of $\tau_{\text{int}}$ should be roughly similar. In images \ref{figure:tau_int_1D_comparison}, \ref{figure:tau_int_2D_comparison} and \ref{figure:tau_int_3D_comparison} the estimates of $\tau_{\text{int}}$ for the two methods are compared for different dimensions.
 
-% \begin{figure}[htbp]
-% 	\centering
-% 	\includegraphics[height=0.45\textheight]{../pics_and_anims/todo.pdf}
-% 	\label{figure:tau_int_1D_comparison}
-% \end{figure}
+% [TODO: FIX THIS FOR THE LOVE OF GOD]
 
-% \begin{figure}[htbp]
-% 	\centering
-% 	\includegraphics[height=0.45\textheight]{../pics_and_anims/todo.pdf}
-% 	\label{figure:tau_int_2D_comparison}
-% \end{figure}
+% % \begin{figure}[htbp]
+% % 	\centering
+% % 	\includegraphics[height=0.45\textheight]{../pics_and_anims/todo.pdf}
+% % 	\label{figure:tau_int_1D_comparison}
+% % \end{figure}
 
-% \begin{figure}[htbp]
-% 	\centering
-% 	\includegraphics[height=0.45\textheight]{../pics_and_anims/todo.pdf}
-% 	\label{figure:tau_int_3D_comparison}
-% \end{figure}
+% % \begin{figure}[htbp]
+% % 	\centering
+% % 	\includegraphics[height=0.45\textheight]{../pics_and_anims/todo.pdf}
+% % 	\label{figure:tau_int_2D_comparison}
+% % \end{figure}
 
-The correlation between the two methods is clear, and it can be noted that both methods struggle close to $T_C$ where this behavior is, of course, expected. This phenomenon is the very well known Critical Slowing Down, and it is a consequence of the fact that the correlation length $\xi$, that is, the typical distance over which spins are correlated, diverges at $T_C$.
+% % \begin{figure}[htbp]
+% % 	\centering
+% % 	\includegraphics[height=0.45\textheight]{../pics_and_anims/todo.pdf}
+% % 	\label{figure:tau_int_3D_comparison}
+% % \end{figure}
 
-Since $\tau_\text{int} \propto \xi^z$ and $\xi \to \infty$ at $T_C$, it is expected that $\tau_\text{int} \to \infty$ as well, and that is why these methods struggle near the critical temperature.
+% The correlation between the two methods is clear, and it can be noted that both methods struggle close to $T_C$ where this behavior is, of course, expected. This phenomenon is the very well known Critical Slowing Down, and it is a consequence of the fact that the correlation length $\xi$, that is, the typical distance over which spins are correlated, diverges at $T_C$.
+
+% Since $\tau_\text{int} \propto \xi^z$ and $\xi \to \infty$ at $T_C$, it is expected that $\tau_\text{int} \to \infty$ as well, and that is why these methods struggle near the critical temperature.
 
 \FloatBarrier
 
 \subsection{Improvement to the MCMC algorithm: sweeps}
 
-It is true that the two methods are shown to be quite compatible with each other, with produced estimations of $\tau_{\text{int}}$ that are generally in good agreement. [LENTO COME LA MORTEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAAAAAAAAAA] The errors, on the other hand, are quite big, specifically close but not at $T_C$. This is specifically true for the data blocking method. Since the errors given by this method scale as $\sqrt{2 / (N_b - 1)}$ where $N_b$ is the number of blocks, the only way to reduce them is to increase the length of the chain.
+Until now the Markov Chain relative to a specific lattice at a specific temperature was built by adding every configuration to it (after every proposed spin flip). As mentioned, this is not the only possible approach: one could instead build the chain by adding a configuration to it only after a certain number of steps have been taken.
 
-This option was not viable. To try to fix the problem, another approach was explored, that is, to change the way of building the chain. Let's define a "sweep" as the process of applying steps 2-5 of the Metropolis-Hastings algorithm (explained in Section \ref{subsection:generation}) to a configuration $N^d$ times. This is an arbitrary choice, with the rationale that a sweep is the amount of steps needed to give every spin in the lattice a chance to flip. The idea is to build the chain by adding a configuration to it only after every sweep: this ensures a lower correlation between successive configurations in the chain, and so a lower $\tau_{\text{int}}$. This is a pretty standard approach in the literature, and is used in many implementations of the Metropolis-Hastings algorithm.
+ Let's define a "sweep" as the process of applying steps 2-5 of the Metropolis-Hastings algorithm (explained in Section \ref{subsection:generation}) to a configuration $N^d$ times. This is an arbitrary choice, with the rationale that a sweep is the amount of steps needed to give every spin in the lattice a chance to flip. The idea is to build the chain by adding a configuration to it only after every sweep: this ensures a lower correlation between successive configurations in the chain, and so a lower $\tau_{\text{int}}$. This is a pretty standard approach in the literature, and is used in many implementations of the Metropolis-Hastings algorithm.
 
-This new approach allows for much shorter chains to be used in theory, which means that more accurate results can be obtained with less computational effort. All of the production and analysis of the chains was redone with this new approach with chains with length of one less order of magnitude than before.
+This new approach allows for much shorter chains to be used in theory, which means that more accurate results can be obtained with less computational effort. All of the generation and analysis of the chains was redone with this new approach with chains with length of one less order of magnitude than before.
 
-The results are shown in figures \ref{figure:tau_int_1D_comparison_sweeps}, \ref{figure:tau_int_2D_comparison_sweeps} and \ref{figure:tau_int_3D_comparison_sweeps}. The correlation between the two methods is still clear, and the errors are significantly smaller than before. The only point where both methods fail is at the critical temperature, where, again, this is the expected behavior as the correlation length diverges and so does $\tau_{\text{int}}$.
+The results are shown in figures \ref{figure:tau_int_1D_comparison_sweeps}, \ref{figure:tau_int_2D_comparison_sweeps} and \ref{figure:tau_int_3D_comparison_sweeps}. The correlation between the two methods is clear. The only point where both methods's value and error explode is at the critical temperature, where, again, this is the expected behavior as the correlation length diverges and so does $\tau_{\text{int}}$.
 
 \begin{figure}[htbp]
 	\centering

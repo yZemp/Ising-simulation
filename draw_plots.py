@@ -220,7 +220,7 @@ def metropolis_ising_graphics_blocking(initial_state, T: float, steps: int, seed
 
     current_color = colors[1]
 
-    tau_int, Nb_array, tau_int_estimates_array, burn_in = tau_int_blocking(energies, c = 20)
+    tau_int, Nb_array, tau_int_estimates_array, vk_estimates_array, burn_in = tau_int_blocking(energies, c = 20)
     print(f"Tau_int_blocking: {tau_int}\nNb_array: {Nb_array}\nTau_int_estimates_array: {tau_int_estimates_array}\nBurn-in: {burn_in}")
     plateau_idx = np.where(tau_int_estimates_array == tau_int)[0][0]
     print("Plateau index:", plateau_idx)
@@ -394,7 +394,7 @@ def tau_int_graph(N, dim, data_file, filename = "tau_int.pdf", read_observables_
         try:
             taus_sokal[i], M = tau_int_sokal(observables[i], c = csokal)
             taus_sokal_errors[i] = taus_sokal[i] * np.sqrt((4 * M + 2) / len(observables[i])) if M > 0 else np.nan
-            taus_blocking[i], err, Nb_arr, _, _ = tau_int_blocking(observables[i], c = cblocking)
+            taus_blocking[i], err, Nb_arr, _, _, _ = tau_int_blocking(observables[i], c = cblocking)
             taus_blocking_errors[i] = err
         except Exception as e:
             print(f"Warning: failed at T = {T:.2f}: {type(e).__name__}: {e}")
@@ -465,17 +465,24 @@ def tau_blocking_plateau(N, dim, data_file, filename = "tau_blocking_plateau.pdf
 
     observables = np.array([magnetization(model) for model in raw_data])
 
-    tau_int, Nb_array, tau_int_estimates_array, burn_in = tau_int_blocking(observables, c = 10.0)
+    tau_int, err, Nb_array, tau_int_estimates_array, _, _ = tau_int_blocking(observables, c = 10.0)
 
+    k = len(observables) / Nb_array[np.where(tau_int_estimates_array == tau_int)[0][0]]  # Number of samples per block at the plateau
+    tau_int, M = tau_int_sokal(observables, c = 5.0)
+    err_array = tau_int_estimates_array * np.sqrt(2.0 / (Nb_array - 1))
+    
     plt.figure(figsize=(10, 6))
-    plt.plot(Nb_array, tau_int_estimates_array, marker='o', label=r"$\tau_{int}$ estimates", color="#35B779")
-    plt.axhline(y=tau_int, color="#482878", linestyle='--', linewidth=1.5, label=f'Plateau value: {tau_int:.2f}')
+    plt.errorbar(Nb_array, tau_int_estimates_array, yerr=err_array, marker='o', capsize=3, ecolor='#482878', color='#482878', label=r"$\tau_{int}$ estimates")
+    plt.axhline(y=tau_int, color="#35B779", linestyle='solid', linewidth=1.5, label=f'Plateau value: {tau_int:.2f}')
     plt.xlabel('Number of blocks (Nb)')
     plt.ylabel(r"$\tau_{int}$ estimates")
     plt.xscale('log')
     plt.title(f'Blocking Method - N = {N}, dim = {dim}, T = {temperatures[T_index]:.2f}')
+    plt.plot([], [], ' ', label=f"k = {k:.2f} samples per block at plateau")
+    plt.plot([], [], ' ', label=f"M = {M:.2f}")
     plt.grid(True, which="both", ls="--", alpha=0.5)
     plt.legend()
+    plt.gca().invert_xaxis()
     plt.tight_layout()
     plt.savefig(filename, format='pdf', bbox_inches='tight')
     plt.close()
@@ -826,10 +833,10 @@ if __name__ == '__main__':
     #########################################################################################
     # Blocking plateau VISUALIZATION EXAMPLE USAGE
 
-    # N = 100
-    # dim = 2
-    # data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
-    # tau_blocking_plateau(N, dim, data_file, filename = f"tau_blocking_plateau_N_{N}_dim_{dim}.pdf", T_index = 50)
+    N = 25
+    dim = 2
+    data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
+    tau_blocking_plateau(N, dim, data_file, filename = f"tau_blocking_plateau_N_{N}_dim_{dim}.pdf", T_index = 50)
 
 
     #########################################################################################
@@ -855,11 +862,11 @@ if __name__ == '__main__':
     # Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100]
     # dim = 2
     
-    Ns = [4, 6, 8, 10, 15, 30]
-    dim = 3
+    # Ns = [4, 6, 8, 10, 15, 30]
+    # dim = 3
 
-    sources = [r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns]
-    true_tc_extraction(sources, dim, filename = f"true_tc_extraction_{dim}D.pdf")
+    # sources = [r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns]
+    # true_tc_extraction(sources, dim, filename = f"true_tc_extraction_{dim}D.pdf")
     
     end = time.perf_counter()
     print(f"Time elapsed since draw_plots.py was run = {timedelta(seconds = end - start)}")

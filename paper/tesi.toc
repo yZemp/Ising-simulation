@@ -17,8 +17,7 @@
 \contentsline {subsection}{\numberline {2.2.4}Improvement to the MCMC algorithm: sweeps}{25}{subsection.2.2.4}%
 \contentsline {chapter}{\numberline {3}Results}{28}{chapter.3}%
 \contentsline {section}{\numberline {3.1}Introduction}{28}{section.3.1}%
-\contentsline {section}{\numberline {3.2}1D Ising model}{29}{section.3.2}%
-\contentsline {section}{\numberline {3.3}2D Ising model}{30}{section.3.3}%
-\contentsline {section}{\numberline {3.4}3D Ising model}{32}{section.3.4}%
-\contentsline {section}{\numberline {3.5}General comments and Peierls argument}{34}{section.3.5}%
-\contentsline {chapter}{\numberline {A}Appendix}{37}{appendix.A}%
+\contentsline {section}{\numberline {3.2}1D Ising model}{30}{section.3.2}%
+\contentsline {section}{\numberline {3.3}2D Ising model}{31}{section.3.3}%
+\contentsline {section}{\numberline {3.4}3D Ising model}{33}{section.3.4}%
+\contentsline {section}{\numberline {3.5}General comments and Peierls argument}{35}{section.3.5}%

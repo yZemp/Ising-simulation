@@ -56,6 +56,7 @@ aggiungere descrizione errori su magnetizzazione: var_mu = np.maximum(1.0, 2 * t
 separare tutti i grafici i 2D, 3D.
 
 plot varianza x numero blocchi (varianza parte sottostimata e si deve stabilizzare)
+plateau blocking: plot varianza x numero blocchi (varianza parte sottostimata e si deve stabilizzare)
 
 taglia lateralmente grafici di estrazione semplice di estrazione semplice di T_C
 
@@ -65,6 +66,14 @@ Scripts da ri-lanciare:
     tau_int grafici (3 volte, una per dim);
     
     sistemare plateau detection;
-    tc con fss;
 
+    tc con fss;
     simple tc extraction (2 volte);
+
+----------------------------------------------------------------------------------
+
+eguagliando gli errori: 2M = k. Discutere meglio confronto tra tau_int
+
+Scripts da ri-lanciare:
+    tau_int grafici (3 volte, una per dim);
+    sistemare plateau detection;

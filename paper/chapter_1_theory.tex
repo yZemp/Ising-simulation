@@ -193,6 +193,7 @@ The 2D case is far more complicated. It is also based on the transfer matrix met
 Onsager's solution is that the critical temperature is given by the solution of the equation:
 
 \begin{equation}
+  \label{eq:onsager_condition}
   \sinh \left( \frac{2}{T_C} \right) = 1
 \end{equation}
 
@@ -208,7 +209,6 @@ Since the 2D case is not analytically solved with $h \neq 0$, the magnetization 
     |1 - \sinh^{-4} \left( \frac{2}{T} \right)|^{\frac{1}{8}} & T < T_C \\ 
     0 &  T \geq T_C 
   \end{cases}
-  \label{eq:onsager_condition}
 \end{equation}
 
 which is very close to a step function. This of course makes sense, since the order state of the system has to either be $|M| = 1$ for $T < T_C$ or $M = 0$ for $T > T_C$. Note that this equation is the source of the condition \ref{eq:onsager_condition} for $T_C$.

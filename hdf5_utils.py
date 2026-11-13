@@ -98,14 +98,15 @@ if __name__ == "__main__":
     # N = 15
     # dim = 3
 
-    for N in [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100]:
+    for N in [5, 10, 20, 30, 50, 70, 100, 150, 200, 250, 300, 500]:
+    # for N in [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100]:
     # for N in [4, 6, 8, 10]:
         for dim in [2]:
             data_file = r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N)
 
             # verify_hdf5_integrity(data_file)
-            print_hdf5_tree(data_file)
-            # show_length(data_file, N, dim)
+            # print_hdf5_tree(data_file)
+            show_length(data_file, N, dim)
     
 
 
