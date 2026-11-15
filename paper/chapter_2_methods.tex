@@ -45,7 +45,7 @@ Now, it would be ideal to write this probability analytically to be able to comp
 
 \br
 
-The solution to this problem is a Markov Chain Monte Carlo method, that is a method for generating a sequence of independent samples from a desired distribution without knowing its normalization constant. One algorithm that produces such a chain is the Metropolis-Hastings algorithm. This algorithm can draw samples from any probability distribution $P(x)$ provided that another function $f$ proportional to $P$ is known, where $f$ can be computed analytically (in this case $f = e^{-\beta E}$) so that we can write $P(E) \propto e^{-\beta E}$.
+The solution to this problem is a Markov Chain Monte Carlo method, that is a method for generating a sequence of samples from a desired distribution without knowing its normalization constant. One algorithm that produces such a chain is the Metropolis-Hastings algorithm. This algorithm can draw samples from any probability distribution $P(x)$ provided that another function $f$ proportional to $P$ is known, where $f$ can be computed analytically (in this case $f = e^{-\beta E}$) so that we can write $P(E) \propto e^{-\beta E}$.
 
 The algorithm's idea is to start from a random configuration of the system and then to move to another configuration of the system with a set probability which is determined by the energy distribution.
 
@@ -134,13 +134,27 @@ Three things are to be noted about figure \ref{figure:markov_chain_convergence}:
     \item The chain starting from a random configuration is significantly longer than the other two chains. This is because plotting the chains the thermalisation times were taken into the account (with techniques discussed in the next sections), and removed. The chain starting from a random configuration has a much shorter thermalisation time than the other two chains, which is expected since the initial configuration of the other two is much further away from the stationary distribution.
 \end{itemize}
 
+To avoid confusion, in this paper $N$ will denote the number of spins in one side of a lattice and $n$ will denote the number of steps in a Markov Chain.
+
 \FloatBarrier
 
 \subsection{Analysis}
 
-As stated, a Markov Chain suffers from a recency bias, and the set of configurations of the chain is not very useful as a real sample set since the elements are not independent: on the contrary, they are very closely correlated and the presence of correlations between samples would lead to biased results during analysis.
+As stated, a Markov Chain needs some time to reach a stationary distribution and forget its initial state. This behaviour is called thermalisation.  Moreover, the data in the set of configurations of the chain has (obviously) great autocorrelation. It is easier to work with uncorrelated data, because it allows for lighter execution of the programs since at runtime a program will load in RAM less configurations that carry the same information as all of the configuration in the original chain. One could use the full chain and correct the errors on the observables computed using this approach (e.g.: the magnetisation) accordingly. 
 
-The extraction of decorrelated data is a problem composed of two parts: the thermalisation and the autocorrelation time. The first one is the number of steps that the Markov Chain needs to reach a stationary distribution, while the second one is the number of steps that need to exist between successive samples before they can be considered independent.
+Thermalisation and decorrelation are two separate problems that can be solved with the same solution.
+
+The thermalisation time is defined as the number of steps that the Markov Chain needs to reach a stationary distribution. This is something that in theory can be ignored for a long enough chain, but in practice it is always better to discard the thermalisation steps to avoid the initial transient behavior and biased data.
+
+To extract independent samples, one must compute the number of steps that to exist between successive samples before they can be considered independent.
+
+Both these numbers can be estimated by studying the autocorrelation function of the Markov Chain, which is a measure of how correlated the values of a random variable are at different points in time. It can be defined as:
+
+\begin{equation}
+    \rho(\tau) = \frac{\mathbb{E}[(O_{t + \tau} - \mu)\overline{(O_t - \mu)}]}{\sigma^2}
+\end{equation}
+
+where $\mathbb{E}$ denotes the expected value and $O$ are the observable values measured on the configurations. 
 
 \begin{figure}[htbp]
 	\centering
@@ -149,21 +163,16 @@ The extraction of decorrelated data is a problem composed of two parts: the ther
 	\label{figure:autocorrelation_plot}
 \end{figure}
 
-The plot in figure \ref{figure:autocorrelation_plot} shows the autocorrelation function of one Markov Chain. The autocorrelation function can be defined as:
-
-\begin{equation}
-	\rho(\tau) = \frac{\mathbb{E}[(X_{t + \tau} - \mu)\overline{(X_t - \mu)}]}{\sigma^2}
-\end{equation}
-
-where $\mathbb{E}$ denotes the expected value and $X$ are the observable values measured on the configurations. 
+The plot in figure \ref{figure:autocorrelation_plot} shows the autocorrelation function of one arbitrary Markov Chain.
 
 An estimator for the autocorrelation function is given by:
 
 \begin{equation}
-    \hat{\rho}(t) = \frac{\frac{1}{N} \sum_{i=1}^{N-t} (x_i - \bar{x})(x_{i+t} - \bar{x})}{\sigma^2_x}
+    % \hat{\rho}(t) = \frac{\frac{1}{n} \sum_{i=1}^{n-t} (x_i - \bar{x})(x_{i+t} - \bar{x})}{\sigma^2_x}
+    \hat{\rho}(t) = \frac{\frac{1}{n} \sum_{i=1}^{n-t} (O_i - \bar{O})(O_{i+t} - \bar{O})}{\sigma^2_O}
 \end{equation}
 
-where $x_i$ are the observable values, $\bar{x}$ is the mean of the observable values, and $\sigma^2_x$ is the variance of the observable values.
+where $O_i$ are the observable values, $\bar{O}$ is the mean of the observable values, and $\sigma^2_O$ is the variance of the observable values.
 
 The implementation is shown below:
 
@@ -176,8 +185,8 @@ def autocorrelation(t, observables: np.ndarray):
 	- An array of observable values along the Markov chain
 	'''
 
-	N = len(observables)
-	if t >= N or t < 0:
+	n = len(observables)
+	if t >= n or t < 0:
 		return 0.0
 
 	var = np.var(observables)
@@ -186,7 +195,7 @@ def autocorrelation(t, observables: np.ndarray):
 		return 0.0
 
 	centered = observables - np.mean(observables)
-	autocov = np.sum(centered[:N - t] * centered[t:]) / N
+	autocov = np.sum(centered[:n - t] * centered[t:]) / n
 
 	return autocov / var
 
@@ -225,13 +234,15 @@ A. Sokal describes\cite{sokal} a method to estimate the integrated autocorrelati
 The natural estimator of $\tau_{\text{int}}$ would seem to be
 
 \begin{equation}
-    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} + \sum_{t=1}^{N} \widehat{\rho}(t)
+    \label{eq:tau_int}
+    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} + \sum_{t=1}^{n} \widehat{\rho}(t)
 \end{equation}
 
-but this is not really the case, because this estimator has a variance that does not go to zero as the sample size $N$ goes to infinity, so it cannot be a good estimator of $\tau_{\text{int}}$. Qualitatively speaking, this happens because the sample autocorrelations $\widehat{\rho}(t)$ for big $t$ contain much noise but little signal, and there are so many of them (order $N$) that the noise adds up to a total variance of order 1. The solution is to cut off the sum using a window $\lambda(t)$ which is $\approx 1$ for small $t$ but $\approx 0$ for large $t$:
+but this is not really the case, because this estimator has a variance that does not go to zero as the sample size $n$ goes to infinity, so it cannot be a good estimator of $\tau_{\text{int}}$. Qualitatively speaking, this happens because the sample autocorrelations $\widehat{\rho}(t)$ for big $t$ contain much noise but little signal, which means that carrying out the sum in equation \eqref{eq:tau_int} the noise adds up to a total variance of order 1. The solution is to cut off the sum using a window $\lambda(t)$ which is $\approx 1$ for small $t$ but $\approx 0$ for large $t$:
 
 \begin{equation}
-    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} + \sum_{t=1}^{N} \lambda(t) \widehat{\rho}(t).
+    \label{eq:tau_int_windowed}
+    \widehat{\tau}_{\text{int}} \equiv \frac{1}{2} + \sum_{t=1}^{n} \lambda(t) \widehat{\rho}(t).
 \end{equation}
 
 This retains most of the signal but discards most of the noise. A good choice is the rectangular window
@@ -261,7 +272,7 @@ def tau_int_sokal(observables, c = 10.0):
         M   : int, the windowing parameter calculated self-consistently
     '''
 
-    N = len(observables)
+    n = len(observables)
     var = np.var(observables)
     
     if var == 0.0:
@@ -270,14 +281,14 @@ def tau_int_sokal(observables, c = 10.0):
     centered = observables - np.mean(observables)
     tau = 0.5
 
-    for t in range(1, N):
-        autocov_t = np.sum(centered[:N-t] * centered[t:]) / N
+    for t in range(1, n):
+        autocov_t = np.sum(centered[:n-t] * centered[t:]) / n
         tau += autocov_t / var
 
         if t >= c * tau:
             return tau, t
 
-    return tau, N - 1
+    return tau, n - 1
 
 \end{minted}
 
@@ -293,12 +304,12 @@ The method is called self-consistent because the window size $M$ is determined b
 It should be noted that a cutoff introduces a bias in the estimate of $\tau_{\text{int}}$. Since the bias and the variance of the estimator are (by Sokal):
 
 \begin{equation}
-    \mathrm{bias}(\widehat{\tau}_{\mathrm{int}}) = -\frac{1}{2} \sum_{|t|>M} \hat{\rho}(t) + o\left(\frac{1}{N}\right)
+    \mathrm{bias}(\widehat{\tau}_{\mathrm{int}}) = -\frac{1}{2} \sum_{|t|>M} \hat{\rho}(t) + o\left(\frac{1}{n}\right)
 \end{equation}
 
 \begin{equation}
     \label{def:sokal_variance}
-    \mathrm{var}(\widehat{\tau}_{\mathrm{int}}) \approx \frac{2(2M + 1)}{N} \hat{\tau}_{\mathrm{int}}^2
+    \mathrm{var}(\widehat{\tau}_{\mathrm{int}}) \approx \frac{2(2M + 1)}{n} \hat{\tau}_{\mathrm{int}}^2
 \end{equation}
 
 Where equation \ref{def:sokal_variance} is valid in the limit $\tau \ll M$.
@@ -307,7 +318,7 @@ Ergo, the choice of $M$ is a tradeoff between bias and variance. Moreover, the v
 
 \begin{equation}
     \label{def:tau_sokal_error}
-    \hat{\sigma}_{\hat{\tau}_{\text{int}}} = \sqrt{\mathrm{var}(\widehat{\tau}_{\mathrm{int}})} = \sqrt{\frac{2(2M + 1)}{N}} \hat{\tau}_{\mathrm{int}}
+    \hat{\sigma}_{\hat{\tau}_{\text{int}}} = \sqrt{\mathrm{var}(\widehat{\tau}_{\mathrm{int}})} = \sqrt{\frac{2(2M + 1)}{n}} \hat{\tau}_{\mathrm{int}}
 \end{equation}
 
 \FloatBarrier
@@ -316,14 +327,14 @@ Ergo, the choice of $M$ is a tradeoff between bias and variance. Moreover, the v
 
 While Sokal's method is based on summing over the autocorrelation function in a particular way, there exists a different approach known as the data blocking method, by H. Flyvbjerg and H. G. Petersen \cite{flyv-peter}.
 
-Let's consider a Markov Chain of length $N$ of configurations ${x_i}$ with variance $\sigma^2$ and an observable $O$ measured on each configuration. Now suppose we simplify this Chain by averaging the values of the observable $O$ of every consecutive $k$ elements. This will produce a new chain of length $N_b = N / k$ of block averages $\bar{O}_i$ that are less correlated than the original chain.
+Let's consider a Markov Chain of length $n$ of configurations ${x_i}$ with variance $\sigma^2$ and an observable $O$ measured on each configuration. Now suppose we simplify this Chain by averaging the values of the observable $O$ of every consecutive $k$ elements. This will produce a new chain of length $n_b = n / k$ of block averages $\bar{O}_i$ that are less correlated than the original chain.
 
 For a perfectly uncorrelated chain, the mean variance of the averages in every block of size $k$ is given by:
 
 \begin{equation}
 	\label{eq:vks}
 	V_k = \mathrm{Var}\left(\frac{1}{k} \sum_{i=1}^k O_i\right) = \frac{\sigma^2}{k}
-    % \frac{1}{N_b - 1} \sum_{i = 1}^{N_b} (\bar{O}_i - \bar{O})^2 =
+    % \frac{1}{n_b - 1} \sum_{i = 1}^{n_b} (\bar{O}_i - \bar{O})^2 =
 \end{equation}
 
 where $\bar{O} = \frac{1}{k} \sum_{i=1}^{k} O_i$ is the mean of the values of the observable $O$ of the block averages.
@@ -345,36 +356,36 @@ which can be rearranged to build an estimator of $\tau_{\text{int}}$:
 where $\hat{V}_k$ is the estimator for the variance of the block averages:
 
 \begin{equation}
-    \hat{V}_k = \frac{1}{N_b - 1} \sum_{i=1}^{N_b} (\bar{O}_i - \bar{O}_{tot})^2
+    \hat{V}_k = \frac{1}{n_b - 1} \sum_{i=1}^{n_b} (\bar{O}_i - \bar{O}_{tot})^2
 \end{equation}
 
-Note that the correction factor can be written as a function of $\tau_{\text{int}}$ only in the limit $N \gg \tau_{\text{int}}$.
-To verify that these laws are consistent with each other, one can see that for truly uncorrelated data $\tau_{\text{int}} \to \frac{1}{2}$ (with definition \ref{def:tau_int}), and so equation \ref{eq:vk} reduces to equation \ref{eq:vks} for $N = k$ (or $N_b = 1$ or $N \gg \tau_{\text{int}}$). 
+Note that the correction factor can be written as a function of $\tau_{\text{int}}$ only in the limit $n \gg \tau_{\text{int}}$.
+To verify that these laws are consistent with each other, one can see that for truly uncorrelated data $\tau_{\text{int}} \to \frac{1}{2}$ (with definition \ref{def:tau_int}), and so equation \ref{eq:vk} reduces to equation \ref{eq:vks} for $n = k$ (or $n_b = 1$ or $n \gg \tau_{\text{int}}$). 
 
 Because of CLT, when $k \gg \tau_{\text{int}}$ (that is, when the blocking is sufficiently coarse) the mean averages are normally distributed. Ergo, one can show (with some more algebra) that:
 
 \begin{equation}
     \label{eq:vk_error}
-    \sigma_{V_k} = \sqrt{\mathrm{Var}(V_k)} = \sqrt{{\left\langle V_k \right\rangle}^2 \frac{2}{N_b - 1}}
+    \sigma_{V_k} = \sqrt{\mathrm{Var}(V_k)} = \sqrt{{\left\langle V_k \right\rangle}^2 \frac{2}{n_b - 1}}
 \end{equation}
 
 and since the relationship between $V_k$ and $\tau_{\text{int}}$ is linear, the error of $\tau_{\text{int}}$ can be estimated as:
 
 \begin{equation}
     \label{eq:tau_blocking_error}
-    \hat{\sigma}_{\hat{\tau}_{\text{int}}(k)} = \sqrt{\frac{2}{N_b - 1}} \hat{\tau}_{\text{int}}(k)
+    \hat{\sigma}_{\hat{\tau}_{\text{int}}(k)} = \sqrt{\frac{2}{n_b - 1}} \hat{\tau}_{\text{int}}(k)
 \end{equation}
 
 \br
 
 Now, the idea is that since $\tau_{\text{int}} = \tau_{\text{int}}(k)$ it can be studied as a function of $k$. This can be done by iterating the simplification process described above on the chain in order to create a coarser chain at every iteration, where $\bar{O_i (k)}$ are less correlated at every iteration
 
-The blocks will contain $k$ elements, and their size will double at every iteration. This means that for every iteration the number of blocks $N_b$ will be halved and $k$ will be doubled. The first iteration is $k = 1$ and $N_b = N$.
+The blocks will contain $k$ elements, and their size will double at every iteration. This means that for every iteration the number of blocks $n_b$ will be halved and $k$ will be doubled. The first iteration is $k = 1$ and $n_b = n$.
 
 For every $k$ the procedure is as follows:
 
 \begin{enumerate}
-	\item Divide the chain into $N_b$ blocks of size $k$. The number of blocks is then $N_b = N / k$ and compute the average of the observable $O$ in each block. This is equivalent to averaging the observables of every two consecutive blocks of the previous iteration.
+	\item Divide the chain into $n_b$ blocks of size $k$. The number of blocks is then $n_b = n / k$ and compute the average of the observable $O$ in each block. This is equivalent to averaging the observables of every two consecutive blocks of the previous iteration.
 	\item Compute the variance of the new set of block averages.
 	\item Compute $\hat{\tau}_{\text{int}}(k)$ with \eqref{eq:tau_blocking}.
 \end{enumerate}
@@ -398,44 +409,44 @@ def tau_int_blocking(observables, burn_in = None, c_blocking = 15.0):
         if None, burn_in is estimated as 20 tau_int computed with the Sokal method.
     '''
 
-    N = len(observables)
+    n = len(observables)
 
     if burn_in is None:
         tau0 = tau_int_sokal(observables, c = c_blocking)
 
     observables = observables[burn_in:]
-    N = len(observables)
+    n = len(observables)
 
     var = np.var(observables)
 
     current_blocks = observables.copy()
     tau_estimates = []
     block_size = 1 # k
-    Nb_array = [] # Number of blocks for each block size
-    Nb = N # Number of blocks for the current block size (Nb_array[0])
+    nb_array = [] # Number of blocks for each block size
+    nb = n # Number of blocks for the current block size (Nb_array[0])
 
-    while Nb >= 2:
+    while nb >= 2:
         # Estimation
         mean_blocks = np.mean(current_blocks)
-        var_blocks = np.sum(np.power(current_blocks - mean_blocks, 2)) / (Nb - 1)
+        var_blocks = np.sum(np.power(current_blocks - mean_blocks, 2)) / (nb - 1)
         tau_estimate = .5 * (block_size * (var_blocks / var) - 1)
         tau_estimates.append(tau_estimate)
-        Nb_array.append(Nb)
+        nb_array.append(nb)
 
         # Blocking
-        if Nb % 2 != 0:
+        if nb % 2 != 0:
             current_blocks = current_blocks[:-1]  # Discard the last block if odd number of blocks
-            Nb -= 1
-        Nb //= 2
+            nb -= 1
+        nb //= 2
         current_blocks = 0.5 * (current_blocks[::2] + current_blocks[1::2])
         block_size *= 2
 	
     for i in range(len(tau_estimates) - 1):
-        if Nb_array[i] < 30:
+        if nb_array[i] < 30:
             return float(tau_estimates[i])
 
         diff = abs(tau_estimates[i + 1] - tau_estimates[i])
-        err = (tau_estimates[i] + 0.5) * np.sqrt(2.0 / (Nb_array[i] - 1)) 
+        err = (tau_estimates[i] + 0.5) * np.sqrt(2.0 / (nb_array[i] - 1)) 
         
         if diff < err:
             return float(tau_estimates[i])
@@ -466,33 +477,29 @@ The effect of this algorithm of the progressive smoothing of the chain can be ap
 
 \subsection{Comparing the two methods}
 
-[TODO: finish this section]
+Now that both methods have been described, they can be compared. Clearly, their estimates of $\tau_{\text{int}}$ should be roughly similar. In images \ref{figure:tau_int_1D_comparison}, \ref{figure:tau_int_2D_comparison} and \ref{figure:tau_int_3D_comparison} the estimates of $\tau_{\text{int}}$ for the two methods are compared for different dimensions.
 
-% Now that both methods have been described, they can be compared. Clearly, their estimates of $\tau_{\text{int}}$ should be roughly similar. In images \ref{figure:tau_int_1D_comparison}, \ref{figure:tau_int_2D_comparison} and \ref{figure:tau_int_3D_comparison} the estimates of $\tau_{\text{int}}$ for the two methods are compared for different dimensions.
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_better_N_100_dim_1.pdf}
+	\label{figure:tau_int_1D_comparison}
+\end{figure}
 
-% [TODO: FIX THIS FOR THE LOVE OF GOD]
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_better_N_25_dim_2.pdf}
+	\label{figure:tau_int_2D_comparison}
+\end{figure}
 
-% % \begin{figure}[htbp]
-% % 	\centering
-% % 	\includegraphics[height=0.45\textheight]{../pics_and_anims/todo.pdf}
-% % 	\label{figure:tau_int_1D_comparison}
-% % \end{figure}
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[height=0.45\textheight]{../pics_and_anims/tau_int_better_N_10_dim_3.pdf}
+	\label{figure:tau_int_3D_comparison}
+\end{figure}
 
-% % \begin{figure}[htbp]
-% % 	\centering
-% % 	\includegraphics[height=0.45\textheight]{../pics_and_anims/todo.pdf}
-% % 	\label{figure:tau_int_2D_comparison}
-% % \end{figure}
+The correlation between the two methods is clear, and it can be noted that both methods struggle close to $T_C$ where this behavior is, of course, expected. This phenomenon is very well known and it is called Critical Slowing Down [TODO: maybe add citation]. It describes the fact that the time it takes for a system to reach equilibrium and for correlations to decay increases dramatically as the system approaches a critical point, which implies a higher integrated autocorrelation time $\tau_{\text{int}}$. This is the reason why these methods struggle near the critical temperature, and, moreover, why the computation time of the simulations increases dramatically as the system approaches $T_C$.
 
-% % \begin{figure}[htbp]
-% % 	\centering
-% % 	\includegraphics[height=0.45\textheight]{../pics_and_anims/todo.pdf}
-% % 	\label{figure:tau_int_3D_comparison}
-% % \end{figure}
-
-% The correlation between the two methods is clear, and it can be noted that both methods struggle close to $T_C$ where this behavior is, of course, expected. This phenomenon is the very well known Critical Slowing Down, and it is a consequence of the fact that the correlation length $\xi$, that is, the typical distance over which spins are correlated, diverges at $T_C$.
-
-% Since $\tau_\text{int} \propto \xi^z$ and $\xi \to \infty$ at $T_C$, it is expected that $\tau_\text{int} \to \infty$ as well, and that is why these methods struggle near the critical temperature.
+While the results of the two methods are similar, it can be noted that they still carry non negligible errors and fluctuations. A general improvement to the MCMC algorithm which fixes this problem is discussed in the next section.
 
 \FloatBarrier
 
@@ -500,11 +507,11 @@ The effect of this algorithm of the progressive smoothing of the chain can be ap
 
 Until now the Markov Chain relative to a specific lattice at a specific temperature was built by adding every configuration to it (after every proposed spin flip). As mentioned, this is not the only possible approach: one could instead build the chain by adding a configuration to it only after a certain number of steps have been taken.
 
- Let's define a "sweep" as the process of applying steps 2-5 of the Metropolis-Hastings algorithm (explained in Section \ref{subsection:generation}) to a configuration $N^d$ times. This is an arbitrary choice, with the rationale that a sweep is the amount of steps needed to give every spin in the lattice a chance to flip. The idea is to build the chain by adding a configuration to it only after every sweep: this ensures a lower correlation between successive configurations in the chain, and so a lower $\tau_{\text{int}}$. This is a pretty standard approach in the literature, and is used in many implementations of the Metropolis-Hastings algorithm.
+Let's define a "sweep" as the process of applying steps 2-5 of the Metropolis-Hastings algorithm (explained in Section \ref{subsection:generation}) to a configuration $N^d$ times. This is an arbitrary choice, with the rationale that a sweep is the amount of steps needed to give every spin in the lattice a chance to flip. The idea is to build the chain by adding a configuration to it only after every sweep: this ensures a lower correlation between successive configurations in the chain, and so a lower $\tau_{\text{int}}$. This is a pretty standard approach in the literature, and is used in many implementations of the Metropolis-Hastings algorithm.
 
-This new approach allows for much shorter chains to be used in theory, which means that more accurate results can be obtained with less computational effort. All of the generation and analysis of the chains was redone with this new approach with chains with length of one less order of magnitude than before.
+All of the generation and analysis of the chains was redone with this new approach, generating chains of $n$ samples of one less order of magnitude than before.
 
-The results are shown in figures \ref{figure:tau_int_1D_comparison_sweeps}, \ref{figure:tau_int_2D_comparison_sweeps} and \ref{figure:tau_int_3D_comparison_sweeps}. The correlation between the two methods is clear. The only point where both methods's value and error explode is at the critical temperature, where, again, this is the expected behavior as the correlation length diverges and so does $\tau_{\text{int}}$.
+As a measure of the improvement, the estimates of $\tau_{\text{int}}$ computed with the new approach are shown in figures \ref{figure:tau_int_1D_comparison_sweeps}, \ref{figure:tau_int_2D_comparison_sweeps} and \ref{figure:tau_int_3D_comparison_sweeps}. These plots are a clear improvement to the previous ones, as the estimates of $\tau_{\text{int}}$ are much lower and more stable. The Critical slowing down is still evident, but it is less pronounced than before.
 
 \begin{figure}[htbp]
 	\centering

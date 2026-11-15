@@ -20,6 +20,7 @@ def _analytical_curve_2D(t: np.ndarray) -> np.ndarray:
 
 def _analytical_curve_3D(t: np.ndarray) -> np.ndarray:
     # Aproximate data for 3D Ising model from literature
+
     Tc = 4.5115
     beta = 0.326419
     B = 1.69 
@@ -43,8 +44,10 @@ def plot_analytical_curve(dim: int, t: np.ndarray) -> None:
     else:
         raise ValueError(f"Unsupported dimension: {dim}")
     if dim == 1 or dim == 2:
-        plt.plot(t, f(t), color='black', linestyle='--', label='Analytical Curve')
+        plt.plot(t, f(t), color='black', linestyle='--', linewidth=.8, label='Analytical Curve')
     else:
+        # Apparently this is appreciated
+        return
         plt.plot(t, f(t), color='black', linestyle='--', label='Power Law')
 
 

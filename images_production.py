@@ -132,9 +132,9 @@ def animate(arrays, pixel_size = 50, filename = "animation.gif", fps = 5, loop =
 
 if __name__ == "__main__":
 
-    N = 7
+    N = 70
     dim = 2
     SEED = 67
-    configs = mcmc_sampling(N = N, dim = dim, T = 2.7, steps = 200_000, seed = SEED)
+    configs = mcmc_sampling(N = N, dim = dim, T = 2.0, steps = 200_000, seed = SEED)
 
     pic = array_to_png(configs[-1], pixel_size = 8, border_width = 0, filename = f"ising_{dim}D_N{N}_final.pdf")

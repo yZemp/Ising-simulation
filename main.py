@@ -108,7 +108,7 @@ def graph_magnetization_convergence_for_fixed_dim(dim, path = ".", filename = "t
 
 def main(N, dim, steps):
 
-    data_file = f"E:\\simulations_data\\sweep_based_chains\\dim_{dim}_N_{N}" + "_data.hdf5"
+    data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
     # data_file = r"dim_{dim}_N_{N}_B_1_data.hdf5".format(dim = dim, N = N)
 
     start = time.perf_counter()
@@ -117,7 +117,7 @@ def main(N, dim, steps):
 
     # anim_mcmc(dim, N, LEN = 100_000, T_index = 26)
 
-    simulate(N, dim, steps, data_file = data_file, sweep_sampling = True)
+    # simulate(N, dim, steps, data_file = data_file, sweep_sampling = True)
     # filter_data(N, dim, data_file = data_file)
     # magnetization_bake(N, dim, data_file = data_file)
 

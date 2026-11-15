@@ -28,43 +28,53 @@ As stated in chapter 1, while the drop in the magnetization curve suggests the t
 
 The most simple and direct method to estimate the critical temperature is to take the maximum of $\chi$, where $\chi$ is computed directly from the magnetization data using the result of the fluctuation-dissipation theorem, which give this relation between the susceptibility and the variance of the magnetization as a function of temperature:
 
-[TODO: add citation for the fluctuation-dissipation theorem]
-
 \begin{equation}
 	\hat{\chi} = \frac{N^d}{T} \left( \langle M^2 \rangle - \langle |M| \rangle^2 \right)
 \end{equation}
 
 where the last term is the square of the average of the absolute value of the magnetization, which is used to avoid the cancellation of positive and negative values in the average.
 
-Errors on the values of $\chi$ are computed using a the jackknife method for variance estimation \cite{jackknife-resampling, efron1982}, which is a resampling technique that allows to estimate the variance of a statistic by systematically leaving out one observation at a time from the sample set and calculating the statistic on the reduced sample. The estimator used is the following:
+Errors on the values of $\chi$ are computed with the standard error propagation formula, which gives:
 
 \begin{equation}
-	\hat{\sigma}_{\hat{\chi}} = \sqrt{\frac{1}{(n - 1) n} \sum_{i=1}^{n} (\chi_i - \bar{\chi})^2}
+	\hat{\sigma}_{\hat{\chi}} = \frac{N^d}{T} \sqrt{ \sigma_{\langle M^2 \rangle}^2 + 4 \langle \vert{}M\vert{} \rangle^2 \sigma_{\langle \vert{}M\vert{} \rangle}^2 - 4 \langle \vert{}M\vert{} \rangle \text{Cov}(\langle M^2 \rangle, \langle \vert{}M\vert{} \rangle) }
 \end{equation}
 
-where $n$ is the number of data points, $\chi_i$ is the value of $\chi$ computed on the $i$-th jackknife sample (that is, the original dataset with the $i$-th observation removed), and $\bar{\chi}$ is the mean of the $\chi_i$ values.
+Where:
+
+\begin{itemize}
+	\item $\sigma_{\langle M^2 \rangle}$ is the error on the mean of the square of the magnetization.
+	\item $\sigma_{\langle \vert{}M\vert{} \rangle}$ is the error on the mean of the absolute value of the magnetization.
+	\item $\langle \vert{}M\vert{} \rangle$ is the mean of the absolute value of the magnetization.
+	\item $\text{Cov}(\langle M^2 \rangle, \langle \vert{}M\vert{} \rangle)$ is the covariance of the means.
+\end{itemize}
 
 Given the discrete nature of the data in the temperature space, in order to better estimate the maximum of $\chi$ its maximum sampled value and the two nearest data points will be interpolated with a cubic spline. The maximum of the interpolated function will be taken as the estimate of the critical temperature $T_C$.
 
-For a quick estimation of the error on $\hat{T_C}$ a simple method is to use the simple rule:
+For a quick estimation of the error on $\hat{T_C}$ one can consider the Taylor expansion of $\chi(T)$ around the maximum point $\hat{T}_\text{max}$ and evaluate it at the point $\hat{T_C}$:
+
+\begin{equation}
+	\chi(T)\big|_{T_C} \approx \chi(\hat{T}_\text{max}) + \frac{1}{2} \chi''(\hat{T}_\text{max}) (T - \hat{T}_\text{max})^2\big|_{T_C}
+\end{equation}
+
+where one can identify the terms $\chi(T_C) - \chi(\hat{T}_\text{max}) = \hat{\sigma}_{\hat{\chi}}(\hat{T}_\text{max})$ and $(T_C - \hat{T}_\text{max}) =\hat{\sigma}_{\hat{T_C}}$, and invert this relation to obtain an expression for the error on $\hat{T_C}$:
 
 \begin{equation}
 	\hat{\sigma}_{\hat{T_C}} = \sqrt{\frac{2 \hat{\sigma}_{\hat{\chi}}(\hat{T}_\text{max})}{| \chi''(\hat{T}_C) |} }
 \end{equation}
 
-that can be derived by the Taylor expansion of $\chi(T)$ around the maximum point $\hat{T}_\text{max}$.
-
-As a common sense rule, this error is capped at half the temperature discretization step. The logic behind this decision is that the estimator $\hat{T_C}$ is very dependent on the position of the maximum sampled value, but the maximum sampled value can be at most one step away from the true maximum, which means that the error on $\hat{T_C}$ cannot be greater than half the step size. This is in practice rarely (if ever) used, as the error computed with the formula above is usually smaller than half the step size, and it exist just as a safety net to avoid problems with the code.
+This is not an extremely solid statistical approach by any means, but it provides a reasonable estimate of the error on $\hat{T_C}$. As a common sense rule, this error is capped at half the temperature discretization step. The logic behind this decision is that the estimator $\hat{T_C}$ is very dependent on the position of the maximum sampled value, but the maximum sampled value can be at most one step away from the true maximum, which means that the error on $\hat{T_C}$ cannot be greater than half the step size. This is in practice rarely (if ever) used, as the error computed with the formula above is usually smaller than half the step size, and it exist just as a safety net to avoid problems with the code.
 
 \br
 
-A better estimate of the critical temperature can be obtained by performing a finite-size scaling analysis, which allows to extrapolate a value for the critical temperature in the limit of infinite system size.
+The method described above produces an estimator $\hat{T}_C(N)$ that depends on the size of the lattice $N$. The real value of the critical temperature (for $N \to \infty$) is denoted by $T_C(\infty)$. The value of $\hat{T}_C(N)$ is expected to converge to the true critical temperature $T_C$ as $N \to \infty$, but for finite-size lattices it is not a good estimate of the critical temperature because of the systematic bias introduced by the finite size of the lattice.
+There is a way to estimate $T_C(\infty)$ by performing a finite-size scaling analysis, that is, a way to estimate the value that $\hat{T}_C(N)$ approaches as $N \to \infty$.
 
-The idea \cite{fisher1972} [TODO: fix citation] is to extract the value of $T_C(N)$ for different lattice sizes $N$, and then fit the data to a function of the form:
+The idea \cite{fisher1972} is to consider $\hat{T}_C(N)$ for different lattice sizes $N$, and then fit the data to a function of the form:
 
-$$T_C(N) = T_C(\infty) + a N^{- \frac{1}{\nu}}$$
+$$\hat{T}_C(N) = \hat{T}_C(\infty) + a N^{- \frac{1}{\nu}}$$
 
-where $T_C(\infty)$ is the critical temperature in the thermodynamic limit, $a$ is a constant, and $\nu$ is the critical exponent.
+where $\hat{T}_C(\infty)$ is the estimated critical temperature in the thermodynamic limit, $a$ is a constant, and $\nu$ is the critical exponent.
 
 The parameter $\nu$ is known to be $\nu = 1$ for the 2D Ising model (found by Onsager) and is estimated to be $\nu \approx 0.63$ for the 3D Ising model (this is a result of the renormalization group theory).
 
@@ -99,9 +109,9 @@ The two dimensional Ising model presents an aesthetically pleasing result, as th
 	\label{fig:2D_magn}
 \end{figure}
 
-The accepted value for the critical temperature of the 2D Ising model is $T_C \approx 2.269$. For a finite lattice the  value $T_C(L)$ is an approximation for the critical temperature, and it is expected to converge to the accepted value as $L \to \infty$.
+The theoretical value (explained in chapter 1) for the critical temperature of the 2D Ising model is $T_C \approx 2.269$.
 
-The estimation of $T_C(L)$ and is shown in figure \ref{fig:2D_chi} for a 100x100 lattice..
+The estimation of $T_C(L)$ and is shown in figure \ref{fig:2D_chi} for a 100x100 lattice.
 
 \begin{figure}[htbp]
 	\centering
@@ -110,7 +120,7 @@ The estimation of $T_C(L)$ and is shown in figure \ref{fig:2D_chi} for a 100x100
 	\label{fig:2D_chi}
 \end{figure}
 
-The peak of $\chi(T)$ corresponds to the value of $T_C(L) = 2.31 \pm 0.04$, which is reasonable. More specifically, it is slightly higher than the accepted value, which is consistent with the expected relation $T_C(L) > T_C(\infty) \quad \forall \; L$.
+The peak of $\chi(T)$ corresponds to the value of $T_C(N) = 2.31 \pm 0.04$, which is reasonable. More specifically, it is slightly higher than the accepted value, which is consistent with the expected relation $T_C(N) > T_C(\infty) \quad \forall \; N$.
 
 As discussed in the introduction, a better estimate of the critical temperature can be obtained by performing a finite-size scaling analysis. The results of this analysis are shown in figure \ref{fig:2D_fss}.
 
@@ -136,7 +146,7 @@ Results for the 3D Ising model are similar to the 2D case. Only, this time, in f
 	\label{fig:3D_magn}
 \end{figure}
 
-The analysis is equivalent to the 2D case. The accepted value for the critical temperature of the 3D Ising model is $T_C \approx 4.5115$, while the extracted value from the simulation is $T_C(L) = 4.50 \pm 0.08$, as shown in figure \ref{fig:3D_chi}.
+The analysis is equivalent to the 2D case. As stated, there does not exist a theoretical value for the critical temperature of the 3D Ising model, but there exists a numerical estimate, for which the accepted value is $T_C \approx 4.5115$. The extracted value from the simulation is $T_C(L) = 4.50 \pm 0.08$, as shown in figure \ref{fig:3D_chi}, which is in agreement with the accepted value within one standard deviation.
 
 \begin{figure}[htbp]
 	\centering
@@ -154,51 +164,71 @@ The analysis is equivalent to the 2D case. The accepted value for the critical t
 
 Again, the finer method of analysis is to perform a finite-size scaling analysis, which is shown in figure \ref{fig:3D_fss}, yielding the estimate $T_C(\infty) = 4.5115 \pm 0.05$. This is also in agreement with the accepted value $T_C \approx 4.5115$ within one standard deviation.
 
-It is however worth noting that the error in the 3D case is significantly higher than in the 2D case. This is a direct consequence of the fact that the (jackknife) error on $\chi$ described in the introduction scales like $\frac{1}{\sqrt{n_{\text{ind}}}}$ where $n_{\text{ind}}$ is the number of (independent) samples in the chain after decorrelation. In the context of these simulations $n_{\text{ind}}$ is not equal for the 2D and 3D cases, but it depends on $\tau_{\text{int}}$, which in turns depends on the size $N$ of the system (a system with a larger number of sites requires more steps to forget the initial configuration).
+It is however worth noting that the error in the 3D case is significantly higher than in the 2D case. This is a direct consequence of the fact that the error on $\chi$ described in the introduction section scales like $\frac{N^d}{\sqrt{n_{\text{ind}}}}$ where $n_{\text{ind}}$ is the number of (independent) samples in the chain after decorrelation. This means that not only is the error intrinsically larger for a larger system, but it also depends on the number of independent samples. In the context of these simulations $n_{\text{ind}}$ is not equal for the 2D and 3D cases, but it depends on $\tau_{\text{int}}$, which in turns depends on the size $N$ of the system (a system with a larger number of sites requires more steps to forget the initial configuration).
 
-Since the computational cost of simulating the 3D Ising model is much higher than the 2D case, the biggest lattice size that can be simulated is smaller ($N_{\text{max}}^{\text{2D}} = 100$ and $N_{\text{max}}^{\text{3D}} = 30$ in this project), which means that the number of independent samples is lower, which means that the error on the estimate of $T_C$ is higher.
+All the simulations were run for (roughly) the same number of steps, but the number of independent samples is different due to the longer decorrelation time in the 3D case. This can be appreciated by looking at the size of a sweep (which is $N^d$), which is a good first approximation of the decorrelation time $\tau_{\text{int}}$. That means that also $n$ depends on $N^d$, which clearly scales much faster for $d = 3$.
 
 \FloatBarrier
 
 \section{General comments and Peierls argument}
 
-[
-The difference between the 1D and 2D Ising model is that in the 1D case a single spin flip is enough to break a streak of aligned spins, that is, a single spin flip can change significantly the contribution to the magnetiziation of a section of the lattice. The equivalent of a streak of aligned spins in 2D is a cluster of aligned spins, and the equivalent of a single spin flip to break the streak is the flipping of the spins on the border of the cluster. The energy needed to flip a single spin is still independent of the size of the system, but the size of the perimeter of a cluster is not, and this introduces a size dependence in the probability of having a cluster of aligned spins, which is what leads to a threshold behavior.]
-
 But why does a finite critical temperature exist in 2D and 3D and not in 1D?
 
-The answer can be understood in the context of the lattice approach by thinking about the energy cost of flipping a single spin: this operation depends only on the nearest neighbours of the spin, which means that if $d$ is fixed, the flip energy cost does not change with $N$.
+The answer can be understood in the context of the lattice approach by considering the energetic and entropic cost of flipping a single spin. This is the essence of the Peierls argument for spontaneous magnetization for 2D and 3D systems (1936).
 
-In general, the probability of having a streak of aligned spins is high (because that is the most stable configuration of the system). Now, let's consider a 1D lattice of very coarse size (think $N = 5$). In this case, even at relatively high temperatures, a configuration of two different streaks of aligned spins is improbable, because it is not energetically favorable. This implies a non zero magnetization even at non-zero temperatures like can be seen in figure \ref{fig:1D_coarse}, where a white or black square is an up or down spin.
+Let's again consider the Helmholtz free energy $F = E - TS$, where $E$ is the internal energy, $T$ is the temperature, and $S$ is the entropy. If a system is in thermal equilibrium (like our configurations of Ising models), the free energy is minimized by definition.
 
-This changes with finer lattices (think $N = 100$). In this case, the probability of having a configuration with two different streaks of aligned spins is much higher, because \textit{multiple long streaks of aligned spins are permitted}, and globally the magnetization averages out to zero. The key takeaway is that there does not exist a threshold temperature for this phenomenon, and the magnetization is always zero for sufficiently large $N$. This is shown in figure \ref{fig:1D_fine} with the same convention.
+Consider a long 1D lattice, and fix the spin at the boundary sites (let's say $+1$). Now, let's consider the effect of inserting a domain wall (a number of contiguous streak of aligned spins) of length $L$ with opposite spins in the middle of the lattice, say, at the origin. This operation has an energetic and an entropic cost.
+
+Since the domain wall creates two boundaries, that is, two couples of adjacent, opposite spins, the energetic cost of this operation is $\Delta E = 4J$ where $J$ is the coupling constant of the Ising model. Note that this is true regardless of the length of the domain wall.
+
+To compute the entropic cost, one can consider that the domain wall can be placed in $L$ different positions that include the origin along the lattice, which means that the entropy of the system increases by $\Delta S = k \ln(L)$, where $L$ is the count of possible configurations.
+
+This means that the free energy of the system after this operation is:
+
+\begin{equation}
+	\Delta F = \Delta E - T \Delta S = 4J - T k \ln(L)
+\end{equation}
+
+which implies that for sufficiently large $L$ the free energy of the system can be reduced. It can be concluded that thermal fluctuations can spontaneously insert domain walls at arbitrarily small temperatures, leading to disorder and no net magnetization. The only caveat is that this argument is valid only for sufficiently long lattices, which explains why the drop in the magnetization curves in figure \ref{fig:1D_magn} moves toward zero increasing $N$: for low enough temperatures in a rather small lattice there are not enough spins to form a domain wall long enough to compensate for the energetic cost.
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=.1\textwidth]{../pics_and_anims/ising_1D_N5_final.pdf}
-	\caption{Coarse 1D lattice at any temperature $T > 0$.}
+	\caption{Short 1D lattice at any temperature $T > 0$.}
 	\label{fig:1D_coarse}
 \end{figure}
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=1.\textwidth]{../pics_and_anims/ising_1D_N50_final.pdf}
-	\caption{Fine 1D lattice at any temperature $T > 0$.}
+	\caption{Long 1D lattice at any temperature $T > 0$.}
 	\label{fig:1D_fine}
+\end{figure}
+
+This logic does not hold for higher dimensions.
+
+For example, let's consider a 2D lattice with fixed spins at the boundary (again, let's say $+1$). Now, a domain wall in 2D is a region enclosed by a loop of sites with opposite spins. The energetic cost of establishing this wall is no longer independent of the size of the wall, but it is proportional to its length $L$, which means that $\Delta E = 2 J L$. Computing the entropic cost is more complicated, but it can be shown that the number of possible configurations of a domain wall of length $L$ is bounded by $c^L$ where $c$ is a constant greater than $\sqrt{2}$, which means that $\Delta S \sim k L \ln(c)$. This means that the free energy of the system after this operation is:
+
+\begin{equation}
+	\Delta F = \Delta E - T \Delta S = 2 J L - T k L \ln(c) = L (2J - T k \ln(c))
+\end{equation}
+
+from which it can be concluded that for $T < \frac{2J}{k \ln(c)}$ the free energy of the system can be reduced by removing domain walls, which leads to a net magnetization. Conversly, for $T > \frac{2J}{k \ln(c)}$, the disorder dominates and the magnetization vanishes. This is the essence of the Peierls argument, which shows that a finite critical temperature exists in 2D and 3D systems.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=.6\textwidth]{../pics_and_anims/ising_2D_N70_cold_final.pdf}
+	\caption{Example 2D lattice thermalized below $T_C$.}
+	\label{fig:2D}
 \end{figure}
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=.6\textwidth]{../pics_and_anims/ising_2D_N70_final.pdf}
-	\caption{Example 2D lattice thermalized close to $T_C$.}
-	\label{fig:2D}
+	\caption{Example 2D lattice thermalized above $T_C$.}
+	\label{fig:2D_hot}
 \end{figure}
 
-[TODO: Reorganize this section.
-Also cite the entropic argument for the existence of a phase transition in 2D and 3D, and the absence of it in 1D. Also cite the Peierls argument more precisely.]
-
-This logic does not hold for higher dimensions.
-
-In 2D, the equivalent of a streak is a cluster of aligned spins, and the equivalent of a single spin flip to break the streak is the flipping of the spins on the border of the cluster. Since the border of the cluster does actually scale with the size of the system, the probability of having a cluster of aligned spins is size dependent (because the energy cost of flipping the boundary of the cluster is), which means that there exists a minimum thermal excitation needed to break the cluster. The temperature at which this happens is the critical temperature. The same argument can be made about the 3D case, where the border of a cluster is a surface, which scales with the size of the system.
-
 \clearpage
+

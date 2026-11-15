@@ -146,8 +146,6 @@ def compute_chi(N, dim, data_file, temperatures):
     NOTE: This function assumes decorrelated data.
 
     chi = (N^dim / T) * ( <M^2> - <|M|>^2 )
-
-    sigma_chi is computed using the jackknife technique
     '''
 
     chi_values = []
@@ -168,26 +166,28 @@ def compute_chi(N, dim, data_file, temperatures):
                 chi_values.append(0.0)
                 chi_errors.append(0.0)
                 continue
-                
+
             magns = np.array([magnetization(model) for model in valid_data])
             factor = (N ** dim) / T
 
             # Chi value
-            chi_standard = factor * (np.mean(magns**2) - np.mean(np.abs(magns))**2)
+            m2_mean = np.sum(magns**2) / n
+            abs_m_mean = np.sum(np.abs(magns)) / n
+
+            chi_standard = factor * (m2_mean - abs_m_mean**2)
             chi_values.append(chi_standard)
 
-            # Jackknife error
-            sum_m2 = np.sum(magns**2)
-            sum_abs_m = np.sum(np.abs(magns))
+            m2_err = np.std(magns**2, ddof=1) / np.sqrt(n)
+            abs_m_err = np.std(np.abs(magns), ddof=1) / np.sqrt(n)
+            cov_camp = np.cov(magns**2, np.abs(magns), ddof=1)[0, 1]
+            cov_xy = cov_camp / n
 
-            mean_m2_jack = (sum_m2 - magns**2) / (n - 1)
-            mean_abs_m_jack = (sum_abs_m - np.abs(magns)) / (n - 1)
-
-            chi_jack = factor * (mean_m2_jack - mean_abs_m_jack**2)
-            
-            chi_mean = np.mean(chi_jack)
-            sigma_chi = np.sqrt((n - 1) * np.mean((chi_jack - chi_mean)**2))
-            chi_errors.append(sigma_chi)
+            chi_err = factor * np.sqrt(
+                (m2_err**2)
+                + (abs_m_err**2) * np.power(2 * abs_m_mean, 2)
+                - 4 * abs_m_mean * cov_xy
+            )
+            chi_errors.append(chi_err)
             
     return np.array(chi_values), np.array(chi_errors)
 

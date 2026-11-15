@@ -258,7 +258,7 @@ def filter_data(N, dim, data_file = "", max_chunk_size = 100_000):
 def main():
 
     N = 100
-    dim = 1
+    dim = 2
 
     # data_file = f"dim_{dim}_N_{N}" + "_data.hdf5"
     data_file = f"dataset_copy" + ".hdf5"
@@ -287,7 +287,7 @@ def main():
     # tau_int_1 = autocorrelation_graph(N, dim, data_file = data_file, filename = "tmp_autocorrelation.png", T_index = Tidx)
     # tau_int_graph(N, dim, data_file = data_file, filename = "tmp_tau.png")
     # filter_data(N, dim, data_file = data_file)
-    magnetization_bake(N, dim, data_file = data_file)
+    # magnetization_bake(N, dim, data_file = data_file)
 
     #################################################################################
 
@@ -297,8 +297,9 @@ def main():
 
 if __name__ == "__main__":
 
-    Ns = [4, 6, 8, 10, 15, 30]
-    dim = 3
+    # Ns = [4, 6, 8, 10, 15, 30]
+    Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100]
+    dim = 2
 
 
     for N in Ns:

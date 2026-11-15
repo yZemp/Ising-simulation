@@ -33,10 +33,55 @@ source "$ACTIVATE_SCRIPT"
 # N_VALUES=(4 6 8 10 15 25)
 # DIM_VALUES=(3)
 
-N_VALUES=(50)
+N_VALUES=(100)
+DIM_VALUES=(1)
+
+STEPS=0
+
+echo "Starting many simulations:"
+echo "N_VALUES: ${N_VALUES[*]}"
+echo "DIM_VALUES: ${DIM_VALUES[*]}"
+# echo "STEPS: $STEPS"
+
+start_time=$(date +%s)
+
+for dim in "${DIM_VALUES[@]}"; do
+    for N in "${N_VALUES[@]}"; do
+        
+        echo "* [$(date +'%Y-%m-%d %H:%M:%S')] Calling main.py with args: N=$N | dim=$dim | steps=$STEPS"
+        
+        python main.py -N "$N" -dim "$dim" -steps "$STEPS"
+        
+    done
+done
+
+
+N_VALUES=(25)
+DIM_VALUES=(2)
+
+STEPS=0
+
+echo "Starting many simulations:"
+echo "N_VALUES: ${N_VALUES[*]}"
+echo "DIM_VALUES: ${DIM_VALUES[*]}"
+# echo "STEPS: $STEPS"
+
+start_time=$(date +%s)
+
+for dim in "${DIM_VALUES[@]}"; do
+    for N in "${N_VALUES[@]}"; do
+        
+        echo "* [$(date +'%Y-%m-%d %H:%M:%S')] Calling main.py with args: N=$N | dim=$dim | steps=$STEPS"
+        
+        python main.py -N "$N" -dim "$dim" -steps "$STEPS"
+        
+    done
+done
+
+N_VALUES=(10)
 DIM_VALUES=(3)
 
-STEPS=50_000
+STEPS=0
 
 echo "Starting many simulations:"
 echo "N_VALUES: ${N_VALUES[*]}"

@@ -463,33 +463,36 @@ def tau_blocking_plateau(N, dim, data_file, filename = "tau_blocking_plateau.pdf
 
     print(f"Raw data shape: {raw_data.shape}")
 
+    n = len(raw_data)
+
     observables = np.array([magnetization(model) for model in raw_data])
 
-    tau_int, err, Nb_array, tau_int_estimates_array, _, _ = tau_int_blocking(observables, c = 10.0)
+    tau_int, err, nb_array, tau_int_estimates_array, _, _ = tau_int_blocking(observables, c = 10.0)
 
-    k = len(observables) / Nb_array[np.where(tau_int_estimates_array == tau_int)[0][0]]  # Number of samples per block at the plateau
+    k = len(observables) / nb_array[np.where(tau_int_estimates_array == tau_int)[0][0]]  # Number of samples per block at the plateau
     tau_int, M = tau_int_sokal(observables, c = 5.0)
-    err_array = tau_int_estimates_array * np.sqrt(2.0 / (Nb_array - 1))
+    err_array = tau_int_estimates_array * np.sqrt(2.0 / (nb_array - 1))
     
     plt.figure(figsize=(10, 6))
-    plt.errorbar(Nb_array, tau_int_estimates_array, yerr=err_array, marker='o', capsize=3, ecolor='#482878', color='#482878', label=r"$\tau_{int}$ estimates")
+    plt.errorbar(n // nb_array, tau_int_estimates_array, yerr=err_array, marker='o', capsize=3, ecolor='#482878', color='#482878', label=r"$\tau_{int}$ estimates")
     plt.axhline(y=tau_int, color="#35B779", linestyle='solid', linewidth=1.5, label=f'Plateau value: {tau_int:.2f}')
-    plt.xlabel('Number of blocks (Nb)')
+    plt.xlabel('k (Number of samples per block)')
     plt.ylabel(r"$\tau_{int}$ estimates")
     plt.xscale('log')
     plt.title(f'Blocking Method - N = {N}, dim = {dim}, T = {temperatures[T_index]:.2f}')
     plt.plot([], [], ' ', label=f"k = {k:.2f} samples per block at plateau")
     plt.plot([], [], ' ', label=f"M = {M:.2f}")
+    plt.plot([], [], ' ', label=f"Original number of samples: {n:,}")
     plt.grid(True, which="both", ls="--", alpha=0.5)
     plt.legend()
-    plt.gca().invert_xaxis()
+    # plt.gca().invert_xaxis()
     plt.tight_layout()
     plt.savefig(filename, format='pdf', bbox_inches='tight')
     plt.close()
 
     # Dump data to a text file for further analysis
     data_dump_filename = f"tau_blocking_plateau_data_N_{N}_dim_{dim}_T_{temperatures[T_index]:.2f}.txt"
-    np.savetxt(data_dump_filename, np.column_stack((Nb_array, tau_int_estimates_array)), header="Nb\tTau_int_estimates", comments='')
+    np.savetxt(data_dump_filename, np.column_stack((nb_array, tau_int_estimates_array)), header="Nb\tTau_int_estimates", comments='')
     print(f"Data dumped to {data_dump_filename}")
 
 
@@ -620,6 +623,8 @@ def true_tc_extraction(sources, dim, filename = "true_tc_extraction.pdf"):
 
     if len(sources) <= 0:
         raise ValueError('`sources` must contain at least one file path')
+
+    accepted_Tc = 2.269 if dim == 2 else (4.5115 if dim == 3 else -1.0)
     
     if dim == 2:
         nu = 1.0
@@ -712,12 +717,21 @@ def true_tc_extraction(sources, dim, filename = "true_tc_extraction.pdf"):
         tc_inf_val,
         tc_inf_err,
         marker='o',
-        color="#FDE725", 
+        color="#35B779", 
         markersize=8,
         linestyle='None',
         capsize=5,
         label=f'Extrapolated $T_C(\\infty) \\approx {tc_inf_val:.3f} \\pm {tc_inf_err:.3f}$',
         zorder=101
+    )
+
+    plt.axhline(
+        accepted_Tc,
+        color='#FDE725',
+        linestyle='--',
+        linewidth=1.5,
+        label=f'Accepted $T_C(\\infty) \\approx {accepted_Tc:.3f}$',
+        zorder=102
     )
 
     # plt.axvline(0, color='grey', linestyle=':', alpha=0.5)
@@ -747,17 +761,19 @@ if __name__ == '__main__':
     # MAGNETIZATION VISUALIZATION EXAMPLE USAGE
 
     # Ns = [5, 10, 20, 30, 50, 70, 100, 150, 200, 250, 300, 500]
+    # Ns = [20, 30, 50, 70, 100, 150, 200, 250, 300, 500]
     # dim = 1
 
     # Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
     # Ns = [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100]
-    # dim = 2
+    Ns = [10, 15, 20, 25, 30, 40, 50, 60, 80, 100]
+    dim = 2
     
     # Ns = [4, 6, 8, 10, 15, 30]
     # dim = 3
 
-    # sources = [r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns]
-    # graph_magnetization_convergence(sources, dim, filename = f"magnetization_convergence_{dim}D.pdf")
+    sources = [r"E:\simulations_data\sweep_based_chains\dim_{dim}_N_{N}_data.hdf5".format(dim = dim, N = N) for N in Ns]
+    graph_magnetization_convergence(sources, dim, filename = f"magnetization_convergence_{dim}D.pdf")
 
 
     #########################################################################################
@@ -833,10 +849,10 @@ if __name__ == '__main__':
     #########################################################################################
     # Blocking plateau VISUALIZATION EXAMPLE USAGE
 
-    N = 25
-    dim = 2
-    data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
-    tau_blocking_plateau(N, dim, data_file, filename = f"tau_blocking_plateau_N_{N}_dim_{dim}.pdf", T_index = 50)
+    # N = 25
+    # dim = 2
+    # data_file = f"E:\\simulations_data\\dim_{dim}_N_{N}" + "_data.hdf5"
+    # tau_blocking_plateau(N, dim, data_file, filename = f"tau_blocking_plateau_N_{N}_dim_{dim}.pdf", T_index = 50)
 
 
     #########################################################################################
