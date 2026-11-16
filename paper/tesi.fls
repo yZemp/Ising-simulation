@@ -119,6 +119,8 @@ INPUT c:/texlive/2026/texmf-dist/tex/latex/hyperref/hluatex.def
 INPUT c:/texlive/2026/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty
 INPUT c:/texlive/2026/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty
 INPUT c:/texlive/2026/texmf-dist/tex/latex/xurl/xurl.sty
+INPUT c:/texlive/2026/texmf-dist/tex/latex/caption/caption.sty
+INPUT c:/texlive/2026/texmf-dist/tex/latex/caption/caption3.sty
 INPUT c:/texlive/2026/texmf-dist/tex/latex/natbib/natbib.sty
 INPUT c:/texlive/2026/texmf-dist/tex/latex/xcolor/xcolor.sty
 INPUT c:/texlive/2026/texmf-dist/tex/latex/graphics-cfg/color.cfg
@@ -129,6 +131,7 @@ INPUT ./tesi.aux
 INPUT ./chapter_1_theory.aux
 INPUT ./chapter_2_methods.aux
 INPUT ./chapter_3_results.aux
+INPUT ./chapter_4_conclusions.aux
 OUTPUT tesi.aux
 INPUT c:/texlive/2026/texmf-dist/tex/latex/microtype/mt-cmr.cfg
 INPUT c:/texlive/2026/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
@@ -148,7 +151,6 @@ INPUT ./images/logo_unimib.png
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmr17.tfm
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmbx12.tfm
 INPUT c:/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map
-INPUT ./tesi.toc
 INPUT c:/texlive/2026/texmf-dist/tex/latex/lm/ot1lmr.fd
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/rm-lmr12.tfm
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/rm-lmr8.tfm
@@ -173,6 +175,7 @@ INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT c:/texlive/2026/texmf-dist/tex/latex/microtype/mt-msb.cfg
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
+INPUT ./tesi.toc
 OUTPUT tesi.toc
 OUTPUT chapter_1_theory.aux
 INPUT ./chapter_1_theory.tex
@@ -204,6 +207,7 @@ INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam5.tfm
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
 INPUT ../pics_and_anims/ED_(15, 15)_6.26.pdf
 INPUT ../pics_and_anims/ED_(15, 15)_6.26.pdf
+INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmr10.tfm
 INPUT ../pics_and_anims/ED_(20, 20)_3.26.pdf
 INPUT ../pics_and_anims/ED_(20, 20)_3.26.pdf
 INPUT ../pics_and_anims/autocorrelation_plot.pdf
@@ -224,13 +228,18 @@ INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam7.tfm
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmr7.tfm
-INPUT ./_minted/2D96EC2F3B5FCC23B70641DD2F5B4381.highlight.minted
+INPUT ./_minted/C4DDDC906A613BA4CD1F49C6CAB3ACD8.highlight.minted
 INPUT ../pics_and_anims/tau_blocking_plateau_N_25_dim_2.pdf
 INPUT ../pics_and_anims/tau_blocking_plateau_N_25_dim_2.pdf
 INPUT ../pics_and_anims/data_blocking_partial_visualization.pdf
 INPUT ../pics_and_anims/data_blocking_partial_visualization.pdf
 INPUT ../pics_and_anims/tau_int_better_N_100_dim_1.pdf
 INPUT ../pics_and_anims/tau_int_better_N_100_dim_1.pdf
+INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/rm-lmr10.tfm
+INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/lmmi10.tfm
+INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/lmsy10.tfm
+INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam10.tfm
+INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT ../pics_and_anims/tau_int_better_N_25_dim_2.pdf
 INPUT ../pics_and_anims/tau_int_better_N_25_dim_2.pdf
 INPUT ../pics_and_anims/tau_int_better_N_10_dim_3.pdf
@@ -265,13 +274,17 @@ INPUT ../pics_and_anims/ising_2D_N70_cold_final.pdf
 INPUT ../pics_and_anims/ising_2D_N70_cold_final.pdf
 INPUT ../pics_and_anims/ising_2D_N70_final.pdf
 INPUT ../pics_and_anims/ising_2D_N70_final.pdf
+OUTPUT chapter_4_conclusions.aux
+INPUT ./chapter_4_conclusions.tex
 INPUT ./tesi.aux
 INPUT ./chapter_1_theory.aux
 INPUT ./chapter_2_methods.aux
 INPUT ./chapter_3_results.aux
+INPUT ./chapter_4_conclusions.aux
 INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmbx12.pfb
 INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmcsc10.pfb
 INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmex10.pfb
+INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmi10.pfb
 INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmi12.pfb
 INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmi6.pfb
 INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmi8.pfb

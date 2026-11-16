@@ -11,7 +11,7 @@ The fundamental assumption of the model is that a solid ferromagnet can be repre
 where:
 
 \begin{itemize}
-  \item $\sigma_i$ is the spin value of the ion of the i-th lattice site.
+  \item $\sigma_i \in \{-1, 1\}$ is the spin value of the ion of the i-th lattice site.
   \item $J_{ij}$ is a coupling factor between the i-th and j-th lattice sites.
   \item The sum over $\left< i, j \right>$ is meant to be over nearest neighbours.
   \item $h_i$ is the magnetic field in the i-th site.
@@ -22,16 +22,16 @@ This is the special case of the more general quantum Hamiltonian
 
 \begin{equation}
   \label{eq:qham}
-  \hat{H} = - \sum_{\left< i, j \right>} J_{ij} \hat{\sigma_i^z} \hat{\sigma_j^z} - \mu \sum_{i} \left( h_{i,x} \hat{\sigma_i^x} + h_{i,y} \hat{\sigma_i^y} + h_{i,z} \hat{\sigma_i^z} \right)
+  \hat{H} = - \sum_{\left< i, j \right>} J_{ij} \hat{\sigma}_i^z \hat{\sigma}_j^z - \mu \sum_{i} \left( h_{i,x} \hat{\sigma}_i^x + h_{i,y} \hat{\sigma}_i^y + h_{i,z} \hat{\sigma}_i^z \right)
 \end{equation}
 
 where $\sigma_i$ are replaced by the Pauli matrices of the i-th site.
 
-In this text only $ h_{i,z} $ will ever be assumed $\neq 0$. If both $ h_{i,x} $ and $ h_{i,y} $ are null then every operator commutes with each other in the canonical basis, which means that equations \ref{eq:ham} and \ref{eq:qham} are the same.
+In this text only $ h_{i,z} $ will ever be assumed $\neq 0$. If both $ h_{i,x} $ and $ h_{i,y} $ are null then every operator is diagonal in the canonical basis, which means that equations \ref{eq:ham} and \ref{eq:qham} share the same spectrum.
 
 \br
 
-Given that the quantities $N = $ number of particles, $V = N a^d = $ volume of the lattice (where $a$ is the unimportant lattice constant that can be set to $1$) are fixed, if the system is in thermal equilibrium with a reservoir at temperature $T$ then the set of microstates of the system is described by the canonical ensemble. In this case, the probability of the system to be in a microstate $\sigma$ is given by the Boltzmann distribution
+Given that the quantities $N = $ number of particles per side, $V = N^d a^d = $ volume of the lattice (where $a$ is the unimportant lattice constant that can be set to $1$) are fixed, if the system is in thermal equilibrium with a reservoir at temperature $T$ then the set of microstates of the system is described by the canonical ensemble. In this case, the probability of the system to be in a microstate $\sigma$ is given by the Boltzmann distribution
 
 \begin{equation}
   P_{\beta}(\sigma) = \frac{e^{- \beta H(\sigma)}}{Z_{\beta}}
@@ -56,7 +56,7 @@ The minus in front of the first sum in equations \ref{eq:ham} and \ref{eq:qham} 
   \item $J_{ij} = 0$: non-interacting
 \end{enumerate}
 
-Historically, the Ising model is conventionally intended to be ferromagnetic. For simplicity's sake, $J_{ij}$ along the constants $\kb$, $\hbar$, $h_i$, $\mu$ will be set $= 1 \; \forall i, j$, when not null.
+Historically, the Ising model is conventionally intended to be ferromagnetic. For simplicity's sake, $J_{ij}$ along with the constants $\kb$, $\hbar$, $h_i$, $\mu$ will be set $= 1 \; \forall i, j$, when not null.
 
 \section{Theory of phase transitions}
 
@@ -79,7 +79,7 @@ which takes the name of magnetization.
 This is a handy observable in the numerical approach because its mean per lattice site is easily obtainable by averaging the spin values of the lattice sites. The formula can be derived using equation \ref{eq:free_energy} and the definition of the partition function \ref{eq:partition_function}:
 
 \begin{equation}
-  \left<M\right> = \frac{1}{N} \frac{\partial}{\partial h} \left( \frac{1}{\beta} \ln{Z} \right) = \frac{1}{N} \sum_{i} \sigma_i
+  \left<M\right> = \frac{1}{N^d} \frac{\partial}{\partial h} \left( \frac{1}{\beta} \ln{Z} \right) = \left< \frac{1}{N^d} \sum_{i} \sigma_i \right>
 \end{equation}
 
 and studying its behaviour as a function of the temperature $T$ and the external magnetic field $h$ one can identify the phase transitions. Note that the symbol $\left< M \right>$ in this work refers to the \textit{mean value of the magnetization per lattice site}.
@@ -89,7 +89,7 @@ It should be noted that these definitions formally hold even in the case of no e
 In a finite system the Hamiltonian is symmetric under the transformation $\sigma_i \rightarrow -\sigma_i$, and this causes the magnetization to be zero when $h = 0$ because 
 
 \begin{equation}
-  \left<M\right> = \left. \frac{1}{N} \frac{\partial}{\partial h} \left( \frac{\ln{Z}}{\beta} \right) \right|_{h=0} = 0 \quad \forall \; T
+  \left<M\right> = \left. \frac{1}{N^d} \frac{\partial}{\partial h} \left( \frac{\ln{Z}}{\beta} \right) \right|_{h=0} = 0 \quad \forall \; T
 \end{equation}
 
 The solution to this problem is to consider this partial derivative in the general case, and then take the limit $h \rightarrow 0$ after the thermodynamic limit $N \rightarrow \infty$. This is equivalent to adding a small external magnetic field to the system, and then taking the limit of this field going to zero after the thermodynamic limit has been taken into account.
@@ -97,7 +97,7 @@ The solution to this problem is to consider this partial derivative in the gener
 Another important partial derivative is the first derivative of the magnetization with respect to the magnetic field, which defines the (isothermal) magnetic susceptibility:
 
 \begin{equation}
-  \chi = \frac{\partial \langle M \rangle}{\partial h} = -\frac{\partial^2 F}{\partial h^2}
+  \chi = \frac{\partial \langle M \rangle}{\partial h} = -\frac{1}{N^d} \frac{\partial^2 F}{\partial h^2}
   \label{def:susceptibility}
 \end{equation}
 
@@ -165,7 +165,7 @@ Which yields the eigenvalues:
 From which it follows, for any finite $N$:
 
 \begin{equation}
-  Z = \lambda_{+}^N + \lambda_{-}^N = \left( 2 \cosh(\beta) \right)^N + \left( 2 \sinh(\beta) \right)^N
+  Z = \lambda_{+}^N + \lambda_{-}^N = \left( 2 \cosh{\beta} \right)^N + \left( 2 \sinh{\beta} \right)^N
 \end{equation}
 
 Computing the limit $N \rightarrow \infty$ we can see that the partition function is dominated by the largest eigenvalue ($\lambda_{+}$):
@@ -174,7 +174,7 @@ Computing the limit $N \rightarrow \infty$ we can see that the partition functio
   \lim_{N \rightarrow \infty} Z = \lim_{N \rightarrow \infty} \lambda_{+}^N \left[1 + \left(\frac{\lambda_{-}}{\lambda_{+}}\right)^N\right] \sim \lambda_{+}^N
 \end{equation}
 
-since $\tanh{\beta}^N \rightarrow 0$ as $N \rightarrow \infty$ for every $T > 0$.
+since $(\tanh{\beta})^N \rightarrow 0$ as $N \rightarrow \infty$ for every $T > 0$.
 
 And thus, going back to the free energy (equation \ref{eq:free_energy}) we can see that it is analytic for every $T > 0$, and thus the one dimensional Ising model does not exhibit a phase transition at any finite temperature.
 
@@ -184,7 +184,7 @@ Some assumptions can be made to understand how the magnetization function should
 Since $F$ is analytic for every $T > 0$, the magnetization function has to be so as well. Since $F(T, h) = F(T, -h)$, using the definition \ref{def:magnetization} it follows that $M(T, h) = - M(T, -h)$, and thus $M(T, 0) = 0$ for every $T > 0$.
 The last constraint is that the magnetization has to collapse to $M = \pm 1$ at exactly $T = 0$, since the system has no thermal fluctuations at absolute zero.
 
-These considerations illustrate the picture of a function which is zero everywhere except at $T = 0$, where it jumps to $|M| = 1$, and somehow smoothly connects the two values. This is consistent with the numerical results, as will be shown in chapter 3.
+These considerations illustrate the picture of a function which is zero everywhere except at $T = 0$, where it jumps to $|M| = 1$, and somehow connects the two values. This is consistent with the numerical results, as will be shown in chapter 3.
 
 \subsection{Two dimensional case}
 
@@ -211,7 +211,7 @@ Since the 2D case is not analytically solved with $h \neq 0$, the magnetization 
   \end{cases}
 \end{equation}
 
-which is very close to a step function. This of course makes sense, since the order state of the system has to either be $|M| = 1$ for $T < T_C$ or $M = 0$ for $T > T_C$. Note that this equation is the source of the condition \ref{eq:onsager_condition} for $T_C$.
+which is very close to a step function. This of course makes sense, since the order state of the system has to either be $|M| \sim 1$ for $T < T_C$ or $M = 0$ for $T > T_C$. Note that this equation is the source of the condition \ref{eq:onsager_condition} for $T_C$.
 
 This also is consistent with the numerical results, as will be shown in chapter 3.
 
